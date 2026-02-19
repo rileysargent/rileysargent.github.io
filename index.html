@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diggin' PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; overflow: hidden; }
+        #stats { display: flex; gap: 20px; padding: 10px; background: #333; width: 100%; justify-content: center; border-bottom: 2px solid #555; }
+        canvas { border: 5px solid #444; background: #4b3832; margin-top: 10px; cursor: crosshair; }
+        #shop { margin-top: 10px; padding: 10px; background: #222; border-radius: 8px; width: 380px; }
+        .fuel-bar { width: 400px; height: 10px; background: #444; margin-top: 5px; border-radius: 5px; }
+        #fuel-fill { height: 100%; background: #ff4444; width: 100%; border-radius: 5px; transition: width 0.2s; }
+        button { background: #4CAF50; color: white; border: none; padding: 8px; margin: 5px; border-radius: 4px; cursor: pointer; width: 100%; }
+        button:disabled { background: #888; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div id="stats">
+    <span>Depth: <b id="depth">0</b>m</span>
+    <span>Cash: $<b id="cash">0</b></span>
+</div>
+<div class="fuel-bar"><div id="fuel-fill"></div></div>
+
+<canvas id="gameCanvas" width="400" height="400"></canvas>
+
+<div id="shop">
+    <div id="upgrade-tree"></div>
+    <button onclick="refuel()" id="refuel-btn">Refuel ($20)</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const tileSize = 40;
+
+    let player = { x: 5, depth: 0, cash: 0, fuel: 100, maxFuel: 100, drillPower: 1 };
+    let world = {};
+    let upgrades = {
+        tank1: { name: "Bigger Tank", cost: 100, fuel: 250, bought: false, unlocks: 'tank2' },
+        tank2: { name: "Nuclear Core", cost: 500, fuel: 1000, bought: false, unlocks: null },
+        drill1: { name: "Iron Drill (+Cash)", cost: 150, power: 2, bought: false, unlocks: 'drill2' },
+        drill2: { name: "Diamond Drill", cost: 600, power: 5, bought: false, unlocks: null }
+    };
+
+    function getTile(x, y) {
+        if (y < 5) return "air";
+        if (world[`${x},${y}`]) return "air";
+        let noise = Math.abs(Math.sin(x * 432.1 + y * 123.4));
+        if (noise > 0.96) return "diamond";
+        if (noise > 0.90) return "gold";
+        return "dirt";
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let y = 0; y < 10; y++) {
+            for (let x = 0; x < 10; x++) {
+                let worldY = y + player.depth;
+                let type = getTile(x, worldY);
+                if (type === "dirt") ctx.fillStyle = worldY > 50 ? "#3d2b1f" : "#5d4037";
+                else if (type === "gold") ctx.fillStyle = "#ffd700";
+                else if (type === "diamond") ctx.fillStyle = "#00ffff";
+                else ctx.fillStyle = "#1a1a1a";
+                ctx.fillRect(x * tileSize, y * tileSize, tileSize - 1, tileSize - 1);
+            }
+        }
+        ctx.fillStyle = player.fuel > 0 ? "#ffcc00" : "#555";
+        ctx.fillRect(player.x * tileSize + 10, 4 * tileSize + 10, 20, 20);
+    }
+
+    function refuel() {
+        if (player.cash >= 20) { player.cash -= 20; player.fuel = player.maxFuel; update(); }
+    }
+
+    function update() {
+        document.getElementById('cash').innerText = player.cash;
+        document.getElementById('depth').innerText = player.depth;
+        document.getElementById('fuel-fill').style.width = (player.fuel / player.maxFuel * 100) + "%";
+        renderShop();
+        draw();
+    }
+
+    function renderShop() {
+        const tree = document.getElementById('upgrade-tree');
+        tree.innerHTML = "";
+        for (let id in upgrades) {
+            let up = upgrades[id];
+            let locked = Object.values(upgrades).some(prev => prev.unlocks === id && !prev.bought);
+            if (!up.bought && !locked) {
+                let btn = document.createElement('button');
+                btn.innerText = `${up.name} ($${up.cost})`;
+                btn.disabled = player.cash < up.cost;
+                btn.onclick = () => {
+                    player.cash -= up.cost;
+                    up.bought = true;
+                    if (up.fuel) player.maxFuel = up.fuel;
+                    if (up.power) player.drillPower = up.power;
+                    update();
+                };
+                tree.appendChild(btn);
+            }
+        }
+    }
+
+    window.addEventListener('keydown', e => {
+        if (player.fuel <= 0) return;
+        let dx = 0, dy = 0;
+        if (e.key === "ArrowLeft") dx = -1;
+        if (e.key === "ArrowRight") dx = 1;
+        if (e.key === "ArrowDown") dy = 1;
+
+        let tx = player.x + dx;
+        let ty = player.depth + 4 + dy;
+
+        if (tx >= 0 && tx < 10) {
+            let tile = getTile(tx, ty);
+            if (tile !== "air") {
+                world[`${tx},${ty}`] = true;
+                player.fuel -= 2;
+                player.cash += (tile === "gold" ? 50 : tile === "diamond" ? 200 : 10) * player.drillPower;
+            }
+            player.x = tx;
+            if (dy > 0) player.depth++;
+            update();
+        }
+    });
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    update();
+</script>
+</body>
+</html>

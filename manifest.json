@@ -1,0 +1,15 @@
+{
+  "name": "Diggin' PWA",
+  "short_name": "Diggin",
+  "start_url": "file:///home/chronos/u-68e8a2c7d7c776e36bb9baf67ebcb45d314ebd80/MyFiles/Downloads/PWA/index.html",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#ffcc00",
+  "icons": [
+    {
+      "src": "images/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
