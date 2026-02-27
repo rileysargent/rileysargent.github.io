@@ -32,7 +32,7 @@
     overflow: hidden;
   }
 
-  /* Auth Buttons container */
+  /* Sign-in buttons container */
   #authContainer {
     position: absolute; top: 10px; right: 10px; z-index: 999; display: flex; gap: 8px;
   }
@@ -44,7 +44,7 @@
     opacity: 0.9;
   }
 
-  /* Sidebar */
+  /* Sidebar styles */
   #sidebar {
     display: none;
     width: 250px;
@@ -122,7 +122,6 @@
     display: none;
     flex: 1;
     overflow: auto;
-    display: flex;
     flex-direction: column;
   }
   .panel.show {
@@ -151,7 +150,7 @@
     font-weight: 600;
   }
 
-  /* Chat */
+  /* Chat panel */
   #chat {
     display: flex;
     flex-direction: column;
@@ -275,7 +274,7 @@
 <!-- Auth Buttons -->
 <div id="authContainer">
   <button onclick="signInWithGoogle()">Sign in with Google</button>
-  <button onclick="showEmailLogin()">Sign in</button>
+  <button onclick="showSignIn()">Sign in</button>
   <button onclick="showSignUp()">Sign Up</button>
 </div>
 <button id="signOutBtn" style="display:none; position:absolute; top:10px; right:10px; z-index:999; background:#555; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;" onclick="signOut()">Sign Out</button>
@@ -377,7 +376,7 @@
   let convos = {};
 
   // Show Sign-in modal for email/password
-  function showEmailLogin() {
+  function showSignIn() {
     document.getElementById('modalOverlay').style.display='flex';
     document.getElementById('modalTitle').innerText='Sign In';
     document.getElementById('modalActionBtn').innerText='Sign In';
@@ -411,9 +410,23 @@
     closeModal();
   }
 
+  // Sign in with Google
   function signInWithGoogle() {
     const provider=new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(console.error);
+    auth.signInWithPopup(provider).then(userCredential => {
+      let user = userCredential.user;
+      // Set a custom display name if not set
+      const customName = "My Custom Name"; // Change this as needed
+      if (!user.displayName || user.displayName === '') {
+        user.updateProfile({ displayName: customName }).then(() => {
+          user.reload().then(() => {
+            document.getElementById('userDisplay').innerText = user.displayName || user.email;
+          });
+        });
+      } else {
+        document.getElementById('userDisplay').innerText = user.displayName || user.email;
+      }
+    }).catch(console.error);
   }
 
   function signOut() {
@@ -479,7 +492,7 @@
     closeBot();
   }
 
-  // Chat logic
+  // Chat
   let activeBot=null;
   function openChat(bot) {
     activeBot=bot;
@@ -529,7 +542,7 @@
   document.getElementById('sendBtn').addEventListener('click', sendMessage);
 
   // Panel toggle
-  function showPanel(id) {
+  function showPanel(id){
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
     document.getElementById('panel-'+id).classList.add('show');
   }
