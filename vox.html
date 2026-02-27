@@ -4,292 +4,200 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>HyperAI</title>
-<!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
 <style>
-  :root {
-    --accent: #7c6cf0;
-    --bg: #0e0e12;
-    --bg2: #15151a;
-    --bg3: #1c1c24;
-    --bd: rgba(255,255,255,.065);
-    --tx: #ededf4;
-    --t2: #80809a;
-    --r: 12px;
-    --rs: 8px;
-  }
+:root {
+  --accent: #7c6cf0;
+  --bg: #0e0e12;
+  --bg2: #15151a;
+  --bg3: #1c1c24;
+  --bd: rgba(255,255,255,.065);
+  --tx: #ededf4;
+  --t2: #80809a;
+  --r: 12px;
+  --rs: 8px;
+}
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--tx);
-    margin: 0;
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-  }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
 
-  /* Sign-in buttons container */
-  #authContainer {
-    position: absolute; top: 10px; right: 10px; z-index: 999; display: flex; gap: 8px;
-  }
-  #authContainer button {
-    padding: 8px 12px; border: none; border-radius: var(--rs); cursor: pointer; font-family: 'DM Sans'; font-weight: 600;
-    background: var(--accent);
-  }
-  #authContainer button:hover {
-    opacity: 0.9;
-  }
+/* Auth buttons */
+#authContainer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 999;
+  display: flex;
+  gap: 8px;
+}
+#authContainer button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--rs);
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+}
 
-  /* Sidebar styles */
-  #sidebar {
-    display: none;
-    width: 250px;
-    background: var(--bg2);
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow-y: auto;
-    border-right: 1px solid var(--bd);
-    padding: 15px;
-  }
-  #sidebar #logo {
-    text-align: center;
-    margin-bottom: 10px;
-  }
-  #sidebar h1 {
-    font-family: 'Sora', sans-serif;
-    font-weight: 700;
-    font-size: 20px;
-    margin: 0;
-  }
-  #sidebar p {
-    font-size: 11px;
-    color: var(--t2);
-  }
-  #userDisplay {
-    margin: 15px 0;
-    font-size: 14px;
-    color: #fff;
-  }
-  #nav {
-    display: flex;
-    flex-direction: column;
-  }
-  .nav-btn {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    margin: 4px 0;
-    border-radius: var(--rs);
-    border: none;
-    background: none;
-    color: var(--tx);
-    cursor: pointer;
-    font-family: 'DM Sans';
-    font-weight: 500;
-    transition: background 0.2s;
-  }
-  .nav-btn:hover, .nav-btn.active {
-    background: var(--bg3);
-  }
+/* Sign-out */
+#signOutBtn {
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:999;
+  background:#555;
+  color:#fff;
+  border:none;
+  padding:8px 12px;
+  border-radius:4px;
+  cursor:pointer;
+}
 
-  /* Main content */
-  #content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
+/* Sidebar */
+#sidebar {
+  width: 250px;
+  background: var(--bg2);
+  flex-direction: column;
+  display: none;
+  height: 100%;
+  border-right: 1px solid var(--bd);
+  padding: 15px;
+}
+#logo { text-align:center; }
+#logo h1 { font-family:'Sora'; margin:0; }
+#logo p { font-size:11px; color:var(--t2); }
 
-  /* Topbar */
-  #topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    border-bottom: 1px solid var(--bd);
-  }
-  #topbar h2 {
-    margin: 0;
-  }
+#userDisplay {
+  margin: 15px 0;
+  font-size: 14px;
+}
 
-  /* Panels */
-  .panel {
-    display: none;
-    flex: 1;
-    overflow: auto;
-    flex-direction: column;
-  }
-  .panel.show {
-    display: flex;
-  }
+.nav-btn {
+  display:flex;
+  align-items:center;
+  padding:10px;
+  margin:4px 0;
+  border-radius:var(--rs);
+  border:none;
+  background:none;
+  color:var(--tx);
+  cursor:pointer;
+}
+.nav-btn:hover, .nav-btn.active { background: var(--bg3); }
 
-  /* Discover */
-  #discover {
-    align-items: center;
-    justify-content: center;
-    display: flex;
-  }
-  #discover .empty {
-    text-align: center;
-    padding: 20px;
-    color: var(--t2);
-  }
-  #discover button {
-    margin-top: 20px;
-    padding: 10px 20px;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--rs);
-    cursor: pointer;
-    font-weight: 600;
-  }
+/* Content */
+#content {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
 
-  /* Chat panel */
-  #chat {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-  #messages {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .msg {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .msg-user {
-    flex-direction: row-reverse;
-  }
-  .avatar {
-    width: 30px;
-    height: 30px;
-    background: var(--bg3);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: #fff;
-    font-size: 14px;
-  }
-  .msg-bubble {
-    max-width: 70%;
-    padding: 8px 12px;
-    border-radius: 12px;
-    background: var(--bg3);
-    font-size: 14px;
-  }
-  .msg-user .msg-bubble {
-    background: var(--accent);
-    color: #fff;
-  }
+/* Panels */
+.panel { display:none; flex:1; overflow:auto; }
+.panel.show { display:flex; }
 
-  /* Input area */
-  #inputArea {
-    display: flex;
-    padding: 10px 20px;
-    border-top: 1px solid var(--bd);
-  }
-  #chatInput {
-    flex: 1;
-    resize: none;
-    padding: 8px 10px;
-    border: none;
-    border-radius: var(--rs);
-    font-family: 'DM Sans';
-    font-size: 14px;
-  }
-  #sendBtn {
-    margin-left: 10px;
-    padding: 8px 12px;
-    background: var(--accent);
-    border: none;
-    border-radius: var(--rs);
-    color: #fff;
-    cursor: pointer;
-  }
+/* Messages */
+#messages {
+  flex:1;
+  padding:10px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.msg {
+  display:flex;
+  gap:8px;
+}
+.msg-user { flex-direction: row-reverse; }
 
-  /* Modal for email/password */
-  #modalOverlay {
-    display: none;
-    position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(0,0,0,0.6);
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  }
-  #modalBox {
-    background: #fff;
-    padding: 20px;
-    border-radius: var(--r);
-    width: 90%;
-    max-width: 400px;
-  }
-  #modalBox h3 {
-    margin-top:0;
-  }
-  #modalBox label {
-    display: block;
-    margin-top: 10px;
-    font-size: 12px;
-  }
-  #modalBox input, #modalBox textarea {
-    width: 100%;
-    padding: 8px;
-    margin-top: 4px;
-    border: 1px solid var(--bd);
-    border-radius: var(--rs);
-  }
-  #modalButtons {
-    margin-top: 15px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-  #modalButtons button {
-    padding: 8px 12px;
-    border: none;
-    border-radius: var(--rs);
-    cursor: pointer;
-  }
-  .cancel { background:#888; color:#fff; }
-  .create { background:var(--accent); color:#fff; }
+.avatar {
+  width:30px;
+  height:30px;
+  background: var(--bg3);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+}
+
+.msg-bubble {
+  max-width:70%;
+  padding:8px 12px;
+  border-radius:12px;
+  background: var(--bg3);
+}
+.msg-user .msg-bubble {
+  background: var(--accent);
+}
+
+/* Input */
+#inputArea {
+  display:flex;
+  padding:10px;
+  border-top:1px solid var(--bd);
+}
+#chatInput {
+  flex:1;
+  resize:none;
+  padding:8px;
+}
+#sendBtn {
+  margin-left:10px;
+}
+
+/* Bot modal */
+#botModal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+#botModal > div {
+  background:white;
+  padding:20px;
+  border-radius:8px;
+}
 </style>
 </head>
+
 <body>
 
-<!-- Auth Buttons -->
+<!-- Auth -->
 <div id="authContainer">
   <button onclick="signInWithGoogle()">Sign in with Google</button>
   <button onclick="showSignIn()">Sign in</button>
   <button onclick="showSignUp()">Sign Up</button>
 </div>
-<button id="signOutBtn" style="display:none; position:absolute; top:10px; right:10px; z-index:999; background:#555; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;" onclick="signOut()">Sign Out</button>
+<button id="signOutBtn" style="display:none" onclick="signOut()">Sign Out</button>
 
-<!-- Modal for Email/Password Sign In / Sign Up -->
-<div id="modalOverlay">
-  <div id="modalBox">
+<!-- Modal auth -->
+<div id="modalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+  <div id="modalBox" style="background:white; padding:20px; border-radius:8px; width:90%; max-width:400px;">
     <h3 id="modalTitle">Sign In</h3>
     <label>Email:</label>
-    <input type="email" id="emailInput" />
+    <input type="email" id="emailInput">
     <label>Password:</label>
-    <input type="password" id="passwordInput" />
-    <div id="modalButtons" style="margin-top:10px; justify-content:flex-end;">
-      <button class="cancel" onclick="closeModal()">Cancel</button>
-      <button class="create" id="modalActionBtn" onclick="performAuth()">Sign In</button>
+    <input type="password" id="passwordInput">
+
+    <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:10px;">
+      <button onclick="closeModal()">Cancel</button>
+      <button id="modalActionBtn" onclick="performAuth('signin')">Sign In</button>
     </div>
   </div>
 </div>
@@ -301,53 +209,56 @@
     <p>Your AI platform</p>
   </div>
   <div id="userDisplay">Not signed in</div>
+
   <div id="nav">
-    <button class="nav-btn active" id="nav-discover" onclick="showPanel('discover')">Discover</button>
-    <button class="nav-btn" id="nav-chat" onclick="showPanel('chat')">Chat</button>
+    <button class="nav-btn active" onclick="showPanel('discover')">Discover</button>
+    <button class="nav-btn" onclick="showPanel('chat')">Chat</button>
   </div>
+
   <div style="margin-top:10px;">
     <button onclick="openBotModal()">Create a Bot</button>
   </div>
   <div id="bot-list" style="margin-top:10px;">
-    <div id="bot-list-empty">No bots yet. Create one!</div>
+    <div id="bot-list-empty">No bots yet.</div>
   </div>
 </div>
 
-<!-- Main Content -->
-<div id="content" style="flex:1; display:flex; flex-direction:column; height:100%;">
-  <!-- Topbar -->
-  <div id="topbar" style="padding:10px 20px; border-bottom:1px solid var(--bd); display:flex; justify-content: space-between; align-items:center;">
+<!-- Content -->
+<div id="content">
+  <div id="topbar">
     <div>
       <h2 id="tb-title">Discover</h2>
-      <p id="tb-sub" style="margin:0; font-size:11px; color:var(--t2);">Find your AI bots</p>
+      <p id="tb-sub">Find your AI bots</p>
     </div>
   </div>
-  <!-- Panels -->
-  <div id="panel-discover" class="panel show" style="flex:1; padding:20px; overflow:auto;">
-    <div class="empty" style="text-align:center; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--t2);">
+
+  <div id="panel-discover" class="panel show" style="padding:20px;">
+    <div style="text-align:center; color:var(--t2);">
       <div style="font-size:50px;">🤖</div>
-      <div>No bots created yet.<br>Use the sidebar to create one.</div>
+      <div>No bots created yet.</div>
     </div>
   </div>
-  <div id="panel-chat" class="panel" style="flex:1; display:flex; flex-direction:column;">
-    <div id="messages" style="flex:1; padding:10px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;"></div>
-    <div id="inputArea" style="display:flex; padding:10px; border-top:1px solid var(--bd);">
-      <textarea id="chatInput" placeholder="Message..." style="flex:1; resize:none; padding:8px; border:none; border-radius:var(--rs); font-family:'DM Sans'; font-size:14px;"></textarea>
-      <button id="sendBtn" style="margin-left:10px; padding:8px 12px; background:var(--accent); border:none; border-radius:var(--rs); color:#fff; cursor:pointer;" disabled onclick="sendMessage()">Send</button>
+
+  <div id="panel-chat" class="panel" style="flex-direction:column;">
+    <div id="messages"></div>
+    <div id="inputArea">
+      <textarea id="chatInput"></textarea>
+      <button id="sendBtn" disabled>Send</button>
     </div>
   </div>
 </div>
 
-<!-- Create Bot Modal -->
-<div id="botModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:9999;">
-  <div style="background:#fff; padding:20px; border-radius:8px; max-width:400px; width:90%;">
+<!-- Bot modal -->
+<div id="botModal">
+  <div>
     <h3>Create a Bot</h3>
-    <label>Name (unique):</label>
-    <input type="text" id="botName" style="width:100%; margin-bottom:10px;" />
+    <label>Name:</label>
+    <input type="text" id="botName">
     <label>System Prompt:</label>
-    <textarea id="botSys" style="width:100%; height:60px;"></textarea>
+    <textarea id="botSys"></textarea>
     <label>Starting Message:</label>
-    <textarea id="botStart" style="width:100%; height:60px;" placeholder="Initial message when chat starts"></textarea>
+    <textarea id="botStart"></textarea>
+
     <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:10px;">
       <button onclick="closeBotModal()">Cancel</button>
       <button onclick="createBot()">Create</button>
@@ -356,196 +267,189 @@
 </div>
 
 <script>
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyAF8YTlX0gmn51wD81I6yqJIi5evehXKfo",
-    authDomain: "hyperai-r.firebaseapp.com",
-    projectId: "hyperai-r",
-    storageBucket: "hyperai-r.firebasestorage.app",
-    messagingSenderId: "129777724896",
-    appId: "1:129777724896:web:cbf911893d056a59e78f85",
-    measurementId: "G-SCTMKGZ87B"
-  };
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "hyperai-r.firebaseapp.com",
+  projectId: "hyperai-r",
+  storageBucket: "hyperai-r.firebasestorage.app",
+  messagingSenderId: "129777724896",
+  appId: "1:129777724896:web:cbf911893d056a59e78f85"
+};
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-  let currentUser = null;
-  let bots = JSON.parse(localStorage.getItem('bots') || '[]');
-  let convos = {};
+let currentUser = null;
+let bots = JSON.parse(localStorage.getItem('bots') || '[]');
+let convos = {};
+let activeBot = null;
 
-  // Show Sign-in modal for email/password
-  function showSignIn() {
-    document.getElementById('modalOverlay').style.display='flex';
-    document.getElementById('modalTitle').innerText='Sign In';
-    document.getElementById('modalActionBtn').innerText='Sign In';
-    document.getElementById('modalActionBtn').onclick=()=>{ performAuth('signin'); };
-  }
+/* Auth UI */
+function showSignIn() {
+  document.getElementById('modalOverlay').style.display='flex';
+  document.getElementById('modalTitle').innerText='Sign In';
+  document.getElementById('modalActionBtn').innerText='Sign In';
+  document.getElementById('modalActionBtn').onclick=()=>performAuth('signin');
+}
 
-  function showSignUp() {
-    document.getElementById('modalOverlay').style.display='flex';
-    document.getElementById('modalTitle').innerText='Sign Up';
-    document.getElementById('modalActionBtn').innerText='Sign Up';
-    document.getElementById('modalActionBtn').onclick=()=>{ performAuth('signup'); };
-  }
+function showSignUp() {
+  document.getElementById('modalOverlay').style.display='flex';
+  document.getElementById('modalTitle').innerText='Sign Up';
+  document.getElementById('modalActionBtn').innerText='Sign Up';
+  document.getElementById('modalActionBtn').onclick=()=>performAuth('signup');
+}
 
-  function closeModal() {
-    document.getElementById('modalOverlay').style.display='none';
-  }
+function closeModal() {
+  document.getElementById('modalOverlay').style.display='none';
+}
 
-  async function performAuth(mode) {
-    const email=document.getElementById('emailInput').value.trim();
-    const pass=document.getElementById('passwordInput').value.trim();
-    if(!email || !pass) return;
-    try {
-      if(mode==='signin'){
-        await auth.signInWithEmailAndPassword(email, pass);
-      } else {
-        await auth.createUserWithEmailAndPassword(email, pass);
-      }
-    } catch(e) {
-      alert(e.message);
-    }
-    closeModal();
-  }
+async function performAuth(mode) {
+  const email = document.getElementById('emailInput').value.trim();
+  const pass = document.getElementById('passwordInput').value.trim();
+  if(!email || !pass) return;
 
-  // Sign in with Google
-  function signInWithGoogle() {
-    const provider=new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).then(userCredential => {
-      let user = userCredential.user;
-      // Set a custom display name if not set
-      const customName = "My Custom Name"; // Change this as needed
-      if (!user.displayName || user.displayName === '') {
-        user.updateProfile({ displayName: customName }).then(() => {
-          user.reload().then(() => {
-            document.getElementById('userDisplay').innerText = user.displayName || user.email;
-          });
-        });
-      } else {
-        document.getElementById('userDisplay').innerText = user.displayName || user.email;
-      }
-    }).catch(console.error);
-  }
-
-  function signOut() {
-    auth.signOut();
-  }
-
-  // Auth state listener
-  auth.onAuthStateChanged(user => {
-    if(user){
-      currentUser=user;
-      document.getElementById('authContainer').style.display='none';
-      document.getElementById('sidebar').style.display='flex';
-      document.getElementById('content').style.display='flex';
-      document.getElementById('userDisplay').innerText=user.displayName || user.email;
-      document.getElementById('signOutBtn').style.display='inline-block';
-      loadBots();
+  try {
+    if(mode==='signin') {
+      await auth.signInWithEmailAndPassword(email, pass);
     } else {
-      currentUser=null;
-      document.getElementById('authContainer').style.display='flex';
-      document.getElementById('sidebar').style.display='none';
-      document.getElementById('content').style.display='none';
-      document.getElementById('userDisplay').innerText='Not signed in';
-      document.getElementById('signOutBtn').style.display='none';
+      await auth.createUserWithEmailAndPassword(email, pass);
     }
-  });
+  } catch(e) { alert(e.message); }
 
-  // Load bots
-  function loadBots() {
-    const listEl=document.getElementById('bot-list');
-    listEl.innerHTML='';
-    if(bots.length===0){
-      listEl.innerHTML='<div id="bot-list-empty">No bots yet. Create one!</div>';
-    } else {
-      bots.forEach(b => {
-        const btn=document.createElement('button');
-        btn.innerText=b.name;
-        btn.onclick=()=>{ openChat(b); };
-        listEl.appendChild(btn);
-      });
-    }
-  }
+  closeModal();
+}
 
-  // Create bot
-  function openBotModal() {
-    document.getElementById('botName').value='';
-    document.getElementById('botSys').value='';
-    document.getElementById('botStart').value='';
-    document.getElementById('modalOverlay').style.display='flex';
-  }
-  function closeBot() { document.getElementById('modalOverlay').style.display='none'; }
-  function createBot() {
-    const name=document.getElementById('botName').value.trim();
-    const sys=document.getElementById('botSys').value.trim();
-    const startMsg=document.getElementById('botStart').value.trim();
-    if(!name){ alert('Name required'); return; }
-    if(bots.some(b=>b.name===name)){ alert('Name taken'); return; }
-    if(!sys){ alert('System prompt required'); return; }
-    const newBot={ id:'bot_'+Date.now(), name, system:sys, startMsg };
-    bots.push(newBot);
-    localStorage.setItem('bots', JSON.stringify(bots));
+/* Google sign-in */
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(console.error);
+}
+
+function signOut() { auth.signOut(); }
+
+/* Auth state */
+auth.onAuthStateChanged(user => {
+  if(user) {
+    currentUser = user;
+    document.getElementById('authContainer').style.display='none';
+    document.getElementById('sidebar').style.display='flex';
+    document.getElementById('signOutBtn').style.display='block';
+    document.getElementById('userDisplay').innerText = user.displayName || user.email;
+
     loadBots();
-    openChat(newBot);
-    closeBot();
+  } else {
+    currentUser = null;
+    document.getElementById('authContainer').style.display='flex';
+    document.getElementById('sidebar').style.display='none';
+    document.getElementById('signOutBtn').style.display='none';
+  }
+});
+
+/* Bots */
+function loadBots() {
+  const list = document.getElementById('bot-list');
+  list.innerHTML = '';
+
+  if(bots.length === 0) {
+    list.innerHTML = '<div>No bots yet.</div>';
+    return;
   }
 
-  // Chat
-  let activeBot=null;
-  function openChat(bot) {
-    activeBot=bot;
-    document.getElementById('tb-title').innerText=bot.name;
-    document.getElementById('tb-sub').innerText='Chat with '+bot.name;
-    document.querySelector('.panel.show')?.classList.remove('show');
-    document.getElementById('panel-chat').classList.add('show');
-    let history=convos[bot.id]||[];
-    const msgsDiv=document.getElementById('messages');
-    msgsDiv.innerHTML='';
-    if(history.length===0 && bot.startMsg){
-      appendMsg('bot', bot.startMsg);
-      history.push({role:'bot', content:bot.startMsg});
-      convos[bot.id]=history;
-    }
-    history.forEach(m=>appendMsg(m.role,m.content,false));
-  }
-
-  function appendMsg(role, content, animate=true){
-    const div=document.createElement('div');
-    div.className='msg '+(role==='user'?'msg-user':'');
-    div.innerHTML=`<div class="avatar">${role==='user'?'U':activeBot?activeBot.name[0]:'🤖'}</div>
-      <div style="max-width:70%; margin-left:8px;">
-        <div style="font-size:12px; margin-bottom:4px;">${role==='user'?'You':activeBot?activeBot.name:'Bot'}</div>
-        <div style="background:${role==='user'?'#7c6cf0':'#333'}; padding:8px; border-radius:12px; color:#fff;">${content}</div>
-      </div>`;
-    document.getElementById('messages').appendChild(div);
-    document.getElementById('messages').scrollTop=9999;
-  }
-
-  async function sendMessage() {
-    const inputEl=document.getElementById('chatInput');
-    const text=inputEl.value.trim();
-    if(!text || !activeBot) return;
-    appendMsg('user', text);
-    inputEl.value='';
-    if(!convos[activeBot.id]) convos[activeBot.id]=[];
-    convos[activeBot.id].push({role:'user', content:text});
-    // Placeholder reply
-    appendMsg('bot', 'This is a placeholder reply.');
-  }
-
-  document.getElementById('chat').querySelector('button').addEventListener('click', sendMessage);
-  document.getElementById('chatInput').addEventListener('input', ()=> {
-    document.getElementById('sendBtn').disabled=!document.getElementById('chatInput').value.trim();
+  bots.forEach(b => {
+    const btn = document.createElement('button');
+    btn.textContent = b.name;
+    btn.onclick = () => openChat(b);
+    list.appendChild(btn);
   });
-  document.getElementById('sendBtn').addEventListener('click', sendMessage);
+}
 
-  // Panel toggle
-  function showPanel(id){
-    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
-    document.getElementById('panel-'+id).classList.add('show');
+function openBotModal() {
+  document.getElementById('botModal').style.display='flex';
+}
+
+function closeBotModal() {
+  document.getElementById('botModal').style.display='none';
+}
+
+function createBot() {
+  const name = document.getElementById('botName').value.trim();
+  const sys = document.getElementById('botSys').value.trim();
+  const start = document.getElementById('botStart').value.trim();
+
+  if(!name || !sys) return;
+
+  const newBot = { id:'bot_'+Date.now(), name, system:sys, startMsg:start };
+  bots.push(newBot);
+  localStorage.setItem('bots', JSON.stringify(bots));
+  loadBots();
+  openChat(newBot);
+  closeBotModal();
+}
+
+/* Chat */
+function openChat(bot) {
+  activeBot = bot;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.getElementById('panel-chat').classList.add('show');
+  document.getElementById('tb-title').innerText = bot.name;
+  document.getElementById('tb-sub').innerText = 'Chat with '+bot.name;
+
+  const history = convos[bot.id] || [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+
+  if(history.length === 0 && bot.startMsg) {
+    appendMsg('bot', bot.startMsg);
+    history.push({role:'bot', content:bot.startMsg});
+    convos[bot.id] = history;
   }
+
+  history.forEach(m => appendMsg(m.role, m.content, false));
+}
+
+function appendMsg(role, content) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role==='user'?'msg-user':'');
+
+  div.innerHTML = `
+    <div class="avatar">${role==='user'?'U': activeBot ? activeBot.name[0] : '🤖'}</div>
+    <div>
+      <div>${role==='user'?'You':activeBot?activeBot.name:'Bot'}</div>
+      <div class="msg-bubble">${content}</div>
+    </div>
+  `;
+
+  document.getElementById('messages').appendChild(div);
+  document.getElementById('messages').scrollTop = 9999;
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text || !activeBot) return;
+
+  appendMsg('user', text);
+  input.value='';
+  document.getElementById('sendBtn').disabled = true;
+
+  if(!convos[activeBot.id]) convos[activeBot.id] = [];
+  convos[activeBot.id].push({role:'user', content:text});
+
+  appendMsg('bot', 'This is a placeholder reply.');
+}
+
+/* Panel switch */
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.getElementById('panel-'+id).classList.add('show');
+}
+
+/* Input enable */
+document.getElementById('chatInput').addEventListener('input', () => {
+  document.getElementById('sendBtn').disabled =
+    !document.getElementById('chatInput').value.trim();
+});
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
 </script>
 </body>
 </html>
