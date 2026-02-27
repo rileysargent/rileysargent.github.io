@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HyperAI</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
@@ -74,6 +75,7 @@ body {
   border-right: 1px solid var(--bd);
   padding: 15px;
 }
+
 #logo { text-align:center; }
 #logo h1 { font-family:'Sora'; margin:0; }
 #logo p { font-size:11px; color:var(--t2); }
@@ -116,10 +118,12 @@ body {
   flex-direction:column;
   gap:10px;
 }
+
 .msg {
   display:flex;
   gap:8px;
 }
+
 .msg-user { flex-direction: row-reverse; }
 
 .avatar {
@@ -139,6 +143,7 @@ body {
   border-radius:12px;
   background: var(--bg3);
 }
+
 .msg-user .msg-bubble {
   background: var(--accent);
 }
@@ -149,17 +154,19 @@ body {
   padding:10px;
   border-top:1px solid var(--bd);
 }
+
 #chatInput {
   flex:1;
   resize:none;
   padding:8px;
 }
+
 #sendBtn {
   margin-left:10px;
 }
 
-/* Bot modal */
-#botModal {
+/* Modals */
+#authModal, #botModal {
   display:none;
   position:fixed;
   inset:0;
@@ -168,288 +175,44 @@ body {
   justify-content:center;
   z-index:9999;
 }
+
+#authModal > div,
 #botModal > div {
   background:white;
   padding:20px;
   border-radius:8px;
+  width:90%;
+  max-width:400px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- Auth -->
+<!-- Auth buttons -->
 <div id="authContainer">
   <button onclick="signInWithGoogle()">Sign in with Google</button>
   <button onclick="showSignIn()">Sign in</button>
   <button onclick="showSignUp()">Sign Up</button>
 </div>
+
 <button id="signOutBtn" style="display:none" onclick="signOut()">Sign Out</button>
 
-<!-- Modal auth -->
-<div id="modalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
-  <div id="modalBox" style="background:white; padding:20px; border-radius:8px; width:90%; max-width:400px;">
-    <h3 id="modalTitle">Sign In</h3>
-    <label>Email:</label>
-    <input type="email" id="emailInput">
-    <label>Password:</label>
-    <input type="password" id="passwordInput">
-
-    <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:10px;">
-      <button onclick="closeModal()">Cancel</button>
-      <button id="modalActionBtn" onclick="performAuth('signin')">Sign In</button>
-    </div>
-  </div>
-</div>
-
-<!-- Sidebar -->
-<div id="sidebar">
-  <div id="logo">
-    <h1>HyperAI</h1>
-    <p>Your AI platform</p>
-  </div>
-  <div id="userDisplay">Not signed in</div>
-
-  <div id="nav">
-    <button class="nav-btn active" onclick="showPanel('discover')">Discover</button>
-    <button class="nav-btn" onclick="showPanel('chat')">Chat</button>
-  </div>
-
-  <div style="margin-top:10px;">
-    <button onclick="openBotModal()">Create a Bot</button>
-  </div>
-  <div id="bot-list" style="margin-top:10px;">
-    <div id="bot-list-empty">No bots yet.</div>
-  </div>
-</div>
-
-<!-- Content -->
-<div id="content">
-  <div id="topbar">
-    <div>
-      <h2 id="tb-title">Discover</h2>
-      <p id="tb-sub">Find your AI bots</p>
-    </div>
-  </div>
-
-  <div id="panel-discover" class="panel show" style="padding:20px;">
-    <div style="text-align:center; color:var(--t2);">
-      <div style="font-size:50px;">🤖</div>
-      <div>No bots created yet.</div>
-    </div>
-  </div>
-
-  <div id="panel-chat" class="panel" style="flex-direction:column;">
-    <div id="messages"></div>
-    <div id="inputArea">
-      <textarea id="chatInput"></textarea>
-      <button id="sendBtn" disabled>Send</button>
-    </div>
-  </div>
-</div>
-
-<!-- Bot modal -->
-<div id="botModal">
+<!-- AUTH MODAL -->
+<div id="authModal">
   <div>
-    <h3>Create a Bot</h3>
-    <label>Name:</label>
-    <input type="text" id="botName">
-    <label>System Prompt:</label>
-    <textarea id="botSys"></textarea>
-    <label>Starting Message:</label>
-    <textarea id="botStart"></textarea>
+    <h3 id="authTitle">Sign In</h3>
+    <label>Email:</label>
+    <input type="email" id="authEmail">
+    <label>Password:</label>
+    <input type="password" id="authPass">
 
     <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:10px;">
-      <button onclick="closeBotModal()">Cancel</button>
-      <button onclick="createBot()">Create</button>
+      <button onclick="closeAuth()">Cancel</button>
+      <button id="authAction" onclick="doAuth('signin')">Sign In</button>
     </div>
   </div>
 </div>
 
-<script>
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "hyperai-r.firebaseapp.com",
-  projectId: "hyperai-r",
-  storageBucket: "hyperai-r.firebasestorage.app",
-  messagingSenderId: "129777724896",
-  appId: "1:129777724896:web:cbf911893d056a59e78f85"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-
-let currentUser = null;
-let bots = JSON.parse(localStorage.getItem('bots') || '[]');
-let convos = {};
-let activeBot = null;
-
-/* Auth UI */
-function showSignIn() {
-  document.getElementById('modalOverlay').style.display='flex';
-  document.getElementById('modalTitle').innerText='Sign In';
-  document.getElementById('modalActionBtn').innerText='Sign In';
-  document.getElementById('modalActionBtn').onclick=()=>performAuth('signin');
-}
-
-function showSignUp() {
-  document.getElementById('modalOverlay').style.display='flex';
-  document.getElementById('modalTitle').innerText='Sign Up';
-  document.getElementById('modalActionBtn').innerText='Sign Up';
-  document.getElementById('modalActionBtn').onclick=()=>performAuth('signup');
-}
-
-function closeModal() {
-  document.getElementById('modalOverlay').style.display='none';
-}
-
-async function performAuth(mode) {
-  const email = document.getElementById('emailInput').value.trim();
-  const pass = document.getElementById('passwordInput').value.trim();
-  if(!email || !pass) return;
-
-  try {
-    if(mode==='signin') {
-      await auth.signInWithEmailAndPassword(email, pass);
-    } else {
-      await auth.createUserWithEmailAndPassword(email, pass);
-    }
-  } catch(e) { alert(e.message); }
-
-  closeModal();
-}
-
-/* Google sign-in */
-function signInWithGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(console.error);
-}
-
-function signOut() { auth.signOut(); }
-
-/* Auth state */
-auth.onAuthStateChanged(user => {
-  if(user) {
-    currentUser = user;
-    document.getElementById('authContainer').style.display='none';
-    document.getElementById('sidebar').style.display='flex';
-    document.getElementById('signOutBtn').style.display='block';
-    document.getElementById('userDisplay').innerText = user.displayName || user.email;
-
-    loadBots();
-  } else {
-    currentUser = null;
-    document.getElementById('authContainer').style.display='flex';
-    document.getElementById('sidebar').style.display='none';
-    document.getElementById('signOutBtn').style.display='none';
-  }
-});
-
-/* Bots */
-function loadBots() {
-  const list = document.getElementById('bot-list');
-  list.innerHTML = '';
-
-  if(bots.length === 0) {
-    list.innerHTML = '<div>No bots yet.</div>';
-    return;
-  }
-
-  bots.forEach(b => {
-    const btn = document.createElement('button');
-    btn.textContent = b.name;
-    btn.onclick = () => openChat(b);
-    list.appendChild(btn);
-  });
-}
-
-function openBotModal() {
-  document.getElementById('botModal').style.display='flex';
-}
-
-function closeBotModal() {
-  document.getElementById('botModal').style.display='none';
-}
-
-function createBot() {
-  const name = document.getElementById('botName').value.trim();
-  const sys = document.getElementById('botSys').value.trim();
-  const start = document.getElementById('botStart').value.trim();
-
-  if(!name || !sys) return;
-
-  const newBot = { id:'bot_'+Date.now(), name, system:sys, startMsg:start };
-  bots.push(newBot);
-  localStorage.setItem('bots', JSON.stringify(bots));
-  loadBots();
-  openChat(newBot);
-  closeBotModal();
-}
-
-/* Chat */
-function openChat(bot) {
-  activeBot = bot;
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
-  document.getElementById('panel-chat').classList.add('show');
-  document.getElementById('tb-title').innerText = bot.name;
-  document.getElementById('tb-sub').innerText = 'Chat with '+bot.name;
-
-  const history = convos[bot.id] || [];
-  const msgs = document.getElementById('messages');
-  msgs.innerHTML = '';
-
-  if(history.length === 0 && bot.startMsg) {
-    appendMsg('bot', bot.startMsg);
-    history.push({role:'bot', content:bot.startMsg});
-    convos[bot.id] = history;
-  }
-
-  history.forEach(m => appendMsg(m.role, m.content, false));
-}
-
-function appendMsg(role, content) {
-  const div = document.createElement('div');
-  div.className = 'msg ' + (role==='user'?'msg-user':'');
-
-  div.innerHTML = `
-    <div class="avatar">${role==='user'?'U': activeBot ? activeBot.name[0] : '🤖'}</div>
-    <div>
-      <div>${role==='user'?'You':activeBot?activeBot.name:'Bot'}</div>
-      <div class="msg-bubble">${content}</div>
-    </div>
-  `;
-
-  document.getElementById('messages').appendChild(div);
-  document.getElementById('messages').scrollTop = 9999;
-}
-
-function sendMessage() {
-  const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if(!text || !activeBot) return;
-
-  appendMsg('user', text);
-  input.value='';
-  document.getElementById('sendBtn').disabled = true;
-
-  if(!convos[activeBot.id]) convos[activeBot.id] = [];
-  convos[activeBot.id].push({role:'user', content:text});
-
-  appendMsg('bot', 'This is a placeholder reply.');
-}
-
-/* Panel switch */
-function showPanel(id) {
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
-  document.getElementById('panel-'+id).classList.add('show');
-}
-
-/* Input enable */
-document.getElementById('chatInput').addEventListener('input', () => {
-  document.getElementById('sendBtn').disabled =
-    !document.getElementById('chatInput').value.trim();
-});
-document.getElementById('sendBtn').addEventListener('click', sendMessage);
-</script>
-</body>
-</html>
+<!-- BOT MODAL -->
+<div
