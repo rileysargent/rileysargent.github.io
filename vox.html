@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,136 +11,165 @@
 
 <style>
 :root {
-  --accent: #7c6cf0;
-  --bg: #0e0e12;
-  --bg2: #15151a;
+  --accent: #6f5af0;
+  --bg: #0b0b10;
+  --bg2: #14141b;
   --bg3: #1c1c24;
-  --bd: rgba(255,255,255,.065);
-  --tx: #ededf4;
-  --t2: #80809a;
-  --r: 12px;
-  --rs: 8px;
+  --glass: rgba(255,255,255,0.05);
+  --tx: #f1f1f8;
+  --t2: #7f8090;
+  --r: 14px;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
+  margin: 0;
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
   color: var(--tx);
-  margin: 0;
-  display: flex;
   height: 100vh;
-  overflow: hidden;
+  display: flex;
 }
 
-/* Auth buttons */
+/* AUTH */
 #authContainer {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 999;
+  inset: 0;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
 }
-#authContainer button {
-  padding: 8px 12px;
+
+#googleBtn {
+  padding: 14px 24px;
+  background: white;
+  color: #333;
+  border-radius: 999px;
   border: none;
-  border-radius: var(--rs);
-  cursor: pointer;
   font-weight: 600;
-  background: var(--accent);
-  color: white;
+  cursor: pointer;
 }
 
-/* Sign-out */
+/* SIGN OUT */
 #signOutBtn {
-  position:absolute;
-  top:10px;
-  right:10px;
-  z-index:999;
-  background:#555;
-  color:#fff;
-  border:none;
-  padding:8px 12px;
-  border-radius:4px;
-  cursor:pointer;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #444;
+  color: white;
+  cursor: pointer;
+  z-index: 99;
 }
 
-/* Sidebar */
-#sidebar {
-  width: 250px;
-  background: var(--bg2);
-  flex-direction: column;
+/* APP LAYOUT */
+#app {
   display: none;
+  width: 100%;
   height: 100%;
-  border-right: 1px solid var(--bd);
-  padding: 15px;
 }
 
-#logo { text-align:center; }
-#logo h1 { font-family:'Sora'; margin:0; }
-#logo p { font-size:11px; color:var(--t2); }
-
-#userDisplay {
-  margin: 15px 0;
-  font-size: 14px;
+/* SIDEBAR */
+#sidebar {
+  width: 240px;
+  background: var(--bg2);
+  border-right: 1px solid var(--glass);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
 }
 
-.nav-btn {
-  display:flex;
-  align-items:center;
-  padding:10px;
-  margin:4px 0;
-  border-radius:var(--rs);
-  border:none;
-  background:none;
-  color:var(--tx);
-  cursor:pointer;
+#sidebar h1 {
+  margin: 0;
+  font-family: 'Sora';
 }
-.nav-btn:hover, .nav-btn.active { background: var(--bg3); }
 
-/* Content */
+#nav button {
+  width: 100%;
+  padding: 10px;
+  margin: 4px 0;
+  border-radius: var(--r);
+  border: none;
+  background: transparent;
+  color: var(--tx);
+  cursor: pointer;
+}
+
+#nav button.active,
+#nav button:hover {
+  background: var(--bg3);
+}
+
+/* CONTENT */
 #content {
-  flex:1;
-  display:flex;
-  flex-direction:column;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Panels */
-.panel { display:none; flex:1; overflow:auto; }
-.panel.show { display:flex; }
+/* TOPBAR */
+#topbar {
+  padding: 14px;
+  border-bottom: 1px solid var(--glass);
+}
 
-/* Messages */
+/* PANELS */
+.panel {
+  display: none;
+  flex: 1;
+  overflow: auto;
+}
+
+.panel.show {
+  display: flex;
+}
+
+/* DISCOVER */
+#discover {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--t2);
+}
+
+/* CHAT */
 #messages {
-  flex:1;
-  padding:10px;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .msg {
-  display:flex;
-  gap:8px;
+  display: flex;
+  gap: 8px;
 }
 
-.msg-user { flex-direction: row-reverse; }
+.msg-user {
+  flex-direction: row-reverse;
+}
 
 .avatar {
-  width:30px;
-  height:30px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   background: var(--bg3);
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .msg-bubble {
-  max-width:70%;
-  padding:8px 12px;
-  border-radius:12px;
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 12px;
   background: var(--bg3);
 }
 
@@ -148,71 +177,251 @@ body {
   background: var(--accent);
 }
 
-/* Input */
+/* INPUT */
 #inputArea {
-  display:flex;
-  padding:10px;
-  border-top:1px solid var(--bd);
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid var(--glass);
 }
 
 #chatInput {
-  flex:1;
-  resize:none;
-  padding:8px;
+  flex: 1;
+  resize: none;
+  padding: 8px;
+  border-radius: var(--r);
+  border: none;
 }
 
 #sendBtn {
-  margin-left:10px;
-}
-
-/* Modals */
-#authModal, #botModal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.6);
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-
-#authModal > div,
-#botModal > div {
-  background:white;
-  padding:20px;
-  border-radius:8px;
-  width:90%;
-  max-width:400px;
+  margin-left: 10px;
+  border-radius: var(--r);
+  border: none;
+  background: var(--accent);
+  color: white;
+  padding: 8px 14px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- Auth buttons -->
+<!-- AUTH SCREEN -->
 <div id="authContainer">
-  <button onclick="signInWithGoogle()">Sign in with Google</button>
-  <button onclick="showSignIn()">Sign in</button>
-  <button onclick="showSignUp()">Sign Up</button>
+  <button id="googleBtn" onclick="signInWithGoogle()">Continue with Google</button>
 </div>
 
 <button id="signOutBtn" style="display:none" onclick="signOut()">Sign Out</button>
 
-<!-- AUTH MODAL -->
-<div id="authModal">
-  <div>
-    <h3 id="authTitle">Sign In</h3>
-    <label>Email:</label>
-    <input type="email" id="authEmail">
-    <label>Password:</label>
-    <input type="password" id="authPass">
+<!-- APP -->
+<div id="app">
+  <div id="sidebar">
+    <h1>HyperAI</h1>
+    <p style="font-size:11px; color:var(--t2)">AI workspace</p>
 
-    <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:10px;">
-      <button onclick="closeAuth()">Cancel</button>
-      <button id="authAction" onclick="doAuth('signin')">Sign In</button>
+    <div id="nav">
+      <button class="active" onclick="showPanel('discover')">Discover</button>
+      <button onclick="showPanel('chat')">Chat</button>
+    </div>
+
+    <button style="margin-top:12px" onclick="openBotModal()">Create Bot</button>
+
+    <div id="bot-list" style="margin-top:12px; font-size:13px; color:var(--t2)">
+      No bots yet
+    </div>
+  </div>
+
+  <div id="content">
+    <div id="topbar">
+      <h2 id="tb-title">Discover</h2>
+      <p id="tb-sub" style="margin:0; font-size:11px; color:var(--t2)">Find AI bots</p>
+    </div>
+
+    <div id="panel-discover" class="panel show">
+      <div style="margin:auto; text-align:center; color:var(--t2)">
+        <div style="font-size:48px">🤖</div>
+        <div>No bots yet. Create one.</div>
+      </div>
+    </div>
+
+    <div id="panel-chat" class="panel" style="flex-direction:column">
+      <div id="messages"></div>
+      <div id="inputArea">
+        <textarea id="chatInput"></textarea>
+        <button id="sendBtn" disabled>Send</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- BOT MODAL -->
-<div
+<div id="botModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+  <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:400px;">
+    <h3>Create Bot</h3>
+    <label>Name</label>
+    <input id="botName" type="text">
+    <label>System Prompt</label>
+    <textarea id="botSys"></textarea>
+    <label>Starting Message</label>
+    <textarea id="botStart"></textarea>
+
+    <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:10px;">
+      <button onclick="closeBotModal()">Cancel</button>
+      <button onclick="createBot()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "hyperai-r.firebaseapp.com",
+  projectId: "hyperai-r",
+  storageBucket: "hyperai-r.firebasestorage.app",
+  messagingSenderId: "129777724896",
+  appId: "1:129777724896:web:cbf911893d056a59e78f85"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+let currentUser = null;
+let bots = JSON.parse(localStorage.getItem('bots') || '[]');
+let convos = {};
+let activeBot = null;
+
+/* GOOGLE ONLY AUTH */
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(console.error);
+}
+
+function signOut() {
+  auth.signOut();
+}
+
+/* AUTH STATE */
+auth.onAuthStateChanged(user => {
+  if(user) {
+    currentUser = user;
+    document.getElementById('authContainer').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('signOutBtn').style.display = 'block';
+    loadBots();
+  } else {
+    currentUser = null;
+    document.getElementById('authContainer').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('signOutBtn').style.display = 'none';
+  }
+});
+
+/* BOTS */
+function loadBots() {
+  const list = document.getElementById('bot-list');
+  list.innerHTML = '';
+
+  if(bots.length === 0) {
+    list.innerHTML = 'No bots yet';
+    return;
+  }
+
+  bots.forEach(b => {
+    const btn = document.createElement('button');
+    btn.textContent = b.name;
+    btn.onclick = () => openChat(b);
+    list.appendChild(btn);
+  });
+}
+
+function openBotModal() {
+  document.getElementById('botModal').style.display = 'flex';
+}
+
+function closeBotModal() {
+  document.getElementById('botModal').style.display = 'none';
+}
+
+function createBot() {
+  const name = document.getElementById('botName').value.trim();
+  const sys = document.getElementById('botSys').value.trim();
+  const start = document.getElementById('botStart').value.trim();
+
+  if(!name || !sys) return;
+
+  const newBot = { id:'bot_'+Date.now(), name, system:sys, startMsg:start };
+  bots.push(newBot);
+  localStorage.setItem('bots', JSON.stringify(bots));
+  loadBots();
+  openChat(newBot);
+  closeBotModal();
+}
+
+/* CHAT */
+function openChat(bot) {
+  activeBot = bot;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  document.getElementById('panel-chat').classList.add('show');
+
+  document.getElementById('tb-title').innerText = bot.name;
+  document.getElementById('tb-sub').innerText = 'Chat with ' + bot.name;
+
+  const history = convos[bot.id] || [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+
+  if(history.length === 0 && bot.startMsg) {
+    appendMsg('bot', bot.startMsg);
+    history.push({role:'bot', content:bot.startMsg});
+    convos[bot.id] = history;
+  }
+
+  history.forEach(m => appendMsg(m.role, m.content));
+}
+
+function appendMsg(role, content) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role==='user'?'msg-user':'');
+
+  div.innerHTML = `
+    <div class="avatar">${role==='user'?'U': activeBot ? activeBot.name[0] : '🤖'}</div>
+    <div>
+      <div>${role==='user'?'You':activeBot?activeBot.name:'Bot'}</div>
+      <div class="msg-bubble">${content}</div>
+    </div>
+  `;
+
+  document.getElementById('messages').appendChild(div);
+  document.getElementById('messages').scrollTop = 9999;
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text || !activeBot) return;
+
+  appendMsg('user', text);
+  input.value = '';
+  document.getElementById('sendBtn').disabled = true;
+
+  if(!convos[activeBot.id]) convos[activeBot.id] = [];
+  convos[activeBot.id].push({role:'user', content:text});
+
+  appendMsg('bot', 'This is a placeholder reply.');
+}
+
+/* PANEL SWITCH */
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  document.getElementById('panel-' + id).classList.add('show');
+}
+
+/* INPUT ENABLE */
+document.getElementById('chatInput').addEventListener('input', () => {
+  document.getElementById('sendBtn').disabled =
+    !document.getElementById('chatInput').value.trim();
+});
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
+</script>
+
+</body>
+</html>
