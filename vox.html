@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HyperAI</title>
-
 <style>
 :root{
   --bg:#0f172a;
@@ -14,9 +13,7 @@
   --muted:#94a3b8;
   --radius:16px;
 }
-
 *{box-sizing:border-box;margin:0;padding:0}
-
 body{
   font-family:system-ui,-apple-system,sans-serif;
   background:linear-gradient(135deg,#0f172a,#111827);
@@ -25,8 +22,6 @@ body{
   height:100vh;
   overflow:hidden;
 }
-
-/* SIDEBAR */
 .sidebar{
   width:230px;
   background:rgba(30,41,59,0.7);
@@ -37,34 +32,15 @@ body{
   gap:10px;
   border-right:1px solid rgba(255,255,255,0.05);
 }
-
-.sidebar h2{margin-bottom:15px}
-
 .nav-item{
   padding:12px;
   border-radius:var(--radius);
   cursor:pointer;
   color:var(--muted);
-  transition:0.2s;
 }
-
-.nav-item:hover{
-  background:rgba(255,255,255,0.05);
-  color:white;
-}
-
-.nav-item.active{
-  background:var(--accent);
-  color:white;
-}
-
-/* MAIN */
-.main{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
+.nav-item:hover{background:rgba(255,255,255,0.05);color:white}
+.nav-item.active{background:var(--accent);color:white}
+.main{flex:1;display:flex;flex-direction:column}
 .header{
   height:70px;
   display:flex;
@@ -73,61 +49,19 @@ body{
   padding:0 30px;
   border-bottom:1px solid rgba(255,255,255,0.05);
 }
-
-.account{
-  position:relative;
-}
-
 .account-icon{
-  width:42px;
-  height:42px;
-  border-radius:50%;
+  width:42px;height:42px;border-radius:50%;
   background:var(--accent);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-weight:600;
 }
-
-.account-menu{
-  position:absolute;
-  top:55px;
-  right:0;
-  background:var(--card);
-  border-radius:var(--radius);
-  display:none;
-  flex-direction:column;
-  min-width:150px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.4);
-}
-
-.account-menu div{
-  padding:12px;
-  cursor:pointer;
-}
-
-.account-menu div:hover{
-  background:rgba(255,255,255,0.05);
-}
-
-.account-menu.show{display:flex}
-
-/* CONTENT */
-.content{
-  flex:1;
-  padding:30px;
-  overflow-y:auto;
-}
-
+.content{flex:1;padding:30px;overflow-y:auto}
 .card{
   background:var(--card);
   padding:25px;
   border-radius:var(--radius);
   margin-bottom:20px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.3);
 }
-
 input,textarea{
   width:100%;
   padding:12px;
@@ -137,7 +71,6 @@ input,textarea{
   color:white;
   margin-top:10px;
 }
-
 button{
   margin-top:15px;
   padding:12px;
@@ -147,102 +80,84 @@ button{
   color:white;
   cursor:pointer;
 }
-
-/* GRID */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
   gap:15px;
 }
-
 .bot-card{
   background:var(--card);
   border-radius:16px;
   padding:12px;
   text-align:center;
-  transition:0.2s;
 }
-
 .bot-card img{
-  width:64px;
-  height:64px;
-  border-radius:12px;
-  object-fit:cover;
+  width:64px;height:64px;border-radius:12px;object-fit:cover;
 }
-
-.bot-card:hover{
-  transform:translateY(-4px);
-}
-
 section{display:none}
 section.active{display:block}
-
-/* AUTH */
-#authScreen{
-  position:fixed;
-  inset:0;
-  background:#0f172a;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
 </style>
 </head>
 <body>
 
 <!-- AUTH -->
-<div id="authScreen">
+<div id="authScreen" style="position:fixed;inset:0;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:9999;">
   <div class="card" style="width:400px;max-width:90%">
     <h2>Sign In</h2>
-
     <div id="g_id_onload"
          data-client_id="129777724896-lmvaotcc6oudll99j642mpvd26r21lsj.apps.googleusercontent.com"
          data-callback="handleCredentialResponse"
          data-auto_prompt="false">
     </div>
-
     <div class="g_id_signin" data-type="standard"></div>
   </div>
 </div>
 
-<!-- GOOGLE -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <div class="sidebar">
   <h2>HyperAI</h2>
   <div class="nav-item active" data-section="home">Home</div>
+  <div class="nav-item" data-section="discover">Discover</div>
   <div class="nav-item" data-section="create">Create AI</div>
 </div>
 
 <div class="main">
   <div class="header">
     <div>Dashboard</div>
-    <div class="account">
-      <div class="account-icon" id="accountBtn">R</div>
-      <div class="account-menu" id="accountMenu">
-        <div id="logoutBtn">Sign Out</div>
-      </div>
-    </div>
+    <div class="account-icon" id="accountBtn">R</div>
   </div>
 
   <div class="content">
 
+    <!-- HOME -->
     <section id="home" class="active">
       <div class="card">
         <h2>Welcome</h2>
       </div>
-
       <div class="grid" id="botGrid"></div>
     </section>
 
+    <!-- DISCOVER -->
+    <section id="discover">
+      <div class="card">
+        <h2>Discover</h2>
+        <h3>New AIs</h3>
+        <div class="grid" id="discoverNew"></div>
+
+        <h3 style="margin-top:20px">Recommended</h3>
+        <div class="grid" id="discoverRecommended"></div>
+      </div>
+    </section>
+
+    <!-- CREATE -->
     <section id="create">
       <div class="card">
         <h2>Create Character</h2>
-        <input id="charName" placeholder="Name (24 chars max)">
-        <textarea id="charLore" placeholder="Lore (500 chars max)"></textarea>
-        <textarea id="charPrompt" placeholder="Prompt (1000 chars max)"></textarea>
-        <input id="charImagePath" placeholder="Image path (ai-images/id.png)">
+        <input id="charName" placeholder="Name (24 chars)">
+        <textarea id="charLore" placeholder="Lore (500 chars)"></textarea>
+        <textarea id="charPrompt" placeholder="Prompt (1000 chars)"></textarea>
+        <input id="charImage" type="file" accept="image/*">
         <button onclick="saveBot()">Save</button>
       </div>
     </section>
@@ -251,182 +166,206 @@ section.active{display:block}
 </div>
 
 <script>
-// ================================
-// GOOGLE AUTH
-// ================================
-let accessToken = null;
+let accessToken=null;
+let lastGlobalSave=0;
+const GLOBAL_COOLDOWN_MS=2000;
+const USER_COOLDOWN_MS=60000;
+const DRIVE_FILE="AIBots.json";
 
-function handleCredentialResponse(response) {
-  accessToken = response.credential;
-  document.getElementById("authScreen").style.display = "none";
+// ==============================
+// GOOGLE AUTH
+// ==============================
+function handleCredentialResponse(response){
+  accessToken=response.credential;
+  document.getElementById("authScreen").style.display="none";
   loadBots();
 }
 
-// ================================
+function canSaveGlobal(){
+  const now=Date.now();
+  if(now-lastGlobalSave<GLOBAL_COOLDOWN_MS) return false;
+  lastGlobalSave=now;
+  return true;
+}
+
+function canUserSave(userId){
+  const key=`lastSave_${userId}`;
+  const last=parseInt(localStorage.getItem(key)||"0",10);
+  const now=Date.now();
+  if(now-last<USER_COOLDOWN_MS) return false;
+  localStorage.setItem(key,now.toString());
+  return true;
+}
+
+// ==============================
 // DRIVE HELPERS
-// ================================
-async function driveRequest(url, options = {}) {
-  if (!accessToken) throw new Error("Not signed in");
+// ==============================
+async function driveHeaders(){
+  return {Authorization:`Bearer ${accessToken}`};
+}
 
-  options.headers = {
-    ...(options.headers || {}),
-    Authorization: `Bearer ${accessToken}`
-  };
-
-  const res = await fetch(url, options);
+async function listDriveFiles(){
+  const res=await fetch("https://www.googleapis.com/drive/v3/files",{headers:await driveHeaders()});
   return await res.json();
 }
 
-async function listDriveFiles() {
-  return await driveRequest("https://www.googleapis.com/drive/v3/files");
-}
-
-async function readDriveFile(id) {
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
+async function readDriveFile(id){
+  const res=await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`,{headers:await driveHeaders()});
   return await res.text();
 }
 
-async function writeDriveFile(name, data) {
-  const metadata = { name, mimeType: "application/json" };
-  const form = new FormData();
-  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-  form.append("file", new Blob([JSON.stringify(data)], { type: "application/json" }));
+async function writeDriveFile(name,data){
+  const metadata={name,mimeType:"application/json"};
+  const form=new FormData();
+  form.append("metadata",new Blob([JSON.stringify(metadata)],{type:"application/json"}));
+  form.append("file",new Blob([JSON.stringify(data)],{type:"application/json"}));
 
   return await fetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}` },
-      body: form
-    }
+    {method:"POST",headers:await driveHeaders(),body:form}
   );
 }
 
-// ================================
+// ==============================
+// IMAGE RESIZE (64x64)
+// ==============================
+async function resizeTo64(file){
+  const img=new Image();
+  img.src=URL.createObjectURL(file);
+  await img.decode();
+
+  const canvas=document.createElement("canvas");
+  canvas.width=64;
+  canvas.height=64;
+
+  const ctx=canvas.getContext("2d");
+  ctx.drawImage(img,0,0,64,64);
+
+  return canvas.toDataURL("image/png");
+}
+
+// ==============================
 // STORAGE
-// ================================
-const DRIVE_FILE = "AIBots.json";
-let lastGlobalSave = 0;
-const GLOBAL_COOLDOWN_MS = 2000;
-const USER_COOLDOWN_MS = 60000;
-
-function canSaveGlobal() {
-  const now = Date.now();
-  if (now - lastGlobalSave < GLOBAL_COOLDOWN_MS) return false;
-  lastGlobalSave = now;
-  return true;
+// ==============================
+function generateId(){
+  return Math.random().toString(36).substring(2,7);
 }
 
-function canUserSave(userId) {
-  const key = `lastSave_${userId}`;
-  const last = parseInt(localStorage.getItem(key) || "0", 10);
-  const now = Date.now();
+async function loadBots(){
+  if(!accessToken) return;
 
-  if (now - last < USER_COOLDOWN_MS) return false;
+  const files=await listDriveFiles();
+  const botFile=files.files?.find(f=>f.name===DRIVE_FILE);
 
-  localStorage.setItem(key, now.toString());
-  return true;
-}
-
-async function loadBots() {
-  if (!accessToken) return;
-
-  const files = await listDriveFiles();
-  const botFile = files.files?.find(f => f.name === DRIVE_FILE);
-
-  let bots = [];
-
-  if (botFile) {
-    const data = await readDriveFile(botFile.id);
-    try { bots = JSON.parse(data); } catch {}
+  let bots=[];
+  if(botFile){
+    const data=await readDriveFile(botFile.id);
+    try{bots=JSON.parse(data);}catch{}
   }
 
   displayGrid(bots);
+  renderDiscover(bots);
 }
 
-function displayGrid(bots) {
-  const grid = document.getElementById("botGrid");
-  grid.innerHTML = "";
-
-  bots.forEach(b => {
-    const card = document.createElement("div");
-    card.className = "bot-card";
-
-    card.innerHTML = `
-      ${b.imagePath ? `<img src="${b.imagePath}">` : ""}
+function displayGrid(bots){
+  const grid=document.getElementById("botGrid");
+  grid.innerHTML="";
+  bots.forEach(b=>{
+    const card=document.createElement("div");
+    card.className="bot-card";
+    card.innerHTML=`
+      ${b.imagePath?`<img src="${b.imagePath}">`:""}
       <h3>${b.name}</h3>
-      <p>${b.lore || ""}</p>
+      <p>${b.lore||""}</p>
     `;
-
     grid.appendChild(card);
   });
 }
 
-async function saveBot() {
-  if (!accessToken) return alert("Sign in first");
+// SAVE BOT WITH IMAGE
+async function saveBot(){
+  if(!accessToken) return alert("Sign in first");
 
-  const userId = accessToken.substring(0, 10);
+  const userId=accessToken.substring(0,10);
+  if(!canSaveGlobal()) return alert("Please wait");
+  if(!canUserSave(userId)) return alert("One bot per minute");
 
-  if (!canSaveGlobal()) return alert("Please wait before saving");
-  if (!canUserSave(userId)) return alert("Only one bot per minute");
+  const name=document.getElementById("charName").value.trim();
+  const lore=document.getElementById("charLore").value.trim();
+  const prompt=document.getElementById("charPrompt").value.trim();
+  const file=document.getElementById("charImage").files[0];
 
-  const name = document.getElementById("charName").value.trim();
-  const lore = document.getElementById("charLore").value.trim();
-  const prompt = document.getElementById("charPrompt").value.trim();
-  const imagePath = document.getElementById("charImagePath").value.trim();
+  if(!name||!prompt) return alert("Name and Prompt required");
+  if(name.length>24) return alert("Name max 24");
+  if(lore.length>500) return alert("Lore max 500");
+  if(prompt.length>1000) return alert("Prompt max 1000");
 
-  if (!name || !prompt) return alert("Name and Prompt required");
-  if (name.length > 24) return alert("Name max 24 chars");
-  if (lore.length > 500) return alert("Lore max 500 chars");
-  if (prompt.length > 1000) return alert("Prompt max 1000 chars");
+  let imagePath="";
 
-  const files = await listDriveFiles();
-  let bots = [];
-
-  const existing = files.files?.find(f => f.name === DRIVE_FILE);
-  if (existing) {
-    const data = await readDriveFile(existing.id);
-    try { bots = JSON.parse(data); } catch {}
+  if(file){
+    const base64=await resizeTo64(file);
+    const upload=await writeDriveFile(`${generateId()}.png`,base64);
+    const result=await upload.json();
+    if(result.id){
+      imagePath=`https://drive.google.com/uc?id=${result.id}`;
+    }
   }
 
-  const id = Math.random().toString(36).substring(2, 7);
-  bots.push({ id, name, lore, prompt, imagePath });
+  const files=await listDriveFiles();
+  let bots=[];
+  const existing=files.files?.find(f=>f.name===DRIVE_FILE);
 
-  await writeDriveFile(DRIVE_FILE, bots);
+  if(existing){
+    const data=await readDriveFile(existing.id);
+    try{bots=JSON.parse(data);}catch{}
+  }
+
+  bots.push({id:generateId(),name,lore,prompt,imagePath});
+  await writeDriveFile(DRIVE_FILE,bots);
   loadBots();
 }
 
-// ================================
+// ==============================
+// DISCOVER
+// ==============================
+function discoverNew(bots){
+  return [...bots].sort((a,b)=> (b.created||0)-(a.created||0)).slice(0,10);
+}
+
+function discoverRecommended(bots){
+  return [...bots].sort(()=>Math.random()-0.5).slice(0,10);
+}
+
+function renderDiscover(bots){
+  document.getElementById("discoverNew").innerHTML =
+    discoverNew(bots).map(cardHtml).join("");
+
+  document.getElementById("discoverRecommended").innerHTML =
+    discoverRecommended(bots).map(cardHtml).join("");
+}
+
+function cardHtml(b){
+  return `
+    <div class="bot-card">
+      ${b.imagePath?`<img src="${b.imagePath}">`:""}
+      <h3>${b.name}</h3>
+      <p>${b.lore||""}</p>
+    </div>
+  `;
+}
+
+// ==============================
 // NAV
-// ================================
-document.querySelectorAll(".nav-item").forEach(btn => {
-  btn.onclick = () => {
+// ==============================
+document.querySelectorAll(".nav-item").forEach(btn=>{
+  btn.onclick=()=>{
     document.querySelector(".nav-item.active")?.classList.remove("active");
     btn.classList.add("active");
-    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+
+    document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
     document.getElementById(btn.dataset.section).classList.add("active");
   };
 });
-
-// ================================
-// ACCOUNT
-// ================================
-const accountBtn = document.getElementById("accountBtn");
-const accountMenu = document.getElementById("accountMenu");
-
-accountBtn.onclick = () => accountMenu.classList.toggle("show");
-
-document.addEventListener("click", e => {
-  if (!accountBtn.contains(e.target)) accountMenu.classList.remove("show");
-});
-
-document.getElementById("logoutBtn").onclick = () => {
-  accessToken = null;
-  document.getElementById("authScreen").style.display = "flex";
-};
 </script>
 
 </body>
