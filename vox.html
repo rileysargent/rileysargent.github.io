@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Full Gemini AI Dashboard</title>
+<title>HyperAI Dashboard</title>
 <style>
   :root {
     --bg-color: #222;
@@ -22,10 +22,12 @@
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
-    display: flex; flex-direction: column; height: 100vh;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
     transition: background-color 0.3s, color 0.3s;
   }
-  /* Header styles */
+  /* HEADER */
   .header {
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 24px;
@@ -33,9 +35,9 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   }
   .title { font-size: 1.6em; font-weight: bold; }
-  .account {
-    position: relative; cursor: pointer;
-  }
+  .brand { font-weight: bold; font-size: 1.2em; color:#fff; }
+  /* Account menu styles */
+  .account { position: relative; cursor: pointer; }
   .account-icon {
     width: 40px; height: 40px; border-radius: 50%;
     background: var(--primary-color); display: flex; align-items: center; justify-content: center;
@@ -52,7 +54,7 @@
   }
   .account-menu div:hover { background: var(--primary-color); color: #fff; }
 
-  /* Layout styles */
+  /* MAIN LAYOUT */
   .main {
     display: flex; flex: 1; overflow: hidden;
   }
@@ -65,22 +67,19 @@
   }
   .nav-item:hover, .nav-item.active { background: var(--primary-color); color: #fff; }
 
-  /* Content styles */
+  /* CONTENT */
   .content {
     flex: 1; padding: 20px; overflow-y: auto;
   }
   .section { display: none; }
   .section.active { display: block; }
 
-  /* Sign-in and character panels */
+  /* Additional styles for sign-in & create character panels */
   #signInContainer {
     display: none; max-width: 400px; margin: 50px auto; padding: 20px; background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.2);
   }
   #createCharacterPanel {
     display: none; max-width:700px; margin:20px auto; padding:20px; background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.2);
-  }
-  #characterList {
-    max-width:700px; margin:20px auto;
   }
   #charsContainer {
     display:flex; flex-wrap:wrap; gap:10px;
@@ -93,13 +92,14 @@
   }
   #saveCharBtn { background:#28a745; color:#fff; }
   #saveCharBtn:hover { background:#218838; }
+
 </style>
 </head>
 <body>
 
-<!-- Header -->
+<!-- HEADER with HyperAI branding -->
 <div class="header">
-  <div class="title">Gemini AI Dashboard</div>
+  <div class="brand">HyperAI Dashboard</div>
   <div class="account" id="accountBtn">
     <div class="account-icon" title="Account Menu">🌟</div>
     <div class="account-menu" id="accountMenu">
@@ -110,9 +110,9 @@
   </div>
 </div>
 
-<!-- Main Content -->
+<!-- MAIN -->
 <div class="main">
-  <!-- Sidebar navigation -->
+  <!-- Sidebar Navigation -->
   <div class="sidebar">
     <h3>Navigation</h3>
     <div class="nav-item active" data-section="dashboard">Home</div>
@@ -120,25 +120,25 @@
     <div class="nav-item" data-section="create">Create AI</div>
     <div class="nav-item" data-section="chats">AI Chats</div>
   </div>
-  <!-- Content sections -->
+  <!-- Content Sections -->
   <div class="content" id="contentArea">
     <div id="dashboard" class="section active">
-      <h2>Welcome to Gemini AI Dashboard</h2>
-      <p>Create, discover, and chat with Gemini AI models. Use the side menu to navigate.</p>
+      <h2>Welcome to HyperAI Dashboard</h2>
+      <p>Create, discover, and chat with HyperAI models. Use the side menu to navigate.</p>
     </div>
     <div id="discover" class="section">
-      <h2>Discover Gemini AI Models</h2>
+      <h2>Discover HyperAI Models</h2>
       <input type="text" id="discoverSearch" placeholder="Search models..." style="width:100%; padding:8px; margin-top:10px; border-radius:4px; border:1px solid #ccc;" />
       <div id="discoverResults" style="margin-top:10px;"><p>Loading models...</p></div>
     </div>
     <div id="create" class="section">
-      <h2>Create a Gemini AI Character</h2>
+      <h2>Create a HyperAI Character</h2>
       <label>Name:</label>
       <input type="text" id="aiName" />
       <label>Lore / Backstory:</label>
       <textarea id="aiLore"></textarea>
       <label>System Prompt:</label>
-      <textarea id="systemPrompt">You are Gemini, an advanced AI assistant.</textarea>
+      <textarea id="systemPrompt">You are Hyper, an advanced AI assistant.</textarea>
       <label>Icon PNG:</label>
       <input type="file" id="iconUpload" accept="image/png" />
       <button id="saveAiBtn" style="background:#007bff; color:#fff;">Save Character</button>
@@ -152,7 +152,7 @@
   </div>
 </div>
 
-<!-- Settings modal -->
+<!-- Settings Modal -->
 <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:2000;">
   <div style="background:#fff; padding:20px; border-radius:12px; width:90%; max-width:500px;">
     <h3>Settings</h3>
@@ -199,22 +199,22 @@
   // --- Your encrypted GitHub token (rot13) ---
   const encryptedToken="tuc_UJTe6nGdH4NnFwc41DhkHfFBFo4N6y0bwulP";
 
-  // --- Decrypt GitHub token (rot13 only) ---
+  // --- Decrypt GitHub token (rot13) ---
   function rot13(str) {
     return str.replace(/[a-zA-Z]/g, c => {
       const cCode = c.charCodeAt(0);
-      const base = (cCode>=65 && cCode<=90)?65:97;
+      const base=(cCode>=65 && cCode<=90)?65:97;
       return String.fromCharCode(((cCode - base + 13)%26)+base);
     });
   }
-  const githubToken=rot13(encryptedToken); // Decrypted GitHub token
+  const githubToken=rot13(encryptedToken);
 
-  // --- Your encrypted Gemini key (base64 + rot13) ---
-  const encryptedGemini="TlZtbkZsTmJFbFdnaWU2WkQyOG5CRUs1ejZ0LVhlRnBPVmdIM2hi";
-
-  // --- Decrypt Gemini key (full URL) ---
-  const decodedBase64=atob(encryptedGemini); // decode base64
-  const geminiFullUrl=rot13(decodedBase64); // rot13 gives full URL or communication method
+  // --- Your encrypted Gemini URL (base64 + rot13) ---
+  // Replace with your actual encrypted string
+  const encryptedGemini="TlZtbkZsTmJFbFdnaWU2WkQyOG5CRUs1ejZ0LVhlRnBPVmdIM2hi"; // Example
+  // Decrypt Gemini URL
+  const urlBase64=atob(encryptedGemini);
+  const geminiFullUrl=rot13(urlBase64); // full URL for API call
 
   // --- Your GitHub info ---
   const owner='rileysargent';
@@ -241,7 +241,7 @@
     auth.signInWithPopup(provider);
   }
 
-  // --- Use full URL (from decrypted Gemini key) for API ---
+  // --- Use full URL now for API ---
   async function callGemini(prompt) {
     const response=await fetch(geminiFullUrl, {
       method:'POST',
@@ -251,14 +251,13 @@
       },
       body:JSON.stringify({prompt:prompt})
     });
-    const data=await response.json();
-    return data;
+    return await response.json();
   }
 
   // --- Decrypt Gemini API key (full URL) ---
-  const geminiApiKey=rot13(atob(encryptedGemini)); // decode base64 and rot13
+  const geminiApiKey=rot13(atob(encryptedGemini));
 
-  // --- Read/write AI bots in GitHub ---
+  // --- Read/write AI bots ---
   async function readAIBots() {
     const url=`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
     const res=await fetch(url,{
