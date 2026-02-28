@@ -1,204 +1,433 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>HyperAI Dashboard</title>
-<style>:root{--bg:#222;--text:#fff;--primary:#007bff;--secondary:#555;--accent:#4CAF50}body{font-family:sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100vh;transition:.3s}
-.header{display:flex;justify-content:space-between;padding:10px 20px;background:var(--secondary);box-shadow:0 2px 4px rgba(0,0,0,.2)}
-.header .brand{font-weight:700;font-size:1.2em;color:#fff}
-.account{position:relative;cursor:pointer}
-.account-icon{width:40px;height:40px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2em}
-.account-menu{position:absolute;top:50px;right:0;display:none;background:#555;border-radius:8px;overflow:hidden}
-.account-menu.show{display:flex;flex-direction:column}
-.account-menu div{padding:10px 15px;cursor:pointer}
-.account-menu div:hover{background:var(--primary);color:#fff}
-.main{display:flex;flex:1}
-.sidebar{width:200px;background:var(--secondary);padding:10px 0}
-.sidebar h3{color:#fff;padding:0 10px}
-.nav-item{padding:10px 15px;margin:5px 0;border-radius:4px;font-weight:600;cursor:pointer}
-.nav-item:hover,.nav-item.active{background:var(--primary);color:#fff}
-.content{flex:1;padding:10px 20px;overflow-y:auto}
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperAI</title>
+
+<style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --accent:#3b82f6;
+  --text:#f1f5f9;
+  --muted:#94a3b8;
+  --radius:16px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:system-ui,-apple-system,sans-serif;
+  background:linear-gradient(135deg,#0f172a,#111827);
+  color:var(--text);
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* SIDEBAR */
+.sidebar{
+  width:230px;
+  background:rgba(30,41,59,0.7);
+  backdrop-filter:blur(20px);
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  border-right:1px solid rgba(255,255,255,0.05);
+}
+
+.sidebar h2{margin-bottom:15px}
+
+.nav-item{
+  padding:12px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  color:var(--muted);
+  transition:0.2s;
+}
+
+.nav-item:hover{
+  background:rgba(255,255,255,0.05);
+  color:white;
+}
+
+.nav-item.active{
+  background:var(--accent);
+  color:white;
+}
+
+/* MAIN */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 30px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+
+.account{
+  position:relative;
+}
+
+.account-icon{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  background:var(--accent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.account-menu{
+  position:absolute;
+  top:55px;
+  right:0;
+  background:var(--card);
+  border-radius:var(--radius);
+  display:none;
+  flex-direction:column;
+  min-width:150px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+
+.account-menu div{
+  padding:12px;
+  cursor:pointer;
+}
+
+.account-menu div:hover{
+  background:rgba(255,255,255,0.05);
+}
+
+.account-menu.show{display:flex}
+
+/* CONTENT */
+.content{
+  flex:1;
+  padding:30px;
+  overflow-y:auto;
+}
+
+.card{
+  background:var(--card);
+  padding:25px;
+  border-radius:var(--radius);
+  margin-bottom:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+input,textarea{
+  width:100%;
+  padding:12px;
+  border-radius:var(--radius);
+  border:1px solid rgba(255,255,255,0.05);
+  background:#0f172a;
+  color:white;
+  margin-top:10px;
+}
+
+button{
+  margin-top:15px;
+  padding:12px;
+  border:none;
+  border-radius:var(--radius);
+  background:var(--accent);
+  color:white;
+  cursor:pointer;
+}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:15px;
+}
+
+.bot-card{
+  background:var(--card);
+  border-radius:16px;
+  padding:12px;
+  text-align:center;
+  transition:0.2s;
+}
+
+.bot-card img{
+  width:64px;
+  height:64px;
+  border-radius:12px;
+  object-fit:cover;
+}
+
+.bot-card:hover{
+  transform:translateY(-4px);
+}
+
 section{display:none}
 section.active{display:block}
-input[type=text],textarea,input[type=file]{width:100%;margin-top:5px;padding:8px;border-radius:4px;border:1px solid #ccc}
-button{margin-top:10px;padding:8px 12px;border:none;border-radius:4px;cursor:pointer}
-button#saveBtn{background:#28a745;color:#fff}
-button#saveBtn:hover{background:#218838}
-</style></head><body>
 
-<div class="header">
-  <div class="brand">HyperAI Dashboard</div>
-  <div class="account" id="accountBtn">
-    <div class="account-icon" title="Account Menu">🌟</div>
-    <div class="account-menu" id="accountMenu">
-      <div id="profileBtn">Profile</div>
-      <div id="settingsBtn">Settings</div>
-      <div id="signOutBtn">Sign Out</div>
+/* AUTH */
+#authScreen{
+  position:fixed;
+  inset:0;
+  background:#0f172a;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="authScreen">
+  <div class="card" style="width:400px;max-width:90%">
+    <h2>Sign In</h2>
+
+    <div id="g_id_onload"
+         data-client_id="129777724896-lmvaotcc6oudll99j642mpvd26r21lsj.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
     </div>
+
+    <div class="g_id_signin" data-type="standard"></div>
   </div>
+</div>
+
+<!-- GOOGLE -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<div class="sidebar">
+  <h2>HyperAI</h2>
+  <div class="nav-item active" data-section="home">Home</div>
+  <div class="nav-item" data-section="create">Create AI</div>
 </div>
 
 <div class="main">
-  <div class="sidebar">
-    <h3>Navigate</h3>
-    <div class="nav-item active" data-section="dashboard">Home</div>
-    <div class="nav-item" data-section="discover">Discover</div>
-    <div class="nav-item" data-section="create">Create AI</div>
-    <div class="nav-item" data-section="chats">Chats</div>
+  <div class="header">
+    <div>Dashboard</div>
+    <div class="account">
+      <div class="account-icon" id="accountBtn">R</div>
+      <div class="account-menu" id="accountMenu">
+        <div id="logoutBtn">Sign Out</div>
+      </div>
+    </div>
   </div>
-  <div class="content" id="contentArea">
-    <section id="dashboard" class="active">
-      <h2>Welcome to HyperAI</h2>
-      <p>Create, discover, and chat with models.</p>
+
+  <div class="content">
+
+    <section id="home" class="active">
+      <div class="card">
+        <h2>Welcome</h2>
+      </div>
+
+      <div class="grid" id="botGrid"></div>
     </section>
-    <section id="discover">
-      <h2>Discover Models</h2>
-      <input id="searchModels" placeholder="Search models..."/>
-      <div id="discoverResults">Loading...</div>
-    </section>
+
     <section id="create">
-      <h2>Create Character</h2>
-      <input id="charName" placeholder="Name"/>
-      <textarea id="charLore" placeholder="Lore"></textarea>
-      <textarea id="charPrompt" placeholder="System Prompt">You are Hyper, an AI assistant.</textarea>
-      <input id="charIcon" type="file" accept="image/png"/>
-      <button id="saveBtn">Save</button>
+      <div class="card">
+        <h2>Create Character</h2>
+        <input id="charName" placeholder="Name (24 chars max)">
+        <textarea id="charLore" placeholder="Lore (500 chars max)"></textarea>
+        <textarea id="charPrompt" placeholder="Prompt (1000 chars max)"></textarea>
+        <input id="charImagePath" placeholder="Image path (ai-images/id.png)">
+        <button onclick="saveBot()">Save</button>
+      </div>
     </section>
-    <section id="chats">
-      <h2>Chats</h2>
-      <input id="searchChats" placeholder="Search chats..."/>
-      <div id="chatList">No chats yet</div>
-      <button id="newChatBtn">New Chat</button>
-    </section>
-  </div>
-</div>
 
-<!-- Modal overlays omitted for brevity, style inline -->
-<div id="settingsModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:999;">
-  <div style="background:#fff;padding:20px;border-radius:8px;width:80%;max-width:300px;text-align:center;">
-    <h3>Settings</h3>
-    <button id="themeBtn">Change Theme</button>
-    <button id="closeSettings">Close</button>
   </div>
 </div>
-<div id="themeSelector" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:1000;">
-  <div style="background:#fff;padding:20px;border-radius:8px;width:80%;max-width:300px;text-align:center;">
-    <h3>Select Theme</h3>
-    <button data-theme="light-theme">Light</button>
-    <button data-theme="dark-theme">Dark</button>
-    <button data-theme="extra-dark-theme">Extra Dark</button>
-    <button data-theme="blindness-theme">Blindness</button>
-    <button data-theme="blue-theme">Blue</button>
-    <br/><br/>
-    <button id="cancelTheme">Cancel</button>
-  </div>
-</div>
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// Firebase init
-const firebaseConfig={apiKey:"AIzaSyAF8YTlX0gmn51wD81I6yqJIi5evehXKfo",authDomain:"hyperai-r.firebaseapp.com",projectId:"hyperai-r",storageBucket:"hyperai-r.firebasestorage.app",messagingSenderId:"129777724896",appId:"1:129777724896:web:6ceda58ba7103334e78f85"};
-firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
+// ================================
+// GOOGLE AUTH
+// ================================
+let accessToken = null;
 
-// --- Sign-in/out ---
-document.getElementById('profileBtn').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-document.getElementById('signOutBtn').onclick=()=>auth.signOut();
-auth.onAuthStateChanged(u=>{
-  document.getElementById('signInContainer').style.display=u?'none':'block';
-  document.getElementById('create').style.display=u?'block':'none';
-});
+function handleCredentialResponse(response) {
+  accessToken = response.credential;
+  document.getElementById("authScreen").style.display = "none";
+  loadBots();
+}
 
-// --- Decrypt keys ---
-const encToken='tuc_UJTe6nGdH4NnFwc41DhkHfFBFo4N6y0bwulP'; // rot13
-const encGemini='TlZtbkZsTmJFbFdnaWU2WkQyOG5CRUs1ejZ0LVhlRnBPVmdIM2hi'; // base64+rot13
-function rot13(s){return s.replace(/[a-zA-Z]/g,c=>{const cCode=c.charCodeAt(0),base=(cCode>=65&&cCode<=90)?65:97;return String.fromCharCode(((cCode-base+13)%26)+base);});}
-const gToken=rot13(encToken);
-const gUrl=rot13(atob(encGemini));
-const gApiKey=rot13(atob(encGemini)); // assuming same
+// ================================
+// DRIVE HELPERS
+// ================================
+async function driveRequest(url, options = {}) {
+  if (!accessToken) throw new Error("Not signed in");
 
-// --- API call ---
-async function callGemini(prompt){
-  const res=await fetch(gUrl,{
-    method:'POST',
-    headers:{
-      'Authorization':'Bearer '+gApiKey,
-      'Content-Type':'application/json'
-    },
-    body:JSON.stringify({prompt})
-  });
+  options.headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${accessToken}`
+  };
+
+  const res = await fetch(url, options);
   return await res.json();
 }
 
-// --- Storage ---
-const owner='rileysargent'; const repo='rileysargent.github.io'; const file='AIBots.txt';
-async function getBots(){
-  const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file}`,{
-    headers:{'Authorization':'token '+gToken}
+async function listDriveFiles() {
+  return await driveRequest("https://www.googleapis.com/drive/v3/files");
+}
+
+async function readDriveFile(id) {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  return await res.text();
+}
+
+async function writeDriveFile(name, data) {
+  const metadata = { name, mimeType: "application/json" };
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+  form.append("file", new Blob([JSON.stringify(data)], { type: "application/json" }));
+
+  return await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: form
+    }
+  );
+}
+
+// ================================
+// STORAGE
+// ================================
+const DRIVE_FILE = "AIBots.json";
+let lastGlobalSave = 0;
+const GLOBAL_COOLDOWN_MS = 2000;
+const USER_COOLDOWN_MS = 60000;
+
+function canSaveGlobal() {
+  const now = Date.now();
+  if (now - lastGlobalSave < GLOBAL_COOLDOWN_MS) return false;
+  lastGlobalSave = now;
+  return true;
+}
+
+function canUserSave(userId) {
+  const key = `lastSave_${userId}`;
+  const last = parseInt(localStorage.getItem(key) || "0", 10);
+  const now = Date.now();
+
+  if (now - last < USER_COOLDOWN_MS) return false;
+
+  localStorage.setItem(key, now.toString());
+  return true;
+}
+
+async function loadBots() {
+  if (!accessToken) return;
+
+  const files = await listDriveFiles();
+  const botFile = files.files?.find(f => f.name === DRIVE_FILE);
+
+  let bots = [];
+
+  if (botFile) {
+    const data = await readDriveFile(botFile.id);
+    try { bots = JSON.parse(data); } catch {}
+  }
+
+  displayGrid(bots);
+}
+
+function displayGrid(bots) {
+  const grid = document.getElementById("botGrid");
+  grid.innerHTML = "";
+
+  bots.forEach(b => {
+    const card = document.createElement("div");
+    card.className = "bot-card";
+
+    card.innerHTML = `
+      ${b.imagePath ? `<img src="${b.imagePath}">` : ""}
+      <h3>${b.name}</h3>
+      <p>${b.lore || ""}</p>
+    `;
+
+    grid.appendChild(card);
   });
-  if(!r.ok)return[];
-  const d=await r.json();
-  return JSON.parse(atob(d.content));
-}
-async function saveBots(data){
-  const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file}`,{
-    method:'PUT',
-    headers:{'Authorization':'token '+gToken},
-    body:JSON.stringify({
-      message:'update',
-      content:btoa(JSON.stringify(data)),
-      sha:((await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file}`,{
-        headers:{'Authorization':'token '+gToken}
-      })).json().then(j=>j.sha))
-    })
-  });
 }
 
-// --- Load & display ---
-async function loadChars(){const c=await getBots();displayChars(c);}
-function displayChars(c){const container=document.getElementById('charsContainer');container.innerHTML='';if(!c.length){container.innerHTML='<p>No characters</p>';return;}c.forEach(ch=>{
-  const d=document.createElement('div');
-  d.style.width='100px';d.style.border='1px solid #ccc';d.style.borderRadius='4px';d.style.padding='5px';d.style.cursor='pointer';d.style.textAlign='center';
-  if(ch.icon){const img=document.createElement('img');img.src='data:image/png;base64,'+ch.icon;img.style.width='80px';img.style.borderRadius='4px';d.appendChild(img);}
-  const n=document.createElement('div');n.innerText=ch.name;n.style.marginTop='4px';d.appendChild(n);
-  d.onclick=()=>{document.getElementById('charName').value=ch.name;document.getElementById('charLore').value=ch.lore;document.getElementById('charPrompt').value=ch.promptSystem;}
-  document.getElementById('charsContainer').appendChild(d);
-});}
+async function saveBot() {
+  if (!accessToken) return alert("Sign in first");
 
-// --- Save character ---
-document.getElementById('saveBtn').onclick=async ()=>{
-  const name=document.getElementById('charName').value.trim();
-  const lore=document.getElementById('charLore').value.trim();
-  const prompt=document.getElementById('charPrompt').value.trim();
-  if(!name||!prompt){alert('Name & Prompt required');return;}
-  const file=document.getElementById('charIcon');
-  let icon='';
-  if(file.files[0]){
-    const reader=new FileReader();
-    reader.onload=async()=>{icon=reader.result.split(',')[1]; await saveChar({name,lore,promptSystem:prompt,icon});loadChars();}
-    reader.readAsDataURL(file.files[0]);
-  }else{await saveChar({name,lore,promptSystem:prompt,icon});loadChars();}
+  const userId = accessToken.substring(0, 10);
+
+  if (!canSaveGlobal()) return alert("Please wait before saving");
+  if (!canUserSave(userId)) return alert("Only one bot per minute");
+
+  const name = document.getElementById("charName").value.trim();
+  const lore = document.getElementById("charLore").value.trim();
+  const prompt = document.getElementById("charPrompt").value.trim();
+  const imagePath = document.getElementById("charImagePath").value.trim();
+
+  if (!name || !prompt) return alert("Name and Prompt required");
+  if (name.length > 24) return alert("Name max 24 chars");
+  if (lore.length > 500) return alert("Lore max 500 chars");
+  if (prompt.length > 1000) return alert("Prompt max 1000 chars");
+
+  const files = await listDriveFiles();
+  let bots = [];
+
+  const existing = files.files?.find(f => f.name === DRIVE_FILE);
+  if (existing) {
+    const data = await readDriveFile(existing.id);
+    try { bots = JSON.parse(data); } catch {}
+  }
+
+  const id = Math.random().toString(36).substring(2, 7);
+  bots.push({ id, name, lore, prompt, imagePath });
+
+  await writeDriveFile(DRIVE_FILE, bots);
+  loadBots();
 }
-async function saveChar(c){const arr=await getBots();arr.push(c);await saveBots(arr); alert('Saved');}
 
-// --- Theme ---
-const themes=['light-theme','dark-theme','extra-dark-theme','blindness-theme','blue-theme'];
-function setTheme(t){themes.forEach(c=>document.body.classList.remove(c));document.body.classList.add(t);localStorage.setItem('theme',t);}
-setTheme(localStorage.getItem('theme')||'dark-theme');
-document.querySelectorAll('.theme-choice').forEach(b=>b.onclick=()=>{setTheme(b.dataset.theme);document.getElementById('themeSelector').style.display='none';});
+// ================================
+// NAV
+// ================================
+document.querySelectorAll(".nav-item").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelector(".nav-item.active")?.classList.remove("active");
+    btn.classList.add("active");
+    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+    document.getElementById(btn.dataset.section).classList.add("active");
+  };
+});
 
-// --- UI ---
-document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>{document.querySelector('.nav-item.active')?.classList.remove('active');n.classList.add('active');document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));document.getElementById(n.dataset.section).classList.add('active');});
-document.getElementById('profileBtn').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-document.getElementById('signOutBtn').onclick=()=>auth.signOut();
-document.getElementById('openSettings').onclick=()=>{document.getElementById('settingsModal').style.display='flex';}
-document.getElementById('closeSettings').onclick=()=>{document.getElementById('settingsModal').style.display='none';}
-document.getElementById('themeBtn').onclick=()=>{document.getElementById('themeSelector').style.display='flex';}
-document.getElementById('closeThemeSelector').onclick=()=>{document.getElementById('themeSelector').style.display='none';}
-document.querySelector('.nav-item[data-section="discover"]').onclick=()=>{document.getElementById('discoverResults').innerHTML='<p>Model A, B, C</p>';}
-document.querySelector('.nav-item[data-section="chats"]').onclick=()=>{document.getElementById('chatList').innerHTML='<p>No chats</p>';}
-loadChars();
+// ================================
+// ACCOUNT
+// ================================
+const accountBtn = document.getElementById("accountBtn");
+const accountMenu = document.getElementById("accountMenu");
 
-</script></body></html>
+accountBtn.onclick = () => accountMenu.classList.toggle("show");
+
+document.addEventListener("click", e => {
+  if (!accountBtn.contains(e.target)) accountMenu.classList.remove("show");
+});
+
+document.getElementById("logoutBtn").onclick = () => {
+  accessToken = null;
+  document.getElementById("authScreen").style.display = "flex";
+};
+</script>
+
+</body>
+</html>
