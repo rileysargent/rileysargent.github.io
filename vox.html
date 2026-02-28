@@ -1,371 +1,456 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HyperAI</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HyperAI Platform</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-:root {
-  --accent: #6f5af0;
-  --bg: #0b0b10;
-  --bg2: #14141b;
-  --bg3: #1c1c24;
-  --glass: rgba(255,255,255,0.05);
-  --tx: #f1f1f8;
-  --t2: #7f8090;
-  --r: 14px;
-}
+  /* Reset & base styles */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-* { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #121212;
+    color: #fff;
+    display: flex;
+    height: 100vh;
+  }
 
-body {
-  margin: 0;
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--tx);
-  height: 100vh;
-  display: flex;
-}
+  /* Sidebar styles */
+  .sidebar {
+    width: 240px;
+    background-color: #1e1e1e;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+  }
 
-/* AUTH */
-#authContainer {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-}
+  .logo {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+  }
 
-#googleBtn {
-  padding: 14px 24px;
-  background: white;
-  color: #333;
-  border-radius: 999px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
+  /* Buttons */
+  button {
+    padding: 12px 20px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
 
-/* APP */
-#app {
-  display: none;
-  width: 100%;
-  height: 100%;
-}
+  .btn-google {
+    background-color: #4285F4;
+    color: #fff;
+  }
+  .btn-google:hover {
+    background-color: #357ae8;
+  }
 
-/* SIDEBAR */
-#sidebar {
-  width: 240px;
-  background: var(--bg2);
-  border-right: 1px solid var(--glass);
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-}
+  .btn-signup {
+    background-color: #555;
+    color: #fff;
+  }
+  .btn-signup:hover {
+    background-color: #333;
+  }
 
-#nav button {
-  width: 100%;
-  padding: 10px;
-  margin: 4px 0;
-  border-radius: var(--r);
-  border: none;
-  background: transparent;
-  color: var(--tx);
-  cursor: pointer;
-}
+  /* Sidebar tabs/buttons */
+  .tab {
+    margin-top: 20px;
+    padding: 10px;
+    width: 100%;
+    border-radius: 8px;
+    background: #2a2a2a;
+    cursor: pointer;
+    text-align: center;
+    font-weight: 600;
+  }
+  .tab:hover {
+    background: #3a3a3a;
+  }
 
-#nav button.active,
-#nav button:hover {
-  background: var(--bg3);
-}
+  /* Main area styles */
+  .main {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  }
 
-/* BOTS */
-#bot-list button {
-  width: 100%;
-  text-align: left;
-  padding: 8px;
-  margin: 4px 0;
-  border-radius: var(--r);
-  border: none;
-  background: var(--bg3);
-  color: white;
-  cursor: pointer;
-}
+  /* Header with sign-in/out */
+  .header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  #user-info {
+    display: flex;
+    align-items: center;
+  }
+  #user-photo {
+    width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px;
+  }
+  #auth-buttons button {
+    margin-left: 10px;
+  }
 
-/* MODAL */
-#botModal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.6);
-  align-items:center;
-  justify-content:center;
-}
+  /* Content area */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+  }
 
-#botModal > div {
-  background:#14141b;
-  padding:24px;
-  border-radius:14px;
-  width:90%;
-  max-width:420px;
-  color:#f1f1f8;
-}
+  /* Sections */
+  .section {
+    display: none;
+  }
+  .section.active {
+    display: block;
+  }
 
-#iconChooser button,
-#colorChooser button {
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  border:none;
-  cursor:pointer;
-}
+  /* Discover tab styles */
+  #discover {
+    display: flex;
+    flex-direction: column;
+  }
+  #searchAI {
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+  }
+  .ai-card {
+    background: #1e1e1e;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
 
-/* CHAT */
-#messages {
-  flex:1;
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
+  /* Create AI form */
+  #createAIForm {
+    display: flex;
+    flex-direction: column;
+  }
+  #createAIForm input, #createAIForm textarea, #createAIForm select {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background-color: #2a2a2a;
+    color: #fff;
+  }
+  #createAIForm button {
+    align-self: flex-start;
+    background-color: #4CAF50; /* green for create */
+    color: #fff;
+  }
+  #createAIForm button:hover {
+    background-color: #45a049;
+  }
 
-.msg {
-  display:flex;
-  gap:8px;
-}
+  /* AI chats section */
+  #chats {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .chat-item {
+    background: #2a2a2a;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+  }
 
-.msg-user { flex-direction: row-reverse; }
-
-.avatar {
-  width:32px;
-  height:32px;
-  border-radius:50%;
-  background: var(--bg3);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.msg-bubble {
-  max-width:70%;
-  padding:8px 12px;
-  border-radius:12px;
-  background: var(--bg3);
-}
-
-.msg-user .msg-bubble {
-  background: var(--accent);
-}
+  /* Settings modal styles */
+  #settingsModal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    justify-content: center;
+    align-items: center;
+  }
+  #settingsContent {
+    background: #222;
+    padding: 20px;
+    border-radius: 12px;
+    width: 400px;
+    max-width: 90%;
+  }
+  #settingsContent h2 {
+    margin-bottom: 15px;
+  }
+  #settingsContent label {
+    display: block;
+    margin-top: 10px;
+  }
+  #settingsContent input, #settingsContent select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: none;
+    background-color: #2a2a2a;
+    color: #fff;
+  }
+  #closeSettings {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #555;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #closeSettings:hover {
+    background-color: #333;
+  }
 </style>
 </head>
-
 <body>
 
-<!-- AUTH -->
-<div id="authContainer">
-  <button id="googleBtn" onclick="signInWithGoogle()">Continue with Google</button>
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="logo">HyperAI</div>
+  <!-- Account Buttons -->
+  <button id="btnSignIn" class="btn-google">Sign In</button>
+  <button id="btnSignUp" class="btn-signup">Sign Up</button>
+  
+  <!-- Tabs -->
+  <div class="tab" data-section="discover">Discover</div>
+  <div class="tab" data-section="create-ai">Create AI</div>
+  <div class="tab" data-section="chats">AI Chats</div>
+  <div class="tab" data-section="search">Search</div>
+  <div class="tab" data-section="settings">Settings</div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <div id="sidebar">
-    <h1>HyperAI</h1>
-    <p style="font-size:11px; color:var(--t2)">AI workspace</p>
-
-    <div id="nav">
-      <button class="active" onclick="showPanel('discover')">Discover</button>
-      <button onclick="showPanel('chat')">Chat</button>
-    </div>
-
-    <button style="margin-top:12px" onclick="openBotModal()">Create Bot</button>
-
-    <div id="bot-list" style="margin-top:12px; font-size:13px; color:var(--t2)">
-      No bots yet
-    </div>
-
-    <div id="subscription" style="margin-top:20px; font-size:12px;">
-      Subscription: <span id="subStatus">Free</span>
+<!-- Main content -->
+<div class="main">
+  <!-- Header with sign out and user info -->
+  <div class="header" id="header">
+    <div id="user-info" style="display:none;">
+      <img id="user-photo" src="" alt="User Photo" />
+      <div>
+        <div id="user-name"></div>
+        <button id="signOutBtn">Sign Out</button>
+      </div>
     </div>
   </div>
 
-  <div id="content">
-    <div id="panel-discover" class="panel show" style="flex:1; display:flex; align-items:center; justify-content:center;">
-      <div>Discover bots</div>
+  <div class="content">
+    <!-- Welcome message -->
+    <div id="welcome" class="section active">
+      <h2 class="welcome">Please sign in to access features</h2>
     </div>
 
-    <div id="panel-chat" class="panel" style="flex:1; flex-direction:column;">
-      <div id="messages"></div>
+    <!-- Discover Tab -->
+    <div id="discover" class="section">
+      <input type="text" id="searchAI" placeholder="Search AIs..." />
+      <div id="discoverList">
+        <!-- AI cards will be appended here -->
+      </div>
+    </div>
+
+    <!-- Create AI Tab -->
+    <div id="create-ai" class="section">
+      <h3>Create a New AI</h3>
+      <form id="createAIForm">
+        <input type="text" id="aiName" placeholder="AI Name" required />
+        <textarea id="aiBackstory" placeholder="Backstory / Lore" rows="3" required></textarea>
+        <input type="text" id="systemPrompt" placeholder="System Prompt" required />
+        <select id="characterIcon">
+          <option value="robot">🤖 Robot</option>
+          <option value="wizard">🧙️ Wizard</option>
+          <option value="scientist">👩‍🔬 Scientist</option>
+          <option value="avatar">🧑‍💻 Avatar</option>
+        </select>
+        <button type="submit">Create AI</button>
+      </form>
+    </div>
+
+    <!-- AI Chats -->
+    <div id="chats" class="section">
+      <input type="text" id="searchChats" placeholder="Search chats..." />
+      <div id="chatList">
+        <!-- Chat items will appear here -->
+      </div>
+    </div>
+
+    <!-- Settings modal -->
+    <div id="settingsModal">
+      <div id="settingsContent">
+        <h2>Settings</h2>
+        <label>Account Email</label>
+        <input type="email" id="settingEmail" disabled />
+        <label>Choose AI Model</label>
+        <select id="aiModel">
+          <option value="gemini">Gemini</option>
+          <option value="gpt-4">GPT-4</option>
+          <option value="gpt-3.5">GPT-3.5</option>
+        </select>
+        <button id="saveSettings">Save</button>
+        <button id="closeSettings">Close</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- BOT MODAL -->
-<div id="botModal">
-  <div>
-    <h3>Create Bot</h3>
-
-    <label>Name</label>
-    <input id="botName" type="text" style="width:100%; padding:8px; border-radius:8px; border:none;">
-
-    <label>System Prompt</label>
-    <textarea id="botSys" style="width:100%; height:60px;"></textarea>
-
-    <label>Starting Message</label>
-    <textarea id="botStart" style="width:100%; height:60px;"></textarea>
-
-    <label>Icon</label>
-    <div id="iconChooser">
-      <button onclick="selectIcon('🤖')">🤖</button>
-      <button onclick="selectIcon('🧠')">🧠</button>
-      <button onclick="selectIcon('✨')">✨</button>
-      <button onclick="selectIcon('👾')">👾</button>
-    </div>
-    <div id="selectedIcon">Selected: 🤖</div>
-
-    <label>Color</label>
-    <div id="colorChooser">
-      <button style="background:#6f5af0" onclick="selectColor('#6f5af0')"></button>
-      <button style="background:#ff6b6b" onclick="selectColor('#ff6b6b')"></button>
-      <button style="background:#2ecc71" onclick="selectColor('#2ecc71')"></button>
-      <button style="background:#3498db" onclick="selectColor('#3498db')"></button>
-    </div>
-    <div id="selectedColor">Color: #6f5af0</div>
-
-    <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:10px;">
-      <button onclick="closeBotModal()">Cancel</button>
-      <button onclick="createBot()">Create</button>
-    </div>
-  </div>
-</div>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAF8YTlX0gmn51wD81I6yqJIi5evehXKfo",
-  authDomain: "hyperai-r.firebaseapp.com",
-  databaseURL: "https://hyperai-r-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "hyperai-r",
-  storageBucket: "hyperai-r.firebasestorage.app",
-  messagingSenderId: "129777724896",
-  appId: "1:129777724896:web:6ceda58ba7103334e78f85",
-  measurementId: "G-T5TVDRDHBN"
-};
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAF8YTlXlXgm51wD81I6yqJIi5evehXKfo",
+    authDomain: "hyperai-r.firebaseapp.com",
+    databaseURL: "https://hyperai-r-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "hyperai-r",
+    storageBucket: "hyperai-r.firebasestorage.app",
+    messagingSenderId: "129777724896",
+    appId: "1:129777724896:web:6ceda58ba7103334e78f85",
+    measurementId: "G-T5TVDRDHBN"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+  // UI Elements
+  const btnSignIn = document.getElementById('btnSignIn');
+  const btnSignUp = document.getElementById('btnSignUp');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const userInfoDiv = document.getElementById('user-info');
+  const userPhoto = document.getElementById('user-photo');
+  const userName = document.getElementById('user-name');
+  const welcomeSection = document.getElementById('welcome');
 
-let currentUser = null;
-let activeBot = null;
-let selectedIcon = '🤖';
-let selectedColor = '#6f5af0';
-
-/* AUTH */
-function signInWithGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(console.error);
-}
-
-auth.onAuthStateChanged(async user => {
-  if(user) {
-    currentUser = user;
-    document.getElementById('authContainer').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-
-    await loadSubscription();
-    loadBots();
-  } else {
-    currentUser = null;
-    document.getElementById('authContainer').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-  }
-});
-
-/* SUBSCRIPTIONS */
-async function loadSubscription() {
-  if(!currentUser) return;
-  const doc = await db.collection('subscriptions').doc(currentUser.uid).get();
-  document.getElementById('subStatus').innerText =
-    doc.exists ? doc.data().tier : 'Free';
-}
-
-/* BOTS */
-async function loadBots() {
-  if(!currentUser) return;
-  const snap = await db.collection('bots')
-    .doc(currentUser.uid)
-    .collection('list')
-    .get();
-
-  const list = document.getElementById('bot-list');
-  list.innerHTML = '';
-
-  snap.forEach(doc => {
-    const b = doc.data();
-    const btn = document.createElement('button');
-    btn.innerHTML = `${b.icon} ${b.name}`;
-    btn.style.color = b.color;
-    btn.onclick = () => openChat(b);
-    list.appendChild(btn);
+  // Handle auth state
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      showUser(user);
+    } else {
+      hideUser();
+    }
   });
 
-  if(snap.empty) list.innerHTML = 'No bots yet';
-}
-
-function openBotModal() {
-  document.getElementById('botModal').style.display = 'flex';
-}
-
-function closeBotModal() {
-  document.getElementById('botModal').style.display = 'none';
-}
-
-function selectIcon(icon) {
-  selectedIcon = icon;
-  document.getElementById('selectedIcon').innerText = 'Selected: ' + icon;
-}
-
-function selectColor(color) {
-  selectedColor = color;
-  document.getElementById('selectedColor').innerText = 'Color: ' + color;
-}
-
-async function createBot() {
-  const name = document.getElementById('botName').value.trim();
-  const sys = document.getElementById('botSys').value.trim();
-  const start = document.getElementById('botStart').value.trim();
-
-  if(!name || !sys) return;
-
-  const bot = {
-    name,
-    system: sys,
-    startMsg: start,
-    icon: selectedIcon,
-    color: selectedColor
+  // Sign in with Google
+  btnSignIn.onclick = () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    auth.signInWithPopup(provider).catch(console.error);
   };
 
-  await db.collection('bots')
-    .doc(currentUser.uid)
-    .collection('list')
-    .add(bot);
+  // Sign up with email (simple prompt)
+  btnSignUp.onclick = () => {
+    const email = prompt("Enter email:");
+    const password = prompt("Enter password:");
+    if (email && password) {
+      auth.createUserWithEmailAndPassword(email, password).catch(console.error);
+    }
+  };
 
-  loadBots();
-  closeBotModal();
-}
+  // Sign out
+  signOutBtn.onclick = () => auth.signOut();
 
-/* CHAT (placeholder) */
-function openChat(bot) {
-  activeBot = bot;
-  document.getElementById('panel-chat').classList.add('show');
-}
+  function showUser(user) {
+    userPhoto.src = user.photoURL || 'https://via.placeholder.com/40';
+    userName.innerText = user.displayName || user.email;
+    userInfoDiv.style.display = 'flex';
+    welcomeSection.style.display = 'none';
+    document.querySelector('.section.active').classList.remove('active');
+    document.getElementById('discover').classList.add('active'); // default to discover
+  }
+
+  function hideUser() {
+    userInfoDiv.style.display = 'none';
+    welcomeSection.style.display = 'block';
+  }
+
+  // Sidebar tab switching
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(tab.dataset.section).classList.add('active');
+    };
+  });
+
+  // Create AI form submission
+  document.getElementById('createAIForm').onsubmit = e => {
+    e.preventDefault();
+    const name = document.getElementById('aiName').value;
+    const lore = document.getElementById('aiBackstory').value;
+    const prompt = document.getElementById('systemPrompt').value;
+    const icon = document.getElementById('characterIcon').value;
+
+    // Save AI to local storage or database (for demo, local)
+    const newAI = { name, lore, prompt, icon, createdAt: new Date() };
+    let ais = JSON.parse(localStorage.getItem('createdAIs') || '[]');
+    ais.push(newAI);
+    localStorage.setItem('createdAIs', JSON.stringify(ais));
+    alert('AI Created!');
+    document.getElementById('createAIForm').reset();
+  };
+
+  // Load AIs for Discover tab
+  function loadDiscoverAIs() {
+    const list = document.getElementById('discoverList');
+    list.innerHTML = '';
+    const ais = JSON.parse(localStorage.getItem('createdAIs') || '[]');
+    ais.forEach(ai => {
+      const card = document.createElement('div');
+      card.className = 'ai-card';
+      card.innerHTML = `<h4>${ai.name}</h4><p>${ai.lore}</p>`;
+      list.appendChild(card);
+    });
+  }
+  // On page load, populate discover list
+  window.onload = () => {
+    loadDiscoverAIs();
+  };
+
+  // Search in Discover and Chat sections
+  document.getElementById('searchAI').oninput = () => {
+    const query = document.getElementById('searchAI').value.toLowerCase();
+    document.querySelectorAll('.ai-card').forEach(card => {
+      if (card.innerText.toLowerCase().includes(query)) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  };
+
+  document.getElementById('searchChats').oninput = () => {
+    const query = document.getElementById('searchChats').value.toLowerCase();
+    document.querySelectorAll('.chat-item').forEach(item => {
+      if (item.innerText.toLowerCase().includes(query)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  };
+
+  // Settings modal
+  const settingsModal = document.getElementById('settingsModal');
+  document.querySelector('#settings').onclick = () => {
+    document.getElementById('settingEmail').value = auth.currentUser.email;
+    settingsModal.style.display = 'flex';
+  };
+  document.getElementById('closeSettings').onclick = () => {
+    settingsModal.style.display = 'none';
+  };
+  document.getElementById('saveSettings').onclick = () => {
+    alert('Settings saved!');
+    settingsModal.style.display = 'none';
+  };
 </script>
-
 </body>
 </html>
