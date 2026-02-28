@@ -55,6 +55,21 @@ body{
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;font-weight:600;
 }
+.account-menu{
+  position:absolute;
+  top:55px;
+  right:0;
+  background:var(--card);
+  border-radius:var(--radius);
+  display:none;
+  flex-direction:column;
+  min-width:150px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+.account-menu.show{display:flex}
+.account-menu div{padding:12px;cursor:pointer}
+.account-menu div:hover{background:rgba(255,255,255,0.05)}
+
 .content{flex:1;padding:30px;overflow-y:auto}
 .card{
   background:var(--card);
@@ -62,7 +77,7 @@ body{
   border-radius:var(--radius);
   margin-bottom:20px;
 }
-input,textarea{
+input,textarea,select{
   width:100%;
   padding:12px;
   border-radius:var(--radius);
@@ -120,12 +135,20 @@ section.active{display:block}
   <div class="nav-item active" data-section="home">Home</div>
   <div class="nav-item" data-section="discover">Discover</div>
   <div class="nav-item" data-section="create">Create AI</div>
+  <div class="nav-item" data-section="profile">Profile</div>
 </div>
 
 <div class="main">
   <div class="header">
     <div>Dashboard</div>
-    <div class="account-icon" id="accountBtn">R</div>
+    <div style="position:relative">
+      <div class="account-icon" id="accountBtn">R</div>
+      <div class="account-menu" id="accountMenu">
+        <div id="refreshBtn">Refresh</div>
+        <div id="settingsBtn">Settings</div>
+        <div id="logoutBtn">Sign Out</div>
+      </div>
+    </div>
   </div>
 
   <div class="content">
@@ -142,7 +165,7 @@ section.active{display:block}
     <section id="discover">
       <div class="card">
         <h2>Discover</h2>
-        <h3>New AIs</h3>
+        <h3>New</h3>
         <div class="grid" id="discoverNew"></div>
 
         <h3 style="margin-top:20px">Recommended</h3>
@@ -154,11 +177,28 @@ section.active{display:block}
     <section id="create">
       <div class="card">
         <h2>Create Character</h2>
-        <input id="charName" placeholder="Name (24 chars)">
-        <textarea id="charLore" placeholder="Lore (500 chars)"></textarea>
-        <textarea id="charPrompt" placeholder="Prompt (1000 chars)"></textarea>
+        <input id="charName" placeholder="Name (24)">
+        <textarea id="charLore" placeholder="Lore (500)"></textarea>
+        <textarea id="charPrompt" placeholder="Prompt (1000)"></textarea>
+        <select id="charCategory">
+          <option value="">Category</option>
+          <option>RPG</option>
+          <option>Assistant</option>
+          <option>Art</option>
+          <option>Other</option>
+        </select>
         <input id="charImage" type="file" accept="image/*">
         <button onclick="saveBot()">Save</button>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="profile">
+      <div class="card">
+        <h2>Profile</h2>
+        <input id="profileName" placeholder="Name">
+        <textarea id="profileBio" placeholder="Bio"></textarea>
+        <button onclick="saveProfile()">Save Profile</button>
       </div>
     </section>
 
@@ -171,30 +211,42 @@ let lastGlobalSave=0;
 const GLOBAL_COOLDOWN_MS=2000;
 const USER_COOLDOWN_MS=60000;
 const DRIVE_FILE="AIBots.json";
+const LOCAL_USER="HyperAI_User";
+const LOCAL_CHATS="HyperAI_Chats";
 
 // ==============================
-// GOOGLE AUTH
+// AUTH
 // ==============================
 function handleCredentialResponse(response){
   accessToken=response.credential;
   document.getElementById("authScreen").style.display="none";
+
+  const user=loadLocalUser() || {id:accessToken,name:"User",bio:""};
+  saveLocalUser(user);
+
+  loadProfile();
   loadBots();
 }
 
-function canSaveGlobal(){
-  const now=Date.now();
-  if(now-lastGlobalSave<GLOBAL_COOLDOWN_MS) return false;
-  lastGlobalSave=now;
-  return true;
+// ==============================
+// LOCAL STORAGE
+// ==============================
+function loadLocalUser(){
+  const data=localStorage.getItem(LOCAL_USER);
+  return data?JSON.parse(data):null;
 }
 
-function canUserSave(userId){
-  const key=`lastSave_${userId}`;
-  const last=parseInt(localStorage.getItem(key)||"0",10);
-  const now=Date.now();
-  if(now-last<USER_COOLDOWN_MS) return false;
-  localStorage.setItem(key,now.toString());
-  return true;
+function saveLocalUser(user){
+  localStorage.setItem(LOCAL_USER,JSON.stringify(user));
+}
+
+function loadChats(){
+  const data=localStorage.getItem(LOCAL_CHATS);
+  return data?JSON.parse(data):{};
+}
+
+function saveChats(chats){
+  localStorage.setItem(LOCAL_CHATS,JSON.stringify(chats));
 }
 
 // ==============================
@@ -227,7 +279,7 @@ async function writeDriveFile(name,data){
 }
 
 // ==============================
-// IMAGE RESIZE (64x64)
+// IMAGE RESIZE
 // ==============================
 async function resizeTo64(file){
   const img=new Image();
@@ -242,6 +294,39 @@ async function resizeTo64(file){
   ctx.drawImage(img,0,0,64,64);
 
   return canvas.toDataURL("image/png");
+}
+
+// ==============================
+// PROFILE
+// ==============================
+function loadProfile(){
+  const user=loadLocalUser();
+  if(!user) return;
+  document.getElementById("profileName").value=user.name||"";
+  document.getElementById("profileBio").value=user.bio||"";
+}
+
+async function saveProfile(){
+  const name=document.getElementById("profileName").value.trim();
+  const bio=document.getElementById("profileBio").value.trim();
+
+  const user={id:accessToken,name,bio};
+  saveLocalUser(user);
+
+  const files=await listDriveFiles();
+  let users=[];
+  const existing=files.files?.find(f=>f.name==="Users.json");
+
+  if(existing){
+    const data=await readDriveFile(existing.id);
+    try{users=JSON.parse(data);}catch{}
+  }
+
+  const idx=users.findIndex(u=>u.id===user.id);
+  if(idx>=0) users[idx]=user;
+  else users.push(user);
+
+  await writeDriveFile("Users.json",users);
 }
 
 // ==============================
@@ -270,19 +355,39 @@ async function loadBots(){
 function displayGrid(bots){
   const grid=document.getElementById("botGrid");
   grid.innerHTML="";
-  bots.forEach(b=>{
-    const card=document.createElement("div");
-    card.className="bot-card";
-    card.innerHTML=`
-      ${b.imagePath?`<img src="${b.imagePath}">`:""}
-      <h3>${b.name}</h3>
-      <p>${b.lore||""}</p>
-    `;
-    grid.appendChild(card);
-  });
+
+  if(!bots.length){
+    grid.innerHTML="<p>No bots yet</p>";
+    return;
+  }
+
+  bots.forEach(renderCard);
 }
 
-// SAVE BOT WITH IMAGE
+function renderCard(b){
+  const card=document.createElement("div");
+  card.className="bot-card";
+
+  card.innerHTML=`
+    ${b.imagePath?`<img src="${b.imagePath}">`:""}
+    <h3>${b.name}</h3>
+    <p>${b.lore||""}</p>
+    <small>${b.category||""}</small>
+    <div>Likes: ${b.likes||0}</div>
+    <button onclick="likeBot('${b.id}')">Like</button>
+    <div id="comments-${b.id}">${renderComments(b)}</div>
+    <input id="comment-${b.id}" placeholder="Comment">
+    <button onclick="addComment('${b.id}')">Comment</button>
+  `;
+
+  document.getElementById("botGrid").appendChild(card);
+}
+
+function renderComments(b){
+  return (b.comments||[]).map(c=>`<p>${c.user}: ${c.text}</p>`).join("");
+}
+
+// SAVE BOT
 async function saveBot(){
   if(!accessToken) return alert("Sign in first");
 
@@ -293,6 +398,7 @@ async function saveBot(){
   const name=document.getElementById("charName").value.trim();
   const lore=document.getElementById("charLore").value.trim();
   const prompt=document.getElementById("charPrompt").value.trim();
+  const category=document.getElementById("charCategory").value;
   const file=document.getElementById("charImage").files[0];
 
   if(!name||!prompt) return alert("Name and Prompt required");
@@ -301,14 +407,11 @@ async function saveBot(){
   if(prompt.length>1000) return alert("Prompt max 1000");
 
   let imagePath="";
-
   if(file){
     const base64=await resizeTo64(file);
     const upload=await writeDriveFile(`${generateId()}.png`,base64);
     const result=await upload.json();
-    if(result.id){
-      imagePath=`https://drive.google.com/uc?id=${result.id}`;
-    }
+    if(result.id) imagePath=`https://drive.google.com/uc?id=${result.id}`;
   }
 
   const files=await listDriveFiles();
@@ -320,20 +423,78 @@ async function saveBot(){
     try{bots=JSON.parse(data);}catch{}
   }
 
-  bots.push({id:generateId(),name,lore,prompt,imagePath});
+  bots.push({
+    id:generateId(),
+    owner:accessToken,
+    name,lore,prompt,category,
+    imagePath,
+    likes:0,
+    comments:[],
+    created:Date.now()
+  });
+
   await writeDriveFile(DRIVE_FILE,bots);
   loadBots();
 }
 
-// ==============================
+// LIKE
+async function likeBot(id){
+  const files=await listDriveFiles();
+  const file=files.files?.find(f=>f.name===DRIVE_FILE);
+  if(!file) return;
+
+  const data=await readDriveFile(file.id);
+  let bots=[];
+  try{bots=JSON.parse(data);}catch{}
+
+  const bot=bots.find(b=>b.id===id);
+  if(bot) bot.likes=(bot.likes||0)+1;
+
+  await writeDriveFile(DRIVE_FILE,bots);
+  loadBots();
+}
+
+// COMMENTS
+async function addComment(id){
+  const text=document.getElementById(`comment-${id}`).value.trim();
+  if(!text) return;
+
+  const files=await listDriveFiles();
+  const file=files.files?.find(f=>f.name===DRIVE_FILE);
+  if(!file) return;
+
+  const data=await readDriveFile(file.id);
+  let bots=[];
+  try{bots=JSON.parse(data);}catch{}
+
+  const bot=bots.find(b=>b.id===id);
+  if(bot){
+    bot.comments=bot.comments||[];
+    bot.comments.push({user:loadLocalUser()?.name||"User",text,time:Date.now()});
+  }
+
+  await writeDriveFile(DRIVE_FILE,bots);
+  loadBots();
+}
+
 // DISCOVER
-// ==============================
 function discoverNew(bots){
-  return [...bots].sort((a,b)=> (b.created||0)-(a.created||0)).slice(0,10);
+  return [...bots].sort((a,b)=>(b.created||0)-(a.created||0)).slice(0,10);
 }
 
 function discoverRecommended(bots){
   return [...bots].sort(()=>Math.random()-0.5).slice(0,10);
+}
+
+function cardHtml(b){
+  return `
+    <div class="bot-card">
+      ${b.imagePath?`<img src="${b.imagePath}">`:""}
+      <h3>${b.name}</h3>
+      <p>${b.lore||""}</p>
+      <small>${b.category||""}</small>
+    </div>
+  `;
 }
 
 function renderDiscover(bots){
@@ -344,19 +505,15 @@ function renderDiscover(bots){
     discoverRecommended(bots).map(cardHtml).join("");
 }
 
-function cardHtml(b){
-  return `
-    <div class="bot-card">
-      ${b.imagePath?`<img src="${b.imagePath}">`:""}
-      <h3>${b.name}</h3>
-      <p>${b.lore||""}</p>
-    </div>
-  `;
+// CHAT (localStorage)
+function addMessage(chatId, from, text){
+  const chats=loadChats();
+  chats[chatId]=chats[chatId]||[];
+  chats[chatId].push({from,text,time:Date.now()});
+  saveChats(chats);
 }
 
-// ==============================
 // NAV
-// ==============================
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.onclick=()=>{
     document.querySelector(".nav-item.active")?.classList.remove("active");
@@ -366,6 +523,19 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
     document.getElementById(btn.dataset.section).classList.add("active");
   };
 });
+
+// ACCOUNT MENU
+const accountBtn=document.getElementById("accountBtn");
+const accountMenu=document.getElementById("accountMenu");
+
+accountBtn.onclick=()=>accountMenu.classList.toggle("show");
+
+document.getElementById("refreshBtn").onclick=()=>loadBots();
+document.getElementById("settingsBtn").onclick=()=>alert("Settings TBD");
+document.getElementById("logoutBtn").onclick=()=>{
+  accessToken=null;
+  document.getElementById("authScreen").style.display="flex";
+};
 </script>
 
 </body>
