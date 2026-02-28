@@ -1,0 +1,1 @@
+[{"name":"bot test","lore":"bot test","promptSystem":"bot test","icon":""}]
