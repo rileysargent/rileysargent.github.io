@@ -3,41 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace-r | Voxel Engine</title>
+    <title>Hyperspace-r | Game Client</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
-        #game-ui {
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .hud {
             position: fixed; top: 20px; left: 20px; color: white;
-            pointer-events: none; z-index: 10;
+            z-index: 10; pointer-events: none;
         }
-        .hud-pill {
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
-            padding: 10px 20px; border-radius: 50px; margin-bottom: 10px;
-            backdrop-filter: blur(5px); display: flex; align-items: center; gap: 10px;
+        .pill {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 15px; border-radius: 50px; backdrop-filter: blur(5px);
+            margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
         }
-        #crosshair {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: white; font-size: 20px; pointer-events: none;
-        }
-        .health-bar { height: 5px; background: #333; width: 100px; border-radius: 5px; }
-        #hp-fill { height: 100%; background: #ff3333; width: 100%; transition: 0.3s; }
+        canvas { display: block; width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
 
-    <div id="game-ui">
-        <div class="hud-pill">
-            <span id="server-label">CONNECTING...</span>
-            <span id="player-id" style="opacity: 0.5;">#----</span>
-        </div>
-        <div class="hud-pill">
-            <span>HP</span>
-            <div class="health-bar"><div id="hp-fill"></div></div>
-            <span id="hp-text">20/20</span>
-        </div>
+    <div id="loading-screen">
+        <h1 id="status-text">INITIALIZING_SECURE_BOOT...</h1>
+        <p id="sub-status">Checking Credentials...</p>
     </div>
 
-    <div id="crosshair">+</div>
+    <div class="hud">
+        <div class="pill">MODE: <span id="mode-label">---</span></div>
+        <div class="pill">ID: <span id="id-label">#----</span></div>
+        <div class="pill">HEALTH: <span id="hp-label">20.0</span></div>
+    </div>
 
     <script type="importmap">
         {
@@ -50,132 +47,106 @@
 
     <script type="module">
         import * as THREE from 'three';
-        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onChildAdded, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // --- 1. SETUP & CONFIG ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('mode') || 'survival';
-        
-        const firebaseConfig = { /* USE YOUR SAME CONFIG AS DASHBOARD */ };
+        // --- FIREBASE CONFIG (Must match your Dashboard) ---
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "YOUR_RTDB_URL",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            appId: "YOUR_APP_ID"
+        };
+
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
 
-        let myBase36 = "----";
-        let myData = null;
-        const remotePlayers = {};
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'survival';
 
-        // --- 2. THREE.JS ENGINE ---
+        // --- 3D SCENE SETUP ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0a);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const controls = new PointerLockControls(camera, document.body);
-        document.body.addEventListener('click', () => controls.lock());
-
-        // Lighting
-        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(10, 20, 10);
-        scene.add(sun);
-
-        // Simple Floor
-        const floorGeo = new THREE.PlaneGeometry(100, 100);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        scene.add(floor);
-
-        // --- 3. SKIN & IDENTITY LOADING ---
-        async function initPlayer(user) {
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
-                myData = snap.data();
-                myBase36 = myData.base36;
-                document.getElementById('server-label').innerText = mode.toUpperCase();
-                document.getElementById('player-id').innerText = `#${myBase36}`;
-                document.getElementById('hp-text').innerText = `${myData.health}/20`;
-                
-                // Initialize Multi-player Presence
-                syncMovement();
+        // --- AUTH-GATED INITIALIZATION ---
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // If no user, kick them back to the dashboard to login
+                window.location.href = 'index.html'; 
+                return;
             }
-        }
 
-        // --- 4. MULTIPLAYER SYNC (RTDB) ---
-        function syncMovement() {
-            const playerRef = ref(rtdb, `servers/${mode}/players/${myBase36}`);
+            document.getElementById('sub-status').innerText = "Fetching Base36 Profile...";
             
-            // Broadcast our position
+            const userRef = doc(db, "users", user.uid);
+            const snap = await getDoc(userRef);
+
+            if (snap.exists()) {
+                const userData = snap.data();
+                startWorld(userData);
+            } else {
+                // This happens if they bypassed the dashboard without making a profile
+                document.getElementById('status-text').innerText = "PROFILE_NOT_FOUND";
+                document.getElementById('sub-status').innerText = "Redirecting to Identity Setup...";
+                setTimeout(() => window.location.href = 'index.html', 2000);
+            }
+        });
+
+        function startWorld(profile) {
+            // Update HUD with proper credentials
+            document.getElementById('mode-label').innerText = gameMode.toUpperCase();
+            document.getElementById('id-label').innerText = `#${profile.base36}`;
+            document.getElementById('hp-label').innerText = profile.health;
+
+            // Remove loading screen
+            document.getElementById('loading-screen').style.display = 'none';
+
+            // Add simple geometry so we can see it's working
+            const grid = new THREE.GridHelper(100, 100, 0x00a2ff, 0x222222);
+            scene.add(grid);
+            
+            camera.position.set(0, 5, 10);
+            camera.lookAt(0, 0, 0);
+
+            // Start Logic
+            initMultiplayer(profile);
+            animate();
+        }
+
+        function initMultiplayer(profile) {
+            const playerRef = ref(rtdb, `servers/${gameMode}/players/${profile.base36}`);
+            
+            // Periodically sync position to RTDB
             setInterval(() => {
-                if (controls.isLocked) {
-                    set(playerRef, {
-                        x: camera.position.x,
-                        y: camera.position.y,
-                        z: camera.position.z,
-                        rot: camera.rotation.y,
-                        hp: myData.health
-                    });
-                }
-            }, 50);
-
-            // Listen for others
-            const roomRef = ref(rtdb, `servers/${mode}/players`);
-            onChildAdded(roomRef, (snapshot) => {
-                if (snapshot.key !== myBase36) createRemotePlayer(snapshot.key, snapshot.val());
-            });
-            onValue(roomRef, (snapshot) => {
-                const players = snapshot.val();
-                for (let id in players) {
-                    if (id !== myBase36 && remotePlayers[id]) {
-                        remotePlayers[id].position.set(players[id].x, players[id].y, players[id].z);
-                        remotePlayers[id].rotation.y = players[id].rot;
-                    }
-                }
-            });
+                set(playerRef, {
+                    x: camera.position.x,
+                    y: camera.position.y,
+                    z: camera.position.z,
+                    hp: profile.health,
+                    ts: Date.now()
+                });
+            }, 100);
         }
 
-        function createRemotePlayer(id, data) {
-            // Box model for players (Voxel style)
-            const geo = new THREE.BoxGeometry(1, 2, 1);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x00a2ff });
-            const mesh = new THREE.Mesh(geo, mat);
-            scene.add(mesh);
-            remotePlayers[id] = mesh;
-        }
-
-        // --- 5. GAME LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Basic Movement Logic
-            if (controls.isLocked) {
-                // You would add WASD movement here using camera.moveForward/moveRight
-            }
-
             renderer.render(scene, camera);
         }
 
-        animate();
-
-        // Handle Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        // Auth Bridge from your main login
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        const auth = getAuth(app);
-        onAuthStateChanged(auth, (user) => { if(user) initPlayer(user); });
-
     </script>
 </body>
 </html>
