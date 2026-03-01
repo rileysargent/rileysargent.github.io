@@ -3,133 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diggin' PWA</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Hyperspace-r | Dashboard</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
     <style>
-        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; overflow: hidden; }
-        #stats { display: flex; gap: 20px; padding: 10px; background: #333; width: 100%; justify-content: center; border-bottom: 2px solid #555; }
-        canvas { border: 5px solid #444; background: #4b3832; margin-top: 10px; cursor: crosshair; }
-        #shop { margin-top: 10px; padding: 10px; background: #222; border-radius: 8px; width: 380px; }
-        .fuel-bar { width: 400px; height: 10px; background: #444; margin-top: 5px; border-radius: 5px; }
-        #fuel-fill { height: 100%; background: #ff4444; width: 100%; border-radius: 5px; transition: width 0.2s; }
-        button { background: #4CAF50; color: white; border: none; padding: 8px; margin: 5px; border-radius: 4px; cursor: pointer; width: 100%; }
-        button:disabled { background: #888; cursor: not-allowed; }
+        :root {
+            --pill-bg: rgba(255, 255, 255, 0.07);
+            --border: rgba(255, 255, 255, 0.15);
+            --accent: #00a2ff;
+            --danger: #ff3333;
+            --pvp: #ffaa00;
+        }
+
+        body {
+            background: #050505;
+            color: white;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* --- DASHBOARD UI --- */
+        #ui-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .pill-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .pill {
+            background: var(--pill-bg);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(15px);
+            border-radius: 100px;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .interactive:hover {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.12);
+            cursor: pointer;
+            transform: translateY(-2px);
+        }
+
+        .server-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 60%;
+            margin: auto;
+        }
+
+        .server-card {
+            height: 80px;
+            justify-content: center;
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer;
+        }
+
+        /* --- IDENTITY ELEMENTS --- */
+        .avatar-box {
+            width: 32px;
+            height: 32px;
+            background: #222;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .id-tag {
+            opacity: 0.5;
+            font-size: 0.85em;
+            margin-left: 8px;
+        }
+
+        /* --- TERMINAL BAR --- */
+        .terminal-pill {
+            width: 50%;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .prompt { color: var(--accent); font-weight: bold; }
+
+        input#terminal-input {
+            background: transparent;
+            border: none;
+            color: white;
+            width: 100%;
+            outline: none;
+            font-family: inherit;
+        }
+
+        /* --- VHS TRANSITION OVERLAY --- */
+        #vhs-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: black;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease-in;
+        }
+
+        #vhs-overlay.vhs-active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .glitch-text {
+            font-size: 4rem;
+            font-weight: 900;
+            text-shadow: 2px 0 red, -2px 0 blue;
+            animation: jitter 0.15s infinite;
+            letter-spacing: 5px;
+        }
+
+        @keyframes jitter {
+            0% { transform: translate(0,0); }
+            25% { transform: translate(-2px, 2px); }
+            50% { transform: translate(2px, -1px); }
+            75% { transform: translate(-1px, -2px); }
+            100% { transform: translate(0,0); }
+        }
+
+        .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; }
+        .online { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+        .pvp { background: var(--pvp); }
+        .danger { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+
     </style>
 </head>
 <body>
 
-<div id="stats">
-    <span>Depth: <b id="depth">0</b>m</span>
-    <span>Cash: $<b id="cash">0</b></span>
-</div>
-<div class="fuel-bar"><div id="fuel-fill"></div></div>
+    <div id="vhs-overlay">
+        <div class="scanlines"></div>
+        <div class="vhs-content">
+            <h1 class="glitch-text" data-text="[ NO SIGNAL ]">[ NO SIGNAL ]</h1>
+            <p id="boot-status" style="text-align: center; opacity: 0.7;">LINKING_SERVER_NODE...</p>
+        </div>
+    </div>
 
-<canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="ui-container">
+        <header class="pill-row">
+            <div id="login-pill" class="pill interactive entry" onclick="login()">
+                CONNECT_IDENTITY
+            </div>
+            <div id="user-pill" class="pill entry" style="display:none;">
+                <div class="avatar-box"><img id="pfp" src="" style="width:100%"></div>
+                <div class="user-meta">
+                    <span id="username">---</span>
+                    <span id="base36-id" class="id-tag">#0000</span>
+                </div>
+            </div>
+            <div class="pill entry">
+                <span style="color: var(--danger); font-weight: bold;">HP:</span>
+                <span id="hp-val">20.0</span>
+            </div>
+        </header>
 
-<div id="shop">
-    <div id="upgrade-tree"></div>
-    <button onclick="refuel()" id="refuel-btn">Refuel ($20)</button>
-</div>
+        <main class="server-grid">
+            <div class="pill entry server-card interactive" onclick="queueServer('survival')">
+                <span class="dot online"></span> SURVIVAL_OS
+            </div>
+            <div class="pill entry server-card interactive" onclick="queueServer('creative')">
+                <span class="dot online"></span> CREATIVE_OS
+            </div>
+            <div class="pill entry server-card interactive" onclick="queueServer('pvp')">
+                <span class="dot pvp"></span> ARENA_PVP
+            </div>
+            <div class="pill entry server-card interactive" onclick="queueServer('lifesteal')">
+                <span class="dot danger"></span> LIFESTEAL_V2
+            </div>
+        </main>
 
-<script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const tileSize = 40;
+        <footer class="pill-row">
+            <div class="pill entry terminal-pill">
+                <span class="prompt">></span>
+                <input type="text" id="terminal-input" placeholder="Type /queue [server]...">
+            </div>
+        </footer>
+    </div>
 
-    let player = { x: 5, depth: 0, cash: 0, fuel: 100, maxFuel: 100, drillPower: 1 };
-    let world = {};
-    let upgrades = {
-        tank1: { name: "Bigger Tank", cost: 100, fuel: 250, bought: false, unlocks: 'tank2' },
-        tank2: { name: "Nuclear Core", cost: 500, fuel: 1000, bought: false, unlocks: null },
-        drill1: { name: "Iron Drill (+Cash)", cost: 150, power: 2, bought: false, unlocks: 'drill2' },
-        drill2: { name: "Diamond Drill", cost: 600, power: 5, bought: false, unlocks: null }
-    };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    function getTile(x, y) {
-        if (y < 5) return "air";
-        if (world[`${x},${y}`]) return "air";
-        let noise = Math.abs(Math.sin(x * 432.1 + y * 123.4));
-        if (noise > 0.96) return "diamond";
-        if (noise > 0.90) return "gold";
-        return "dirt";
-    }
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (let y = 0; y < 10; y++) {
-            for (let x = 0; x < 10; x++) {
-                let worldY = y + player.depth;
-                let type = getTile(x, worldY);
-                if (type === "dirt") ctx.fillStyle = worldY > 50 ? "#3d2b1f" : "#5d4037";
-                else if (type === "gold") ctx.fillStyle = "#ffd700";
-                else if (type === "diamond") ctx.fillStyle = "#00ffff";
-                else ctx.fillStyle = "#1a1a1a";
-                ctx.fillRect(x * tileSize, y * tileSize, tileSize - 1, tileSize - 1);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        // --- AUTH & BASE36 IDENTITY ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userRef = doc(db, "users", user.uid);
+                const snap = await getDoc(userRef);
+
+                if (!snap.exists()) {
+                    // Automate Identity Creation
+                    const b36 = Date.now().toString(36).toUpperCase();
+                    currentUser = {
+                        username: user.displayName.split(' ')[0],
+                        base36: b36,
+                        health: 20.0,
+                        skin: user.photoURL
+                    };
+                    await setDoc(userRef, currentUser);
+                    await setDoc(doc(db, "ids", b36), { uid: user.uid });
+                } else {
+                    currentUser = snap.data();
+                }
+                updateDashboard(currentUser);
             }
+        });
+
+        function updateDashboard(data) {
+            document.getElementById('login-pill').style.display = 'none';
+            document.getElementById('user-pill').style.display = 'flex';
+            document.getElementById('username').innerText = data.username;
+            document.getElementById('base36-id').innerText = `#${data.base36}`;
+            document.getElementById('hp-val').innerText = data.health.toFixed(1);
+            document.getElementById('pfp').src = `https://minotar.net/helm/${data.username}/32.png`;
         }
-        ctx.fillStyle = player.fuel > 0 ? "#ffcc00" : "#555";
-        ctx.fillRect(player.x * tileSize + 10, 4 * tileSize + 10, 20, 20);
-    }
 
-    function refuel() {
-        if (player.cash >= 20) { player.cash -= 20; player.fuel = player.maxFuel; update(); }
-    }
+        // --- COMMAND & PHYSICS TRANSITION ---
+        window.queueServer = function(mode) {
+            initPhysicsCrash();
 
-    function update() {
-        document.getElementById('cash').innerText = player.cash;
-        document.getElementById('depth').innerText = player.depth;
-        document.getElementById('fuel-fill').style.width = (player.fuel / player.maxFuel * 100) + "%";
-        renderShop();
-        draw();
-    }
+            setTimeout(() => {
+                document.getElementById('vhs-overlay').classList.add('vhs-active');
+                document.getElementById('boot-status').innerText = `ESTABLISHING_HANDSHAKE_${mode.toUpperCase()}...`;
+            }, 800);
 
-    function renderShop() {
-        const tree = document.getElementById('upgrade-tree');
-        tree.innerHTML = "";
-        for (let id in upgrades) {
-            let up = upgrades[id];
-            let locked = Object.values(upgrades).some(prev => prev.unlocks === id && !prev.bought);
-            if (!up.bought && !locked) {
-                let btn = document.createElement('button');
-                btn.innerText = `${up.name} ($${up.cost})`;
-                btn.disabled = player.cash < up.cost;
-                btn.onclick = () => {
-                    player.cash -= up.cost;
-                    up.bought = true;
-                    if (up.fuel) player.maxFuel = up.fuel;
-                    if (up.power) player.drillPower = up.power;
-                    update();
-                };
-                tree.appendChild(btn);
+            setTimeout(() => {
+                window.location.href = `mcc.html?mode=${mode}`;
+            }, 3500);
+        };
+
+        function initPhysicsCrash() {
+            const { Engine, Runner, Bodies, Composite } = Matter;
+            const engine = Engine.create();
+            const elements = document.querySelectorAll('.entry');
+
+            elements.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                const body = Bodies.rectangle(
+                    rect.left + rect.width / 2, 
+                    rect.top + rect.height / 2, 
+                    rect.width, rect.height
+                );
+                
+                el.style.position = 'fixed';
+                el.style.width = (rect.width - 48) + 'px'; // Handle padding
+                el.style.zIndex = '10';
+
+                (function update() {
+                    el.style.left = (body.position.x - rect.width / 2) + 'px';
+                    el.style.top = (body.position.y - rect.height / 2) + 'px';
+                    el.style.transform = `rotate(${body.angle}rad)`;
+                    requestAnimationFrame(update);
+                })();
+                Composite.add(engine.world, body);
+            });
+
+            Composite.add(engine.world, Bodies.rectangle(window.innerWidth/2, window.innerHeight + 100, window.innerWidth, 100, { isStatic: true }));
+            Runner.run(engine);
+        }
+
+        // Terminal Listener
+        document.getElementById('terminal-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const val = e.target.value.toLowerCase();
+                if (val.startsWith('/queue ')) {
+                    queueServer(val.split(' ')[1]);
+                }
+                e.target.value = '';
             }
-        }
-    }
+        });
 
-    window.addEventListener('keydown', e => {
-        if (player.fuel <= 0) return;
-        let dx = 0, dy = 0;
-        if (e.key === "ArrowLeft") dx = -1;
-        if (e.key === "ArrowRight") dx = 1;
-        if (e.key === "ArrowDown") dy = 1;
-
-        let tx = player.x + dx;
-        let ty = player.depth + 4 + dy;
-
-        if (tx >= 0 && tx < 10) {
-            let tile = getTile(tx, ty);
-            if (tile !== "air") {
-                world[`${tx},${ty}`] = true;
-                player.fuel -= 2;
-                player.cash += (tile === "gold" ? 50 : tile === "diamond" ? 200 : 10) * player.drillPower;
-            }
-            player.x = tx;
-            if (dy > 0) player.depth++;
-            update();
-        }
-    });
-
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-    update();
-</script>
+        window.login = () => signInWithPopup(auth, new GoogleAuthProvider());
+    </script>
 </body>
 </html>
