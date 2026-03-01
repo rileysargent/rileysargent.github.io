@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperspace-r | Voxel Engine</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
+        #game-ui {
+            position: fixed; top: 20px; left: 20px; color: white;
+            pointer-events: none; z-index: 10;
+        }
+        .hud-pill {
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px 20px; border-radius: 50px; margin-bottom: 10px;
+            backdrop-filter: blur(5px); display: flex; align-items: center; gap: 10px;
+        }
+        #crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: white; font-size: 20px; pointer-events: none;
+        }
+        .health-bar { height: 5px; background: #333; width: 100px; border-radius: 5px; }
+        #hp-fill { height: 100%; background: #ff3333; width: 100%; transition: 0.3s; }
+    </style>
+</head>
+<body>
+
+    <div id="game-ui">
+        <div class="hud-pill">
+            <span id="server-label">CONNECTING...</span>
+            <span id="player-id" style="opacity: 0.5;">#----</span>
+        </div>
+        <div class="hud-pill">
+            <span>HP</span>
+            <div class="health-bar"><div id="hp-fill"></div></div>
+            <span id="hp-text">20/20</span>
+        </div>
+    </div>
+
+    <div id="crosshair">+</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, onChildAdded, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- 1. SETUP & CONFIG ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode') || 'survival';
+        
+        const firebaseConfig = { /* USE YOUR SAME CONFIG AS DASHBOARD */ };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const rtdb = getDatabase(app);
+
+        let myBase36 = "----";
+        let myData = null;
+        const remotePlayers = {};
+
+        // --- 2. THREE.JS ENGINE ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0a);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new PointerLockControls(camera, document.body);
+        document.body.addEventListener('click', () => controls.lock());
+
+        // Lighting
+        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(10, 20, 10);
+        scene.add(sun);
+
+        // Simple Floor
+        const floorGeo = new THREE.PlaneGeometry(100, 100);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
+
+        // --- 3. SKIN & IDENTITY LOADING ---
+        async function initPlayer(user) {
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()) {
+                myData = snap.data();
+                myBase36 = myData.base36;
+                document.getElementById('server-label').innerText = mode.toUpperCase();
+                document.getElementById('player-id').innerText = `#${myBase36}`;
+                document.getElementById('hp-text').innerText = `${myData.health}/20`;
+                
+                // Initialize Multi-player Presence
+                syncMovement();
+            }
+        }
+
+        // --- 4. MULTIPLAYER SYNC (RTDB) ---
+        function syncMovement() {
+            const playerRef = ref(rtdb, `servers/${mode}/players/${myBase36}`);
+            
+            // Broadcast our position
+            setInterval(() => {
+                if (controls.isLocked) {
+                    set(playerRef, {
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z,
+                        rot: camera.rotation.y,
+                        hp: myData.health
+                    });
+                }
+            }, 50);
+
+            // Listen for others
+            const roomRef = ref(rtdb, `servers/${mode}/players`);
+            onChildAdded(roomRef, (snapshot) => {
+                if (snapshot.key !== myBase36) createRemotePlayer(snapshot.key, snapshot.val());
+            });
+            onValue(roomRef, (snapshot) => {
+                const players = snapshot.val();
+                for (let id in players) {
+                    if (id !== myBase36 && remotePlayers[id]) {
+                        remotePlayers[id].position.set(players[id].x, players[id].y, players[id].z);
+                        remotePlayers[id].rotation.y = players[id].rot;
+                    }
+                }
+            });
+        }
+
+        function createRemotePlayer(id, data) {
+            // Box model for players (Voxel style)
+            const geo = new THREE.BoxGeometry(1, 2, 1);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00a2ff });
+            const mesh = new THREE.Mesh(geo, mat);
+            scene.add(mesh);
+            remotePlayers[id] = mesh;
+        }
+
+        // --- 5. GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Basic Movement Logic
+            if (controls.isLocked) {
+                // You would add WASD movement here using camera.moveForward/moveRight
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Auth Bridge from your main login
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        const auth = getAuth(app);
+        onAuthStateChanged(auth, (user) => { if(user) initPlayer(user); });
+
+    </script>
+</body>
+</html>
