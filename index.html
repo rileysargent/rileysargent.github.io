@@ -219,14 +219,16 @@
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_ID",
-            appId: "YOUR_APP_ID"
-        };
+    const firebaseConfig = {
+    apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+    authDomain: "hyperspace-r.firebaseapp.com",
+    databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "hyperspace-r",
+    storageBucket: "hyperspace-r.firebasestorage.app",
+    messagingSenderId: "1050495683444",
+    appId: "1:1050495683444:web:846c42d274197b20313a21",
+    measurementId: "G-8RC2TB95T7"
+  };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
