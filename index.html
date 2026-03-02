@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hyperspace-R | Hardware Loader</title>
+    <title>Hyperspace-R | Radar</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -10,58 +10,57 @@
         :root { --red: #ff2a2a; --dark: #050505; --gold: #ffd700; --green: #00ff41; }
         body { background: var(--dark); color: var(--red); font-family: 'Courier New', monospace; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* SIDEBAR CONTROLS */
-        #scanner { width: 340px; border-right: 2px solid #222; background: #000; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .btn-hardware { width: 100%; padding: 15px; background: #111; border: 1px solid var(--red); color: var(--red); cursor: pointer; margin-bottom: 10px; font-weight: bold; text-transform: uppercase; transition: 0.2s; }
-        .btn-hardware:hover { background: var(--red); color: #000; box-shadow: 0 0 15px var(--red); }
-        .btn-hardware:disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
+        #auth-gate { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; align-items: center; justify-content: center; }
+        .btn-auth { padding: 20px 40px; background: #000; color: var(--red); border: 2px solid var(--red); font-weight: bold; cursor: pointer; font-size: 1.2rem; }
 
-        #manifest { flex-grow: 1; overflow-y: auto; border: 1px solid #111; padding: 10px; font-size: 0.7rem; color: #555; }
-        .manifest-item { margin-bottom: 5px; color: var(--gold); }
+        /* SIDEBAR & RADAR */
+        #scanner { width: 320px; border-right: 2px solid #222; background: #000; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .btn-cmd { width: 100%; padding: 12px; background: #111; border: 1px solid var(--red); color: var(--red); cursor: pointer; margin-bottom: 10px; font-family: inherit; }
+        
+        #radar-container { flex-grow: 1; margin-top: 20px; border-top: 1px solid #222; padding-top: 15px; overflow-y: auto; }
+        .radar-blip { background: #0a0a0a; border: 1px solid #333; padding: 10px; margin-bottom: 8px; cursor: pointer; font-size: 0.7rem; transition: 0.2s; }
+        .radar-blip:hover { border-color: var(--gold); background: #111; }
+        .blip-mhz { color: var(--gold); font-weight: bold; font-size: 0.9rem; }
+        .blip-host { color: #666; display: block; }
 
         /* MAIN HUD */
         #main { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         #viewport { width: 85%; height: 60%; border: 2px solid #111; background: #020202; display: flex; flex-wrap: wrap; gap: 10px; padding: 20px; overflow-y: auto; }
         
         .mhz-display { font-size: 5rem; color: var(--gold); margin: 0; text-shadow: 0 0 10px var(--gold); }
-        #dial { width: 140px; height: 140px; border: 8px solid #222; border-radius: 50%; position: relative; cursor: grab; background: #0a0a0a; margin: 15px; }
-        #knob { position: absolute; inset: 0; pointer-events: none; }
+        #dial { width: 150px; height: 150px; border: 8px solid #222; border-radius: 50%; position: relative; cursor: grab; background: #0a0a0a; margin: 15px; }
+        #knob { position: absolute; inset: 0; pointer-events: none; transition: transform 0.3s ease-out; }
         #knob::after { content: ''; position: absolute; top: 10px; left: 50%; width: 5px; height: 20px; background: var(--red); transform: translateX(-50%); }
 
-        /* GAME OBJECTS */
-        .card-ui { border: 1px solid var(--green); padding: 10px; width: 170px; font-size: 0.7rem; color: var(--green); background: rgba(0,255,65,0.02); }
-        .prop-ui { border: 1px solid var(--gold); padding: 10px; width: 170px; font-size: 0.7rem; color: var(--gold); background: rgba(255,215,0,0.02); }
-        
-        #auth-gate { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; align-items: center; justify-content: center; }
+        .card { border: 1px solid var(--green); padding: 10px; width: 160px; font-size: 0.7rem; color: var(--green); background: rgba(0,255,65,0.02); }
+        .prop { border-color: var(--gold); color: var(--gold); background: rgba(255,215,0,0.02); }
     </style>
 </head>
 <body>
 
-<div id="scanner">
-    <div style="color:var(--gold); font-size: 0.7rem; margin-bottom: 10px;">[ HARDWARE INTERFACE ]</div>
-    
-    <button class="btn-hardware" onclick="document.getElementById('file-input').click()">Load Cartridge</button>
-    <input type="file" id="file-input" multiple style="display:none" onchange="handleHardwareLoad(this.files)">
-    
-    <div id="manifest">
-        Awaiting file injection...
-    </div>
+<div id="auth-gate">
+    <button class="btn-auth" onclick="powerOn()">LOGIN WITH GOOGLE</button>
+</div>
 
-    <hr style="width:100%; border:0; border-top:1px solid #222; margin: 15px 0;">
+<div id="scanner">
+    <div style="color:var(--gold); font-size: 0.7rem; margin-bottom: 10px;">[ SIGNAL COMMANDER ]</div>
     
-    <button id="host-btn" class="btn-hardware" onclick="toggleBroadcast()" disabled>Initialize Signal</button>
-    <div id="status-text" style="font-size:0.6rem; color:#333; text-align:center;">OFFLINE</div>
+    <button class="btn-cmd" onclick="document.getElementById('file-in').click()">Load Cartridge</button>
+    <input type="file" id="file-in" multiple style="display:none" onchange="loadFiles(this.files)">
+    
+    <button id="host-btn" class="btn-cmd" onclick="handleSignal()" disabled>INITIALIZE BROADCAST</button>
+    <div id="signal-log" style="font-size:0.6rem; color:var(--green); text-align:center; margin-bottom:10px;">SCANNING...</div>
+
+    <div id="radar-container">
+        <div style="font-size: 0.6rem; color: #444; margin-bottom: 10px;">ACTIVE RADAR BLIPS:</div>
+        <div id="radar-list"></div>
+    </div>
 </div>
 
 <div id="main">
-    <div id="auth-gate"><button class="btn-hardware" style="width:250px" onclick="powerOn()">AUTHORIZE PILOT: AIAN</button></div>
-    
     <div class="mhz-display" id="freq-text">88.0</div>
     <div id="dial"><div id="knob"></div></div>
-    
-    <div id="viewport">
-        <div style="color:#111; margin:auto;">[ SEARCHING FREQUENCY... ]</div>
-    </div>
+    <div id="viewport"></div>
 </div>
 
 <script>
@@ -76,113 +75,122 @@
         measurementId: "G-RRQTTD9M4V"
     };
 
-    let db, userProfile, mhz = 88.0, activeSignals = {}, stagedPayload = [], currentType = 'none', isBroadcasting = false;
+    let db, user, mhz = 88.0, signals = {}, staged = [], currentType = 'cards';
 
     async function powerOn() {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         const res = await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
-        userProfile = { uid: res.user.uid, name: res.user.displayName };
+        user = { uid: res.user.uid, name: res.user.displayName };
         document.getElementById('auth-gate').style.display = 'none';
         
         db.collection("matches").onSnapshot(snap => {
-            activeSignals = {};
-            snap.forEach(doc => activeSignals[doc.id] = doc.data());
-            refreshDisplay();
+            signals = {};
+            const radarList = document.getElementById('radar-list');
+            radarList.innerHTML = "";
+
+            snap.forEach(doc => {
+                const data = doc.data();
+                signals[doc.id] = data;
+
+                // Create Radar Entry
+                const blip = document.createElement('div');
+                blip.className = 'radar-blip';
+                blip.innerHTML = `<span class="blip-mhz">${data.mhz} MHz</span><span class="blip-host">Pilot: ${data.hostName}</span>`;
+                blip.onclick = () => autoTune(data.mhz);
+                radarList.appendChild(blip);
+            });
+            refresh();
         });
     }
 
-    // --- FILE SYSTEM HANDLER ---
-    async function handleHardwareLoad(files) {
-        const manifest = document.getElementById('manifest');
-        manifest.innerHTML = "<strong>MANIFEST:</strong><br>";
-        stagedPayload = [];
+    function autoTune(targetMhz) {
+        mhz = parseFloat(targetMhz);
+        document.getElementById('freq-text').innerText = mhz.toFixed(1);
+        const angle = ((mhz - 88) / 20) * 360;
+        document.getElementById('knob').style.transform = `rotate(${angle}deg)`;
+        refresh();
+    }
 
-        for (let file of files) {
-            const ext = file.name.split('.').pop().toLowerCase();
-            const text = await file.text();
-            currentType = ext; // Sets type based on last file loaded for simplicity
-
-            const lines = text.split('\n').filter(l => l.includes(':'));
-            const parsed = lines.map(line => {
+    async function loadFiles(files) {
+        staged = [];
+        for (let f of files) {
+            currentType = f.name.split('.').pop();
+            const text = await f.text();
+            const parsed = text.split('\n').filter(l => l.includes(':')).map(line => {
                 const obj = {};
-                line.replace(/[\[\]]/g, '').split('+').forEach(p => {
-                    const [k, v] = p.split(':').map(s => s.trim());
+                line.replace(/[\[\]]/g, '').split('+').forEach(part => {
+                    const [k, v] = part.split(':').map(s => s.trim());
                     if(k && v) obj[k] = v;
                 });
                 return obj;
             });
-
-            stagedPayload = stagedPayload.concat(parsed);
-            manifest.innerHTML += `<div class="manifest-item">${file.name.toUpperCase()} (${parsed.length} units)</div>`;
+            staged = staged.concat(parsed);
         }
-        
-        document.getElementById('host-btn').disabled = false;
-        document.getElementById('status-text').innerText = "DATA STAGED";
+        refresh();
     }
 
-    // --- BROADCAST LOGIC ---
-    async function toggleBroadcast() {
-        const id = mhz.toString().replace('.', '');
-        const btn = document.getElementById('host-btn');
-        
-        if (isBroadcasting) {
+    async function handleSignal() {
+        const id = mhz.toFixed(1).replace('.', '');
+        const existing = signals[id];
+        if (existing && existing.hostId === user.uid) {
             await db.collection("matches").doc(id).delete();
-            isBroadcasting = false;
-            btn.innerText = "Initialize Signal";
-            document.getElementById('status-text').innerText = "SIGNAL TERMINATED";
-        } else {
+        } else if (!existing) {
             await db.collection("matches").doc(id).set({
-                mhz: mhz,
-                pilot: userProfile.name,
+                mhz: mhz.toFixed(1),
+                hostName: user.name,
+                hostId: user.uid,
                 type: currentType,
-                payload: stagedPayload,
-                timestamp: Date.now()
+                payload: staged,
+                active: true
             });
-            isBroadcasting = true;
-            btn.innerText = "Terminate Signal";
-            document.getElementById('status-text').innerText = `BROADCASTING ON ${mhz} MHz`;
         }
     }
 
-    // --- UI REFRESH ---
-    function refreshDisplay() {
-        const id = mhz.toString().replace('.', '');
+    function refresh() {
+        const id = mhz.toFixed(1).replace('.', '');
+        const data = signals[id];
+        const btn = document.getElementById('host-btn');
         const view = document.getElementById('viewport');
-        const data = activeSignals[id];
+        const log = document.getElementById('signal-log');
 
-        if (!data) {
-            view.innerHTML = `<div style="color:#111; margin:auto;">[ NO SIGNAL DETECTED ]</div>`;
-            return;
-        }
-
-        view.innerHTML = "";
-        data.payload.forEach(item => {
-            const div = document.createElement('div');
-            div.className = data.type === 'properties' ? 'prop-ui' : 'card-ui';
-            let html = `<strong>${item.name || item.prtyname || 'OBJECT'}</strong><hr style="border:0; border-top:1px solid currentColor; margin:5px 0;">`;
-            for (let [k, v] of Object.entries(item)) {
-                if (k !== 'name' && k !== 'prtyname') html += `<div style="display:flex; justify-content:space-between"><span>${k}:</span><span>${v}</span></div>`;
+        if (data) {
+            if (data.hostId === user.uid) {
+                btn.disabled = false;
+                btn.innerText = "TERMINATE SIGNAL";
+                log.innerText = "BROADCASTING LIVE";
+            } else {
+                btn.disabled = true;
+                btn.innerText = "OCCUPIED";
+                log.innerText = `LOCKED ON: ${data.hostName}`;
             }
-            div.innerHTML = html;
-            view.appendChild(div);
-        });
+            view.innerHTML = data.payload.map(item => `
+                <div class="card ${data.type === 'properties' ? 'prop' : ''}">
+                    <strong>${item.name || item.prtyname || 'DATA'}</strong>
+                    <hr style="opacity:0.2">
+                    ${Object.entries(item).filter(([k]) => k!=='name' && k!=='prtyname').map(([k,v]) => `<div>${k}: ${v}</div>`).join('')}
+                </div>
+            `).join('');
+        } else {
+            btn.disabled = staged.length === 0;
+            btn.innerText = "INITIALIZE BROADCAST";
+            log.innerText = "CLEAR FREQUENCY";
+            view.innerHTML = `<div style="color:#111; margin:auto;">[ STATIC ]</div>`;
+        }
     }
 
-    // --- DIAL PHYSICS ---
     const dial = document.getElementById('dial');
     dial.onmousedown = () => {
         window.onmousemove = (e) => {
             const rect = dial.getBoundingClientRect();
-            const angle = Math.atan2(e.clientY - (rect.top + 70), e.clientX - (rect.left + 70)) * (180 / Math.PI) + 90;
+            const angle = Math.atan2(e.clientY - (rect.top + 75), e.clientX - (rect.left + 75)) * (180 / Math.PI) + 90;
             document.getElementById('knob').style.transform = `rotate(${angle}deg)`;
-            mhz = (88 + (((angle % 360 + 360) % 360) / 360) * 20).toFixed(1);
-            document.getElementById('freq-text').innerText = mhz;
-            refreshDisplay();
+            mhz = parseFloat((88 + (((angle % 360 + 360) % 360) / 360) * 20).toFixed(1));
+            document.getElementById('freq-text').innerText = mhz.toFixed(1);
+            refresh();
         };
     };
     window.onmouseup = () => window.onmousemove = null;
-
 </script>
 </body>
 </html>
