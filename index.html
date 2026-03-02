@@ -3,211 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Botforge | Secure AI Storage</title>
+    <title>Hyperspace-R | Overlord Station</title>
     
-    <!-- Stable CDNs -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     
     <style>
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .sidebar { width: 260px; height: 100vh; background: #0b1120; z-index: 40; }
-        .nav-active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-right: 3px solid #3b82f6; }
-        
-        body {
-            background-color: #020617;
-            background-image: radial-gradient(#1e293b 0.5px, transparent 0.5px);
-            background-size: 24px 24px;
-        }
+        :root { --red: #ff2a2a; --dark: #050505; --gold: #ffd700; --panel: #111; }
+        body, html { margin: 0; padding: 0; background: var(--dark); color: var(--red); font-family: 'Courier New', monospace; height: 100vh; overflow: hidden; }
 
-        .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        /* --- CRT FX --- */
+        #crt::before {
+            content: " "; position: fixed; inset: 0; z-index: 5000; pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+            background-size: 100% 3px, 3px 100%;
+        }
+        #static { position: fixed; inset: 0; z-index: 4999; opacity: 0.05; pointer-events: none; background: url('https://media.giphy.com/media/oEI9uWUicKgR6/giphy.gif'); }
+
+        /* --- UI PANELS --- */
+        .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; background: #000; transition: 0.5s; }
+        .terminal { background: #0a0a0a; border: 2px solid #333; padding: 40px; border-radius: 10px; text-align: center; max-width: 400px; box-shadow: 0 0 50px #000; }
         
-        .chat-square { aspect-ratio: 1/1; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
-        .chat-square:hover { transform: translateY(-5px); background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; }
+        /* --- DIAL --- */
+        #dial-container { width: 300px; height: 300px; border: 12px solid #222; border-radius: 50%; margin: 20px auto; position: relative; background: radial-gradient(circle, #222, #000); cursor: grab; }
+        #knob { position: absolute; inset: 0; pointer-events: none; transition: transform 0.1s ease-out; }
+        #knob::after { content: ''; position: absolute; top: 15px; left: 50%; width: 8px; height: 35px; background: var(--red); transform: translateX(-50%); box-shadow: 0 0 15px var(--red); }
+
+        .mhz-out { font-size: 5rem; color: var(--gold); text-shadow: 0 0 20px var(--gold); margin: 10px 0; }
+        .metal-btn { background: #111; color: var(--red); border: 1px solid var(--red); padding: 15px 30px; cursor: pointer; text-transform: uppercase; font-weight: bold; width: 100%; }
+        .metal-btn:hover { background: var(--red); color: #000; }
+        .hidden { display: none !important; }
+        
+        #radar { height: 120px; border: 1px solid #222; margin: 20px 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; font-size: 0.8rem; overflow-y: auto; }
     </style>
 </head>
-<body class="text-slate-200 flex overflow-hidden font-sans">
+<body>
 
-    <!-- Sidebar -->
-    <aside class="sidebar flex flex-col border-r border-slate-800">
-        <div class="p-8 text-2xl font-black tracking-tighter text-blue-500">BOTFORGE</div>
-        
-        <nav class="flex-1 space-y-1 px-2">
-            <button onclick="nav('discover', this)" id="btn-discover" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition nav-active">
-                <i class="fa-solid fa-compass mr-3"></i> Discover
-            </button>
-            <button onclick="nav('create', this)" id="btn-create" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
-                <i class="fa-solid fa-plus-circle mr-3"></i> Create Bot
-            </button>
-            <button onclick="nav('chats', this)" id="btn-chats" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
-                <i class="fa-solid fa-comment-dots mr-3"></i> Chats
-            </button>
-        </nav>
+<div id="crt"></div>
+<div id="static"></div>
 
-        <div id="api-status" class="px-6 py-3 text-[10px] uppercase tracking-widest text-slate-500 flex items-center border-t border-slate-800">
-            <div class="w-2 h-2 rounded-full bg-yellow-500 mr-2 pulse"></div> Syncing...
+<div id="boot-gate" class="overlay">
+    <div class="terminal">
+        <h1 style="color:var(--gold)">HYPERSPACE-R</h1>
+        <p>STATION HARDWARE DETECTED</p>
+        <button class="metal-btn" onclick="initSystem()">POWER ON</button>
+    </div>
+</div>
+
+<div id="auth-gate" class="overlay hidden">
+    <div class="terminal">
+        <div id="login-ui">
+            <p>AWAITING GOOGLE IDENT...</p>
+            <button class="metal-btn" onclick="handleLogin()">AUTHENTICATE</button>
+        </div>
+        <div id="claim-ui" class="hidden">
+            <p>NAME NOT FOUND. CLAIM IDENTITY:</p>
+            <input type="text" id="username-claim" placeholder="..." style="background:transparent; border:none; border-bottom:2px solid var(--red); color:var(--red); text-align:center; font-size:1.5rem; outline:none; margin-bottom:20px; width: 100%;">
+            <button class="metal-btn" onclick="claimName()">CONFIRM</button>
+        </div>
+    </div>
+</div>
+
+<div id="station-ui" class="overlay hidden" style="flex-direction: column;">
+    <div class="terminal" style="width: 500px; max-width: 90vw;">
+        <div id="frequency-view">
+            <div class="mhz-out" id="readout">88.0</div>
+            <div id="dial-container">
+                <div id="knob"></div>
+            </div>
+            <button class="metal-btn" onclick="tuneIntoFolder()">ESTABLISH LINK</button>
         </div>
 
-        <div class="p-4 border-t border-slate-800 relative">
-            <button onclick="toggleSettings()" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 transition">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mr-3 font-bold text-white shadow-lg">U</div>
-                <span class="text-sm font-medium">User Account</span>
-            </button>
-            <div id="settingsMenu" class="hidden absolute bottom-20 left-4 right-4 glass p-2 rounded-2xl shadow-2xl z-50">
-                <button class="w-full text-left p-3 hover:bg-white/5 rounded-xl text-sm">Settings</button>
-                <button class="w-full text-left p-3 hover:bg-red-500/10 text-red-400 rounded-xl text-sm mt-1">Sign Out</button>
+        <div id="lobby-view" class="hidden">
+            <h2 id="folder-label" style="color:var(--gold); margin:0;">880_MHZ</h2>
+            <div id="radar">Scanning for peers...</div>
+            <div id="host-tools" class="hidden">
+                <p style="font-size:0.6rem; color:#444;">[HOST PRIVILEGES GRANTED]</p>
+                <button class="metal-btn" style="border-color:var(--gold); color:var(--gold);">GO LIVE</button>
             </div>
+            <button class="metal-btn" style="margin-top:10px; font-size:0.6rem;" onclick="location.reload()">DISCONNECT</button>
         </div>
-    </aside>
+    </div>
+</div>
 
-    <main class="flex-1 h-screen overflow-y-auto">
+<script>
+    // --- FIREBASE CREDENTIALS ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+      authDomain: "hyperspace-r.firebaseapp.com",
+      databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "hyperspace-r",
+      storageBucket: "hyperspace-r.firebasestorage.app",
+      messagingSenderId: "1050495683444",
+      appId: "1:1050495683444:web:42d7284bee34d749313a21",
+      measurementId: "G-RRQTTD9M4V"
+    };
+
+    let db, auth, rtdb, userProfile;
+    let mhz = 88.0;
+    let currentFolderID = "";
+
+    // --- 1. BOOT ---
+    function initSystem() {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+        rtdb = firebase.database();
+
+        document.getElementById('boot-gate').classList.add('hidden');
+        document.getElementById('auth-gate').classList.remove('hidden');
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const doc = await db.collection("users").doc(user.uid).get();
+                if (doc.exists) {
+                    userProfile = doc.data();
+                    openTuner();
+                } else {
+                    document.getElementById('login-ui').classList.add('hidden');
+                    document.getElementById('claim-ui').classList.remove('hidden');
+                }
+            }
+        });
+    }
+
+    // --- 2. AUTH ---
+    async function handleLogin() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try { await auth.signInWithPopup(provider); } catch(e) { alert("Popup Blocked or Origin Error."); }
+    }
+
+    async function claimName() {
+        const name = document.getElementById('username-claim').value.trim().toLowerCase();
+        if(name.length < 3) return;
+        const check = await db.collection("users").where("username", "==", name).get();
+        if(!check.empty) return alert("Identity already exists on airwaves.");
         
-        <!-- Discover (Syncs from Filen via Render) -->
-        <section id="discover" class="section p-10 max-w-6xl mx-auto space-y-12">
-            <header>
-                <h2 class="text-4xl font-bold text-white">Discover</h2>
-                <p class="text-slate-400 mt-2 text-lg">Forged bots stored in your Filen cloud.</p>
-            </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="discoverList">
-                <!-- Data loaded via JS -->
-            </div>
-        </section>
+        userProfile = { uid: auth.currentUser.uid, username: name };
+        await db.collection("users").doc(auth.currentUser.uid).set(userProfile);
+        openTuner();
+    }
 
-        <!-- Create Bot (Saves to Filen) -->
-        <section id="create" class="section hidden p-10 max-w-3xl mx-auto">
-            <div class="glass p-10 rounded-[3rem] shadow-2xl border-white/5">
-                <h2 class="text-3xl font-bold mb-8">Forge New Bot</h2>
-                <div class="space-y-6">
-                    <div class="flex gap-4">
-                        <input type="text" id="botEmoji" placeholder="🤖" class="w-24 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 text-center text-2xl outline-none focus:border-blue-500">
-                        <input type="text" id="botName" placeholder="Bot Name" class="flex-1 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none focus:border-blue-500">
-                    </div>
-                    <input type="text" id="botDesc" placeholder="Catchphrase" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none">
-                    <textarea id="botPrompt" placeholder="System Instructions" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-28 resize-none"></textarea>
-                    <textarea id="botLore" placeholder="Lore / Knowledge" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-36 resize-none"></textarea>
-                    <button onclick="saveBot()" id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-2xl font-black text-white shadow-xl active:scale-95 transition-all">ENCRYPT & SAVE TO FILEN</button>
-                </div>
-            </div>
-        </section>
+    function openTuner() {
+        document.getElementById('auth-gate').classList.add('hidden');
+        document.getElementById('station-ui').classList.remove('hidden');
+    }
 
-        <!-- Chats (Loads from LocalStorage) -->
-        <section id="chats" class="section hidden p-10 max-w-6xl mx-auto">
-            <h2 class="text-4xl font-bold mb-8 text-white">Active Conversations</h2>
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="chatList">
-                <!-- User-specific active chats loaded here -->
-            </div>
-        </section>
-    </main>
+    // --- 3. DIAL LOGIC ---
+    const dial = document.getElementById('dial-container');
+    const knob = document.getElementById('knob');
+    let dragging = false;
 
-    <script>
-        const RENDER_BACKEND_URL = "https://webapi-j9li.onrender.com";
+    dial.onmousedown = () => dragging = true;
+    window.onmouseup = () => dragging = false;
+    window.onmousemove = (e) => {
+        if(!dragging) return;
+        const rect = dial.getBoundingClientRect();
+        const angle = Math.atan2(e.clientY - (rect.top + 150), e.clientX - (rect.left + 150)) * (180 / Math.PI) + 90;
+        knob.style.transform = `rotate(${angle}deg)`;
+        
+        const norm = (angle % 360 + 360) % 360;
+        mhz = (88 + (norm / 360) * 20).toFixed(1);
+        document.getElementById('readout').innerText = mhz;
+        document.getElementById('static').style.opacity = 0.04 + Math.abs(mhz - Math.round(mhz)) * 0.2;
+    };
 
-        function nav(id, btn) {
-            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('nav-active'));
-            btn.classList.add('nav-active');
+    // --- 4. FOLDER JOINING LOGIC ---
+    async function tuneIntoFolder() {
+        // Variable writing frequency as folder name (stripping dots)
+        currentFolderID = mhz.toString().replace('.', '');
+        document.getElementById('frequency-view').classList.add('hidden');
+        document.getElementById('lobby-view').classList.remove('hidden');
+        document.getElementById('folder-label').innerText = currentFolderID + "_SIG";
+
+        const fRef = db.collection("matches").doc(currentFolderID);
+        const doc = await fRef.get();
+
+        if (!doc.exists) {
+            // YOU ARE THE HOST OF THIS FOLDER
+            await fRef.set({
+                mhz: mhz,
+                host: userProfile.username,
+                players: [userProfile.username],
+                status: "waiting"
+            });
             
-            if(id === 'discover') loadDiscover();
-            if(id === 'chats') loadChats();
-        }
-
-        function toggleSettings() {
-            document.getElementById('settingsMenu').classList.toggle('hidden');
-        }
-
-        // Connection Monitor
-        async function checkConnection() {
-            const statusEl = document.getElementById('api-status');
-            try {
-                const res = await fetch(RENDER_BACKEND_URL);
-                if (res.ok) {
-                    statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div> System Ready`;
-                    statusEl.classList.replace('text-slate-500', 'text-emerald-500');
-                }
-            } catch (e) {
-                statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-red-500 mr-2 pulse"></div> Connection Error`;
-            }
-        }
-        checkConnection();
-
-        // Save to Filen
-        async function saveBot() {
-            const btn = document.getElementById('saveBtn');
-            const data = {
-                name: document.getElementById('botName').value,
-                emoji: document.getElementById('botEmoji').value || '🤖',
-                desc: document.getElementById('botDesc').value,
-                prompt: document.getElementById('botPrompt').value,
-                lore: document.getElementById('botLore').value
-            };
-            if (!data.name) return alert("Bot needs a name!");
-            btn.innerText = "FORGING...";
-            btn.disabled = true;
-
-            try {
-                const res = await fetch(`${RENDER_BACKEND_URL}/hold-data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filename: data.name.toLowerCase().replace(/\s+/g, '-'), chatContent: data })
-                });
-                if (res.ok) {
-                    alert("✅ Secured in Filen! Check Discover to start a chat.");
-                    nav('discover', document.getElementById('btn-discover'));
-                }
-            } catch (err) { alert("❌ Connection Error"); }
-            finally { btn.disabled = false; btn.innerText = "ENCRYPT & SAVE TO FILEN"; }
-        }
-
-        // Discover: Load from Filen cloud
-        async function loadDiscover() {
-            const list = document.getElementById('discoverList');
-            list.innerHTML = '<p class="col-span-full text-slate-500 italic animate-pulse">Syncing with Filen...</p>';
-            try {
-                const res = await fetch(`${RENDER_BACKEND_URL}/list-bots`);
-                const bots = await res.json();
-                list.innerHTML = bots.length ? '' : '<p class="col-span-full text-slate-500 italic">No bots found in cloud.</p>';
-                bots.forEach(bot => {
-                    const card = document.createElement('div');
-                    card.className = "glass p-8 rounded-[2.5rem] space-y-4 hover:border-blue-500/40 transition cursor-pointer";
-                    card.innerHTML = `
-                        <span class="text-5xl">${bot.emoji}</span>
-                        <h3 class="text-xl font-bold text-white">${bot.name}</h3>
-                        <p class="text-slate-400 text-sm line-clamp-2">${bot.desc || ''}</p>
-                        <button onclick='startChat(${JSON.stringify(bot)})' class="w-full bg-blue-600 py-3 rounded-xl text-xs font-bold mt-4">START CHAT</button>
-                    `;
-                    list.appendChild(card);
-                });
-            } catch (e) { list.innerHTML = '<p class="col-span-full text-red-500">Failed to sync with Filen.</p>'; }
-        }
-
-        // Chats: Load only active sessions from LocalStorage
-        function startChat(bot) {
-            let active = JSON.parse(localStorage.getItem('botforge_active') || '[]');
-            if (!active.find(b => b.name === bot.name)) {
-                active.push(bot);
-                localStorage.setItem('botforge_active', JSON.stringify(active));
-            }
-            nav('chats', document.getElementById('btn-chats'));
-        }
-
-        function loadChats() {
-            const list = document.getElementById('chatList');
-            const active = JSON.parse(localStorage.getItem('botforge_active') || '[]');
-            if (active.length === 0) {
-                list.innerHTML = '<div class="col-span-full text-slate-500 italic p-10">No active conversations. Start one from Discover.</div>';
-                return;
-            }
-            list.innerHTML = '';
-            active.forEach(bot => {
-                const div = document.createElement('div');
-                div.className = "chat-square glass p-6 rounded-[2rem] flex flex-col items-center justify-center text-center";
-                div.innerHTML = `<div class="text-4xl mb-3">${bot.emoji}</div><span class="font-bold text-white text-sm">${bot.name}</span>`;
-                div.onclick = () => alert(`Chatting with ${bot.name}... (AI logic coming soon)`);
-                list.appendChild(div);
+            // Presence: Delete folder when Host disconnects
+            const pRef = rtdb.ref(`broadcasts/${currentFolderID}`);
+            pRef.set(true);
+            pRef.onDisconnect().remove().then(() => fRef.delete());
+            
+            document.getElementById('host-tools').classList.remove('hidden');
+        } else {
+            // JOINING EXISTING FOLDER
+            await fRef.update({
+                players: firebase.firestore.FieldValue.arrayUnion(userProfile.username)
             });
         }
-    </script>
+
+        // Live Watch the Folder
+        fRef.onSnapshot(snap => {
+            const data = snap.data();
+            if(!data) { document.getElementById('radar').innerHTML = "SIGNAL LOST"; return; }
+            document.getElementById('radar').innerHTML = `<strong>HOST:</strong> ${data.host}<br>` + 
+                data.players.filter(p => p !== data.host).map(p => `<strong>PEER:</strong> ${p}`).join('<br>');
+        });
+    }
+</script>
 </body>
 </html>
