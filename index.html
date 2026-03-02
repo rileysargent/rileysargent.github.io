@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Botforge | Secure AI Storage</title>
     
+    <!-- Stable CDNs -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net">
     
@@ -50,7 +51,7 @@
 
         <div class="p-4 border-t border-slate-800 relative">
             <button onclick="toggleSettings()" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 transition">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mr-3 font-bold text-white">U</div>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mr-3 font-bold text-white shadow-lg">U</div>
                 <span class="text-sm font-medium">User Account</span>
             </button>
             <div id="settingsMenu" class="hidden absolute bottom-20 left-4 right-4 glass p-2 rounded-2xl shadow-2xl z-50">
@@ -62,44 +63,44 @@
 
     <main class="flex-1 h-screen overflow-y-auto">
         
-        <!-- Discover -->
-        <section id="discover" class="section p-10 max-w-6xl mx-auto">
-            <h2 class="text-4xl font-bold text-white mb-8">Discover</h2>
+        <!-- Discover (Syncs from Filen via Render) -->
+        <section id="discover" class="section p-10 max-w-6xl mx-auto space-y-12">
+            <header>
+                <h2 class="text-4xl font-bold text-white">Discover</h2>
+                <p class="text-slate-400 mt-2 text-lg">Forged bots stored in your Filen cloud.</p>
+            </header>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="discoverList">
-                <div class="col-span-full glass p-12 rounded-[3rem] text-center border-dashed border-slate-700 opacity-50">
-                    <p class="text-slate-500 italic">No public forges found in Filen.</p>
-                </div>
+                <!-- Data loaded via JS -->
             </div>
         </section>
 
-        <!-- Create Bot -->
+        <!-- Create Bot (Saves to Filen) -->
         <section id="create" class="section hidden p-10 max-w-3xl mx-auto">
-            <div class="glass p-10 rounded-[3rem]">
+            <div class="glass p-10 rounded-[3rem] shadow-2xl border-white/5">
                 <h2 class="text-3xl font-bold mb-8">Forge New Bot</h2>
                 <div class="space-y-6">
                     <div class="flex gap-4">
-                        <input type="text" id="botEmoji" placeholder="🤖" class="w-24 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 text-center text-2xl outline-none">
-                        <input type="text" id="botName" placeholder="Bot Name" class="flex-1 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none">
+                        <input type="text" id="botEmoji" placeholder="🤖" class="w-24 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 text-center text-2xl outline-none focus:border-blue-500">
+                        <input type="text" id="botName" placeholder="Bot Name" class="flex-1 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none focus:border-blue-500">
                     </div>
                     <input type="text" id="botDesc" placeholder="Catchphrase" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none">
-                    <textarea id="botPrompt" placeholder="System Instructions" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-28"></textarea>
-                    <textarea id="botLore" placeholder="Lore / Knowledge" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-36"></textarea>
-                    <button onclick="saveBot()" id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-2xl font-black text-white shadow-xl">ENCRYPT & SAVE TO FILEN</button>
+                    <textarea id="botPrompt" placeholder="System Instructions" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-28 resize-none"></textarea>
+                    <textarea id="botLore" placeholder="Lore / Knowledge" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-36 resize-none"></textarea>
+                    <button onclick="saveBot()" id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-2xl font-black text-white shadow-xl active:scale-95 transition-all">ENCRYPT & SAVE TO FILEN</button>
                 </div>
             </div>
         </section>
 
-        <!-- Chats History -->
+        <!-- Chats (Loads from LocalStorage) -->
         <section id="chats" class="section hidden p-10 max-w-6xl mx-auto">
-            <h2 class="text-4xl font-bold mb-8 text-white">Active Chats</h2>
+            <h2 class="text-4xl font-bold mb-8 text-white">Active Conversations</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="chatList">
-                <!-- Loaded from localStorage -->
+                <!-- User-specific active chats loaded here -->
             </div>
         </section>
     </main>
 
     <script>
-        // ✅ Live Render URL Integrated
         const RENDER_BACKEND_URL = "https://webapi-j9li.onrender.com";
 
         function nav(id, btn) {
@@ -107,6 +108,8 @@
             document.getElementById(id).classList.remove('hidden');
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('nav-active'));
             btn.classList.add('nav-active');
+            
+            if(id === 'discover') loadDiscover();
             if(id === 'chats') loadChats();
         }
 
@@ -114,6 +117,7 @@
             document.getElementById('settingsMenu').classList.toggle('hidden');
         }
 
+        // Connection Monitor
         async function checkConnection() {
             const statusEl = document.getElementById('api-status');
             try {
@@ -128,75 +132,79 @@
         }
         checkConnection();
 
-        // Save Bot (Stays in Filen, does not auto-add to Chats)
+        // Save to Filen
         async function saveBot() {
             const btn = document.getElementById('saveBtn');
             const data = {
-                id: Date.now().toString(),
                 name: document.getElementById('botName').value,
                 emoji: document.getElementById('botEmoji').value || '🤖',
                 desc: document.getElementById('botDesc').value,
                 prompt: document.getElementById('botPrompt').value,
                 lore: document.getElementById('botLore').value
             };
-
             if (!data.name) return alert("Bot needs a name!");
             btn.innerText = "FORGING...";
             btn.disabled = true;
 
             try {
-                const response = await fetch(`${RENDER_BACKEND_URL}/hold-data`, {
+                const res = await fetch(`${RENDER_BACKEND_URL}/hold-data`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filename: data.name.toLowerCase().replace(/\s+/g, '-'), chatContent: data })
                 });
-
-                if (response.ok) {
-                    alert("✅ Bot secured in Filen! You can now start a chat from the forge screen or discover.");
-                    // Optional: Ask user if they want to chat now
-                    if(confirm("Would you like to start a chat with this bot now?")) {
-                        startNewChat(data);
-                    } else {
-                        location.reload();
-                    }
+                if (res.ok) {
+                    alert("✅ Secured in Filen! Check Discover to start a chat.");
+                    nav('discover', document.getElementById('btn-discover'));
                 }
-            } catch (err) {
-                alert("❌ Connection Error");
-            } finally {
-                btn.disabled = false;
-            }
+            } catch (err) { alert("❌ Connection Error"); }
+            finally { btn.disabled = false; btn.innerText = "ENCRYPT & SAVE TO FILEN"; }
         }
 
-        // Add to active chat history (LocalStorage)
-        function startNewChat(botData) {
-            let history = JSON.parse(localStorage.getItem('botforge_active_chats') || '[]');
-            if (!history.find(b => b.name === botData.name)) {
-                history.push(botData);
-                localStorage.setItem('botforge_active_chats', JSON.stringify(history));
+        // Discover: Load from Filen cloud
+        async function loadDiscover() {
+            const list = document.getElementById('discoverList');
+            list.innerHTML = '<p class="col-span-full text-slate-500 italic animate-pulse">Syncing with Filen...</p>';
+            try {
+                const res = await fetch(`${RENDER_BACKEND_URL}/list-bots`);
+                const bots = await res.json();
+                list.innerHTML = bots.length ? '' : '<p class="col-span-full text-slate-500 italic">No bots found in cloud.</p>';
+                bots.forEach(bot => {
+                    const card = document.createElement('div');
+                    card.className = "glass p-8 rounded-[2.5rem] space-y-4 hover:border-blue-500/40 transition cursor-pointer";
+                    card.innerHTML = `
+                        <span class="text-5xl">${bot.emoji}</span>
+                        <h3 class="text-xl font-bold text-white">${bot.name}</h3>
+                        <p class="text-slate-400 text-sm line-clamp-2">${bot.desc || ''}</p>
+                        <button onclick='startChat(${JSON.stringify(bot)})' class="w-full bg-blue-600 py-3 rounded-xl text-xs font-bold mt-4">START CHAT</button>
+                    `;
+                    list.appendChild(card);
+                });
+            } catch (e) { list.innerHTML = '<p class="col-span-full text-red-500">Failed to sync with Filen.</p>'; }
+        }
+
+        // Chats: Load only active sessions from LocalStorage
+        function startChat(bot) {
+            let active = JSON.parse(localStorage.getItem('botforge_active') || '[]');
+            if (!active.find(b => b.name === bot.name)) {
+                active.push(bot);
+                localStorage.setItem('botforge_active', JSON.stringify(active));
             }
             nav('chats', document.getElementById('btn-chats'));
-            loadChats();
         }
 
-        // Only load bots that have been "Started"
         function loadChats() {
             const list = document.getElementById('chatList');
-            const activeBots = JSON.parse(localStorage.getItem('botforge_active_chats') || '[]');
-            
-            if (activeBots.length === 0) {
-                list.innerHTML = `
-                    <div class="col-span-full text-slate-500 italic p-20 text-center glass rounded-[3rem] border-dashed border-slate-800">
-                        No active conversations. Start a chat from the forge.
-                    </div>`;
+            const active = JSON.parse(localStorage.getItem('botforge_active') || '[]');
+            if (active.length === 0) {
+                list.innerHTML = '<div class="col-span-full text-slate-500 italic p-10">No active conversations. Start one from Discover.</div>';
                 return;
             }
-
             list.innerHTML = '';
-            activeBots.forEach(bot => {
+            active.forEach(bot => {
                 const div = document.createElement('div');
                 div.className = "chat-square glass p-6 rounded-[2rem] flex flex-col items-center justify-center text-center";
-                div.onclick = () => alert(`Entering secure tunnel to chat with ${bot.name}...`);
                 div.innerHTML = `<div class="text-4xl mb-3">${bot.emoji}</div><span class="font-bold text-white text-sm">${bot.name}</span>`;
+                div.onclick = () => alert(`Chatting with ${bot.name}... (AI logic coming soon)`);
                 list.appendChild(div);
             });
         }
