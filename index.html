@@ -3,328 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace-r | Dashboard</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-
+    <title>Botforge | Secure AI Storage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com">
     <style>
-        :root {
-            --pill-bg: rgba(255, 255, 255, 0.07);
-            --border: rgba(255, 255, 255, 0.15);
-            --accent: #00a2ff;
-            --danger: #ff3333;
-            --pvp: #ffaa00;
-        }
-
-        body {
-            background: #050505;
-            color: white;
-            font-family: 'Segoe UI', 'Courier New', monospace;
-            margin: 0;
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        /* --- DASHBOARD UI --- */
-        #ui-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .pill-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .pill {
-            background: var(--pill-bg);
-            border: 1px solid var(--border);
-            backdrop-filter: blur(15px);
-            border-radius: 100px;
-            padding: 12px 24px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .interactive:hover {
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.12);
-            cursor: pointer;
-            transform: translateY(-2px);
-        }
-
-        .server-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            width: 60%;
-            margin: auto;
-        }
-
-        .server-card {
-            height: 80px;
-            justify-content: center;
-            font-weight: bold;
-            letter-spacing: 2px;
-            cursor: pointer;
-        }
-
-        /* --- IDENTITY ELEMENTS --- */
-        .avatar-box {
-            width: 32px;
-            height: 32px;
-            background: #222;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .id-tag {
-            opacity: 0.5;
-            font-size: 0.85em;
-            margin-left: 8px;
-        }
-
-        /* --- TERMINAL BAR --- */
-        .terminal-pill {
-            width: 50%;
-            margin: 0 auto;
-            background: rgba(0, 0, 0, 0.4);
-        }
-
-        .prompt { color: var(--accent); font-weight: bold; }
-
-        input#terminal-input {
-            background: transparent;
-            border: none;
-            color: white;
-            width: 100%;
-            outline: none;
-            font-family: inherit;
-        }
-
-        /* --- VHS TRANSITION OVERLAY --- */
-        #vhs-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background: black;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.6s ease-in;
-        }
-
-        #vhs-overlay.vhs-active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .scanlines {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
-        }
-
-        .glitch-text {
-            font-size: 4rem;
-            font-weight: 900;
-            text-shadow: 2px 0 red, -2px 0 blue;
-            animation: jitter 0.15s infinite;
-            letter-spacing: 5px;
-        }
-
-        @keyframes jitter {
-            0% { transform: translate(0,0); }
-            25% { transform: translate(-2px, 2px); }
-            50% { transform: translate(2px, -1px); }
-            75% { transform: translate(-1px, -2px); }
-            100% { transform: translate(0,0); }
-        }
-
-        .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; }
-        .online { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
-        .pvp { background: var(--pvp); }
-        .danger { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
-
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .sidebar { width: 260px; height: 100vh; background: #0b1120; z-index: 40; }
+        .nav-active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-right: 3px solid #3b82f6; }
+        .chat-square { aspect-ratio: 1/1; transition: all 0.3s ease; }
+        .chat-square:hover { transform: scale(1.02); background: rgba(59, 130, 246, 0.05); }
     </style>
 </head>
-<body>
+<body class="bg-[#020617] text-slate-200 flex overflow-hidden">
 
-    <div id="vhs-overlay">
-        <div class="scanlines"></div>
-        <div class="vhs-content">
-            <h1 class="glitch-text" data-text="[ NO SIGNAL ]">[ NO SIGNAL ]</h1>
-            <p id="boot-status" style="text-align: center; opacity: 0.7;">LINKING_SERVER_NODE...</p>
-        </div>
-    </div>
+    <!-- Sidebar -->
+    <aside class="sidebar flex flex-col border-r border-slate-800">
+        <div class="p-8 text-2xl font-black tracking-tighter text-blue-500">BOTFORGE</div>
+        
+        <nav class="flex-1 space-y-1 px-2">
+            <button onclick="nav('discover')" id="btn-discover" class="w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition nav-active">
+                <i class="fa-solid fa-compass mr-3"></i> Discover
+            </button>
+            <button onclick="nav('create')" id="btn-create" class="w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
+                <i class="fa-solid fa-plus-circle mr-3"></i> Create Bot
+            </button>
+            <button onclick="nav('chats')" id="btn-chats" class="w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
+                <i class="fa-solid fa-comment-dots mr-3"></i> Chats
+            </button>
+        </nav>
 
-    <div id="ui-container">
-        <header class="pill-row">
-            <div id="login-pill" class="pill interactive entry" onclick="login()">
-                CONNECT_IDENTITY
+        <!-- Account Settings Footer -->
+        <div class="p-4 border-t border-slate-800 relative">
+            <button onclick="toggleSettings()" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 transition">
+                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-3 font-bold">U</div>
+                <span class="text-sm font-medium">User Account</span>
+            </button>
+            <div id="settingsMenu" class="hidden absolute bottom-20 left-4 right-4 glass p-2 rounded-2xl shadow-2xl">
+                <button class="w-full text-left p-3 hover:bg-white/5 rounded-xl text-sm">Settings</button>
+                <button class="w-full text-left p-3 hover:bg-red-500/10 text-red-400 rounded-xl text-sm">Sign Out</button>
             </div>
-            <div id="user-pill" class="pill entry" style="display:none;">
-                <div class="avatar-box"><img id="pfp" src="" style="width:100%"></div>
-                <div class="user-meta">
-                    <span id="username">---</span>
-                    <span id="base36-id" class="id-tag">#0000</span>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 h-screen overflow-y-auto bg-[url('https://www.transparenttextures.com')]">
+        
+        <!-- DISCOVER SECTION -->
+        <section id="discover" class="p-10 max-w-6xl mx-auto space-y-8">
+            <h2 class="text-4xl font-bold">Recommended Bots</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-[2rem] space-y-4">
+                    <span class="text-5xl">🤖</span>
+                    <h3 class="text-xl font-bold">Archivist</h3>
+                    <p class="text-slate-400 text-sm">I manage your Filen metadata automatically.</p>
                 </div>
             </div>
-            <div class="pill entry">
-                <span style="color: var(--danger); font-weight: bold;">HP:</span>
-                <span id="hp-val">20.0</span>
+        </section>
+
+        <!-- CREATE SECTION -->
+        <section id="create" class="hidden p-10 max-w-3xl mx-auto">
+            <div class="glass p-10 rounded-[3rem] shadow-2xl border-white/5">
+                <h2 class="text-3xl font-bold mb-8">Forge New Bot</h2>
+                <div class="space-y-6">
+                    <div class="flex gap-4">
+                        <input type="text" id="botEmoji" placeholder="Icon (Emoji)" class="w-24 bg-slate-900/50 p-4 rounded-2xl border border-slate-700 text-center text-2xl outline-none focus:border-blue-500">
+                        <input type="text" id="botName" placeholder="Bot Name" class="flex-1 bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none focus:border-blue-500">
+                    </div>
+                    <input type="text" id="botDesc" placeholder="Brief Description" class="w-full bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none">
+                    <textarea id="botPrompt" placeholder="System Prompt (Instructions)" class="w-full bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none h-24"></textarea>
+                    <textarea id="botLore" placeholder="Bot Lore & Background Knowledge" class="w-full bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none h-32"></textarea>
+                    
+                    <button onclick="saveBot()" id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-2xl font-black tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-900/20">
+                        ENCRYPT & SAVE TO FILEN
+                    </button>
+                </div>
             </div>
-        </header>
+        </section>
 
-        <main class="server-grid">
-            <div class="pill entry server-card interactive" onclick="queueServer('survival')">
-                <span class="dot online"></span> SURVIVAL_OS
+        <!-- CHATS SECTION -->
+        <section id="chats" class="hidden p-10 max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold mb-8">Active Chats</h2>
+            <div class="flex flex-wrap gap-6" id="chatList">
+                <!-- Example Square -->
+                <div class="chat-square glass w-48 p-6 rounded-[2.5rem] flex flex-col items-center justify-center text-center cursor-pointer">
+                    <div class="text-4xl mb-3">💬</div>
+                    <span class="font-bold">Recent Chat</span>
+                </div>
             </div>
-            <div class="pill entry server-card interactive" onclick="queueServer('creative')">
-                <span class="dot online"></span> CREATIVE_OS
-            </div>
-            <div class="pill entry server-card interactive" onclick="queueServer('pvp')">
-                <span class="dot pvp"></span> ARENA_PVP
-            </div>
-            <div class="pill entry server-card interactive" onclick="queueServer('lifesteal')">
-                <span class="dot danger"></span> LIFESTEAL_V2
-            </div>
-        </main>
+        </section>
 
-        <footer class="pill-row">
-            <div class="pill entry terminal-pill">
-                <span class="prompt">></span>
-                <input type="text" id="terminal-input" placeholder="Type /queue [server]...">
-            </div>
-        </footer>
-    </div>
+    </main>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script>
+        // CONFIG: Replace with your Render URL
+        const RENDER_BACKEND_URL = "https://your-botforge-backend.onrender.com";
 
-        // --- CONFIGURATION ---
-    const firebaseConfig = {
-    apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-    authDomain: "hyperspace-r.firebaseapp.com",
-    databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "hyperspace-r",
-    storageBucket: "hyperspace-r.firebasestorage.app",
-    messagingSenderId: "1050495683444",
-    appId: "1:1050495683444:web:846c42d274197b20313a21",
-    measurementId: "G-8RC2TB95T7"
-  };
+        // Simple Navigation
+        function nav(id) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            document.getElementById('btn-' + id).classList.add('nav-active');
+        }
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        function toggleSettings() {
+            document.getElementById('settingsMenu').classList.toggle('hidden');
+        }
 
-        let currentUser = null;
+        // Save Bot to Filen via Render
+        async function saveBot() {
+            const btn = document.getElementById('saveBtn');
+            const data = {
+                name: document.getElementById('botName').value,
+                emoji: document.getElementById('botEmoji').value || '🤖',
+                desc: document.getElementById('botDesc').value,
+                prompt: document.getElementById('botPrompt').value,
+                lore: document.getElementById('botLore').value
+            };
 
-        // --- AUTH & BASE36 IDENTITY ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userRef = doc(db, "users", user.uid);
-                const snap = await getDoc(userRef);
+            if (!data.name) return alert("Please name your bot!");
 
-                if (!snap.exists()) {
-                    // Automate Identity Creation
-                    const b36 = Date.now().toString(36).toUpperCase();
-                    currentUser = {
-                        username: user.displayName.split(' ')[0],
-                        base36: b36,
-                        health: 20.0,
-                        skin: user.photoURL
-                    };
-                    await setDoc(userRef, currentUser);
-                    await setDoc(doc(db, "ids", b36), { uid: user.uid });
+            btn.innerText = "FORGING... (WAITING FOR RENDER)";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${RENDER_BACKEND_URL}/hold-data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        filename: data.name.toLowerCase().replace(/\s+/g, '-'), 
+                        chatContent: data 
+                    })
+                });
+
+                if (response.ok) {
+                    alert("Success! Bot secured in Filen cloud.");
+                    nav('chats');
                 } else {
-                    currentUser = snap.data();
+                    throw new Error("Server Error");
                 }
-                updateDashboard(currentUser);
+            } catch (err) {
+                alert("Connection Error. Ensure your Render server is awake!");
+            } finally {
+                btn.innerText = "ENCRYPT & SAVE TO FILEN";
+                btn.disabled = false;
             }
-        });
-
-        function updateDashboard(data) {
-            document.getElementById('login-pill').style.display = 'none';
-            document.getElementById('user-pill').style.display = 'flex';
-            document.getElementById('username').innerText = data.username;
-            document.getElementById('base36-id').innerText = `#${data.base36}`;
-            document.getElementById('hp-val').innerText = data.health.toFixed(1);
-            document.getElementById('pfp').src = `https://minotar.net/helm/${data.username}/32.png`;
         }
-
-        // --- COMMAND & PHYSICS TRANSITION ---
-        window.queueServer = function(mode) {
-            initPhysicsCrash();
-
-            setTimeout(() => {
-                document.getElementById('vhs-overlay').classList.add('vhs-active');
-                document.getElementById('boot-status').innerText = `ESTABLISHING_HANDSHAKE_${mode.toUpperCase()}...`;
-            }, 800);
-
-            setTimeout(() => {
-                window.location.href = `mcc.html?mode=${mode}`;
-            }, 3500);
-        };
-
-        function initPhysicsCrash() {
-            const { Engine, Runner, Bodies, Composite } = Matter;
-            const engine = Engine.create();
-            const elements = document.querySelectorAll('.entry');
-
-            elements.forEach(el => {
-                const rect = el.getBoundingClientRect();
-                const body = Bodies.rectangle(
-                    rect.left + rect.width / 2, 
-                    rect.top + rect.height / 2, 
-                    rect.width, rect.height
-                );
-                
-                el.style.position = 'fixed';
-                el.style.width = (rect.width - 48) + 'px'; // Handle padding
-                el.style.zIndex = '10';
-
-                (function update() {
-                    el.style.left = (body.position.x - rect.width / 2) + 'px';
-                    el.style.top = (body.position.y - rect.height / 2) + 'px';
-                    el.style.transform = `rotate(${body.angle}rad)`;
-                    requestAnimationFrame(update);
-                })();
-                Composite.add(engine.world, body);
-            });
-
-            Composite.add(engine.world, Bodies.rectangle(window.innerWidth/2, window.innerHeight + 100, window.innerWidth, 100, { isStatic: true }));
-            Runner.run(engine);
-        }
-
-        // Terminal Listener
-        document.getElementById('terminal-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const val = e.target.value.toLowerCase();
-                if (val.startsWith('/queue ')) {
-                    queueServer(val.split(' ')[1]);
-                }
-                e.target.value = '';
-            }
-        });
-
-        window.login = () => signInWithPopup(auth, new GoogleAuthProvider());
     </script>
 </body>
 </html>
