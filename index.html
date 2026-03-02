@@ -2,157 +2,108 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace-R | Overlord Station</title>
-    
+    <title>Hyperspace-R | Server Matrix</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     
     <style>
-        :root { --red: #ff2a2a; --dark: #050505; --gold: #ffd700; --panel: #111; }
-        body, html { margin: 0; padding: 0; background: var(--dark); color: var(--red); font-family: 'Courier New', monospace; height: 100vh; overflow: hidden; }
-
-        /* --- CRT FX --- */
-        #crt::before {
-            content: " "; position: fixed; inset: 0; z-index: 5000; pointer-events: none;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-            background-size: 100% 3px, 3px 100%;
-        }
-        #static { position: fixed; inset: 0; z-index: 4999; opacity: 0.05; pointer-events: none; background: url('https://media.giphy.com/media/oEI9uWUicKgR6/giphy.gif'); }
-
-        /* --- UI PANELS --- */
-        .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; background: #000; transition: 0.5s; }
-        .terminal { background: #0a0a0a; border: 2px solid #333; padding: 40px; border-radius: 10px; text-align: center; max-width: 400px; box-shadow: 0 0 50px #000; }
+        :root { --red: #ff2a2a; --dark: #050505; --gold: #ffd700; --dim: #331111; }
+        body { background: var(--dark); color: var(--red); font-family: 'Courier New', monospace; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* --- DIAL --- */
-        #dial-container { width: 300px; height: 300px; border: 12px solid #222; border-radius: 50%; margin: 20px auto; position: relative; background: radial-gradient(circle, #222, #000); cursor: grab; }
+        /* --- SERVER LIST SIDEBAR --- */
+        #sidebar { width: 300px; background: #080808; border-right: 2px solid #222; padding: 20px; overflow-y: auto; z-index: 100; }
+        .server-item { padding: 15px; border: 1px solid #111; margin-bottom: 10px; cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
+        .server-item:hover { border-color: var(--red); background: #110000; }
+        .server-item.active { border-color: var(--gold); background: #1a1500; }
+
+        /* --- MAIN CONSOLE --- */
+        #console { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        #static { position: fixed; inset: 0; opacity: 0.04; pointer-events: none; background: url('https://media.giphy.com/media/oEI9uWUicKgR6/giphy.gif'); z-index: 1; }
+
+        .dial-mount { width: 260px; height: 260px; border: 10px solid #222; border-radius: 50%; position: relative; background: radial-gradient(circle, #1a1a1a, #000); cursor: grab; z-index: 2; }
         #knob { position: absolute; inset: 0; pointer-events: none; transition: transform 0.1s ease-out; }
-        #knob::after { content: ''; position: absolute; top: 15px; left: 50%; width: 8px; height: 35px; background: var(--red); transform: translateX(-50%); box-shadow: 0 0 15px var(--red); }
+        #knob::after { content: ''; position: absolute; top: 10px; left: 50%; width: 8px; height: 30px; background: var(--red); transform: translateX(-50%); box-shadow: 0 0 10px var(--red); }
 
-        .mhz-out { font-size: 5rem; color: var(--gold); text-shadow: 0 0 20px var(--gold); margin: 10px 0; }
-        .metal-btn { background: #111; color: var(--red); border: 1px solid var(--red); padding: 15px 30px; cursor: pointer; text-transform: uppercase; font-weight: bold; width: 100%; }
-        .metal-btn:hover { background: var(--red); color: #000; }
-        .hidden { display: none !important; }
+        .mhz-text { font-size: 5rem; color: var(--gold); text-shadow: 0 0 20px var(--gold); z-index: 2; margin: 10px 0; }
         
-        #radar { height: 120px; border: 1px solid #222; margin: 20px 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; font-size: 0.8rem; overflow-y: auto; }
+        /* --- BUTTON STATES --- */
+        .btn-group { display: flex; gap: 10px; width: 300px; z-index: 2; margin-top: 20px; }
+        button { flex: 1; padding: 15px; font-weight: bold; cursor: pointer; border: 1px solid var(--red); background: #000; color: var(--red); text-transform: uppercase; }
+        button:disabled { border-color: #222; color: #444; cursor: not-allowed; opacity: 0.3; }
+        button.join-mode { border-color: #00ff00; color: #00ff00; }
+        button.join-mode:hover { background: #00ff00; color: #000; }
+        
+        .hidden { display: none !important; }
+        #radar { width: 400px; background: #0a0a0a; border: 1px solid #333; padding: 20px; z-index: 10; margin-top: 20px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div id="crt"></div>
 <div id="static"></div>
 
-<div id="boot-gate" class="overlay">
-    <div class="terminal">
+<div id="sidebar">
+    <h3 style="color:var(--gold); margin-top:0;">AIRWAVE SCANNER</h3>
+    <div id="server-list">Scanning...</div>
+</div>
+
+<div id="console">
+    <div id="boot-screen" style="z-index:100; text-align:center;">
         <h1 style="color:var(--gold)">HYPERSPACE-R</h1>
-        <p>STATION HARDWARE DETECTED</p>
-        <button class="metal-btn" onclick="initSystem()">POWER ON</button>
+        <button onclick="powerOn()" style="width:200px;">POWER ON</button>
     </div>
-</div>
 
-<div id="auth-gate" class="overlay hidden">
-    <div class="terminal">
-        <div id="login-ui">
-            <p>AWAITING GOOGLE IDENT...</p>
-            <button class="metal-btn" onclick="handleLogin()">AUTHENTICATE</button>
-        </div>
-        <div id="claim-ui" class="hidden">
-            <p>NAME NOT FOUND. CLAIM IDENTITY:</p>
-            <input type="text" id="username-claim" placeholder="..." style="background:transparent; border:none; border-bottom:2px solid var(--red); color:var(--red); text-align:center; font-size:1.5rem; outline:none; margin-bottom:20px; width: 100%;">
-            <button class="metal-btn" onclick="claimName()">CONFIRM</button>
-        </div>
-    </div>
-</div>
-
-<div id="station-ui" class="overlay hidden" style="flex-direction: column;">
-    <div class="terminal" style="width: 500px; max-width: 90vw;">
-        <div id="frequency-view">
-            <div class="mhz-out" id="readout">88.0</div>
-            <div id="dial-container">
-                <div id="knob"></div>
-            </div>
-            <button class="metal-btn" onclick="tuneIntoFolder()">ESTABLISH LINK</button>
+    <div id="station-ui" class="hidden" style="text-align:center;">
+        <div class="mhz-text" id="readout">88.0</div>
+        <div class="dial-mount" id="dial">
+            <div id="knob"></div>
         </div>
 
-        <div id="lobby-view" class="hidden">
-            <h2 id="folder-label" style="color:var(--gold); margin:0;">880_MHZ</h2>
-            <div id="radar">Scanning for peers...</div>
-            <div id="host-tools" class="hidden">
-                <p style="font-size:0.6rem; color:#444;">[HOST PRIVILEGES GRANTED]</p>
-                <button class="metal-btn" style="border-color:var(--gold); color:var(--gold);">GO LIVE</button>
-            </div>
-            <button class="metal-btn" style="margin-top:10px; font-size:0.6rem;" onclick="location.reload()">DISCONNECT</button>
+        <div class="btn-group">
+            <button id="host-btn" onclick="action('host')">Broadcast</button>
+            <button id="join-btn" onclick="action('join')" class="join-mode" disabled>Join Signal</button>
+        </div>
+
+        <div id="radar" class="hidden">
+            <h4 id="freq-id" style="color:var(--gold)">---</h4>
+            <div id="players">Searching...</div>
+            <button onclick="location.reload()" style="margin-top:15px; font-size:0.6rem;">Kill Signal</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- FIREBASE CREDENTIALS ---
     const firebaseConfig = {
-      apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-      authDomain: "hyperspace-r.firebaseapp.com",
-      databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "hyperspace-r",
-      storageBucket: "hyperspace-r.firebasestorage.app",
-      messagingSenderId: "1050495683444",
-      appId: "1:1050495683444:web:42d7284bee34d749313a21",
-      measurementId: "G-RRQTTD9M4V"
+        apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+        authDomain: "hyperspace-r.firebaseapp.com",
+        databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "hyperspace-r",
+        storageBucket: "hyperspace-r.firebasestorage.app",
+        messagingSenderId: "1050495683444",
+        appId: "1:1050495683444:web:42d7284bee34d749313a21",
+        measurementId: "G-RRQTTD9M4V"
     };
 
-    let db, auth, rtdb, userProfile;
-    let mhz = 88.0;
-    let currentFolderID = "";
+    let db, auth, rtdb, userProfile, mhz = 88.0, activeServers = {};
 
-    // --- 1. BOOT ---
-    function initSystem() {
+    function powerOn() {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         auth = firebase.auth();
         rtdb = firebase.database();
+        
+        document.getElementById('boot-screen').classList.add('hidden');
+        document.getElementById('station-ui').classList.remove('hidden');
 
-        document.getElementById('boot-gate').classList.add('hidden');
-        document.getElementById('auth-gate').classList.remove('hidden');
-
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                const doc = await db.collection("users").doc(user.uid).get();
-                if (doc.exists) {
-                    userProfile = doc.data();
-                    openTuner();
-                } else {
-                    document.getElementById('login-ui').classList.add('hidden');
-                    document.getElementById('claim-ui').classList.remove('hidden');
-                }
-            }
+        auth.signInAnonymously().then(() => {
+            userProfile = { username: "USER_" + Math.floor(Math.random()*9999) };
+            listenForServers();
         });
     }
 
-    // --- 2. AUTH ---
-    async function handleLogin() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        try { await auth.signInWithPopup(provider); } catch(e) { alert("Popup Blocked or Origin Error."); }
-    }
-
-    async function claimName() {
-        const name = document.getElementById('username-claim').value.trim().toLowerCase();
-        if(name.length < 3) return;
-        const check = await db.collection("users").where("username", "==", name).get();
-        if(!check.empty) return alert("Identity already exists on airwaves.");
-        
-        userProfile = { uid: auth.currentUser.uid, username: name };
-        await db.collection("users").doc(auth.currentUser.uid).set(userProfile);
-        openTuner();
-    }
-
-    function openTuner() {
-        document.getElementById('auth-gate').classList.add('hidden');
-        document.getElementById('station-ui').classList.remove('hidden');
-    }
-
-    // --- 3. DIAL LOGIC ---
-    const dial = document.getElementById('dial-container');
+    // --- DIAL LOGIC ---
+    const dial = document.getElementById('dial');
     const knob = document.getElementById('knob');
     let dragging = false;
 
@@ -161,54 +112,90 @@
     window.onmousemove = (e) => {
         if(!dragging) return;
         const rect = dial.getBoundingClientRect();
-        const angle = Math.atan2(e.clientY - (rect.top + 150), e.clientX - (rect.left + 150)) * (180 / Math.PI) + 90;
+        const angle = Math.atan2(e.clientY - (rect.top + 130), e.clientX - (rect.left + 130)) * (180 / Math.PI) + 90;
         knob.style.transform = `rotate(${angle}deg)`;
         
         const norm = (angle % 360 + 360) % 360;
         mhz = (88 + (norm / 360) * 20).toFixed(1);
         document.getElementById('readout').innerText = mhz;
-        document.getElementById('static').style.opacity = 0.04 + Math.abs(mhz - Math.round(mhz)) * 0.2;
+        checkFrequencyStatus();
     };
 
-    // --- 4. FOLDER JOINING LOGIC ---
-    async function tuneIntoFolder() {
-        // Variable writing frequency as folder name (stripping dots)
-        currentFolderID = mhz.toString().replace('.', '');
-        document.getElementById('frequency-view').classList.add('hidden');
-        document.getElementById('lobby-view').classList.remove('hidden');
-        document.getElementById('folder-label').innerText = currentFolderID + "_SIG";
+    // --- SERVER LIST LOGIC ---
+    function listenForServers() {
+        db.collection("matches").onSnapshot(snap => {
+            const list = document.getElementById('server-list');
+            list.innerHTML = "";
+            activeServers = {};
 
-        const fRef = db.collection("matches").doc(currentFolderID);
-        const doc = await fRef.get();
+            snap.forEach(doc => {
+                const data = doc.data();
+                const id = doc.id;
+                activeServers[id] = data;
 
-        if (!doc.exists) {
-            // YOU ARE THE HOST OF THIS FOLDER
+                const item = document.createElement('div');
+                item.className = 'server-item';
+                item.innerHTML = `<strong>${data.mhz} MHz</strong><br>Host: ${data.host}<br>Peers: ${data.players.length}`;
+                item.onclick = () => {
+                    mhz = data.mhz;
+                    document.getElementById('readout').innerText = mhz;
+                    const rot = ((mhz - 88) / 20) * 360;
+                    knob.style.transform = `rotate(${rot}deg)`;
+                    checkFrequencyStatus();
+                };
+                list.appendChild(item);
+            });
+            checkFrequencyStatus();
+        });
+    }
+
+    // --- BUTTON INTELLIGENCE ---
+    function checkFrequencyStatus() {
+        const id = mhz.toString().replace('.', '');
+        const hostBtn = document.getElementById('host-btn');
+        const joinBtn = document.getElementById('join-btn');
+
+        if (activeServers[id]) {
+            // Signal exists: Join only
+            hostBtn.disabled = true;
+            joinBtn.disabled = false;
+        } else {
+            // Airwaves clear: Host only
+            hostBtn.disabled = false;
+            joinBtn.disabled = true;
+        }
+    }
+
+    // --- ACTION: HOST OR JOIN ---
+    async function action(type) {
+        const id = mhz.toString().replace('.', '');
+        const fRef = db.collection("matches").doc(id);
+
+        document.getElementById('dial').classList.add('hidden');
+        document.querySelector('.btn-group').classList.add('hidden');
+        document.getElementById('radar').classList.remove('hidden');
+        document.getElementById('freq-id').innerText = id + "_SIG";
+
+        if (type === 'host') {
             await fRef.set({
                 mhz: mhz,
                 host: userProfile.username,
-                players: [userProfile.username],
-                status: "waiting"
+                players: [userProfile.username]
             });
-            
-            // Presence: Delete folder when Host disconnects
-            const pRef = rtdb.ref(`broadcasts/${currentFolderID}`);
+            // Cleanup logic
+            const pRef = rtdb.ref(`broadcasts/${id}`);
             pRef.set(true);
             pRef.onDisconnect().remove().then(() => fRef.delete());
-            
-            document.getElementById('host-tools').classList.remove('hidden');
         } else {
-            // JOINING EXISTING FOLDER
             await fRef.update({
                 players: firebase.firestore.FieldValue.arrayUnion(userProfile.username)
             });
         }
 
-        // Live Watch the Folder
         fRef.onSnapshot(snap => {
             const data = snap.data();
-            if(!data) { document.getElementById('radar').innerHTML = "SIGNAL LOST"; return; }
-            document.getElementById('radar').innerHTML = `<strong>HOST:</strong> ${data.host}<br>` + 
-                data.players.filter(p => p !== data.host).map(p => `<strong>PEER:</strong> ${p}`).join('<br>');
+            if(!data) return;
+            document.getElementById('players').innerHTML = data.players.map(p => `[${p}]`).join(' ');
         });
     }
 </script>
