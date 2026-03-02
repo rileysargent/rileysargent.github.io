@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Botforge | Private AI Chat</title>
+    <title>Botforge | Secure AI Storage</title>
     
-    <!-- Stable Tailwind & FontAwesome (Fixes ORB/Blocking Errors) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net">
     
@@ -13,131 +12,127 @@
         .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .sidebar { width: 260px; height: 100vh; background: #0b1120; z-index: 40; }
         .nav-active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-right: 3px solid #3b82f6; }
-        .chat-square { aspect-ratio: 1/1; transition: all 0.3s ease; }
-        .chat-square:hover { transform: scale(1.02); background: rgba(59, 130, 246, 0.05); }
+        
+        body {
+            background-color: #020617;
+            background-image: radial-gradient(#1e293b 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+        }
+
         .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        
+        .chat-square { aspect-ratio: 1/1; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+        .chat-square:hover { transform: translateY(-5px); background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; }
     </style>
 </head>
-<body class="bg-[#020617] text-slate-200 flex overflow-hidden">
+<body class="text-slate-200 flex overflow-hidden font-sans">
 
     <!-- Sidebar -->
     <aside class="sidebar flex flex-col border-r border-slate-800">
         <div class="p-8 text-2xl font-black tracking-tighter text-blue-500">BOTFORGE</div>
         
         <nav class="flex-1 space-y-1 px-2">
-            <button onclick="nav('discover', this)" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition nav-active">
+            <button onclick="nav('discover', this)" id="btn-discover" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition nav-active">
                 <i class="fa-solid fa-compass mr-3"></i> Discover
             </button>
-            <button onclick="nav('create', this)" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
+            <button onclick="nav('create', this)" id="btn-create" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
                 <i class="fa-solid fa-plus-circle mr-3"></i> Create Bot
             </button>
-            <button onclick="nav('chats', this)" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
+            <button onclick="nav('chats', this)" id="btn-chats" class="nav-item w-full flex items-center p-4 rounded-xl hover:bg-slate-800 transition">
                 <i class="fa-solid fa-comment-dots mr-3"></i> Chats
             </button>
         </nav>
 
-        <!-- Status Indicator -->
-        <div id="api-status" class="px-6 py-2 text-[10px] uppercase tracking-widest text-slate-500 flex items-center">
-            <div class="w-2 h-2 rounded-full bg-yellow-500 mr-2 pulse"></div> Backend waking up...
+        <div id="api-status" class="px-6 py-3 text-[10px] uppercase tracking-widest text-slate-500 flex items-center border-t border-slate-800">
+            <div class="w-2 h-2 rounded-full bg-yellow-500 mr-2 pulse"></div> Syncing...
         </div>
 
         <div class="p-4 border-t border-slate-800 relative">
             <button onclick="toggleSettings()" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 transition">
-                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-3 font-bold">U</div>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mr-3 font-bold text-white">U</div>
                 <span class="text-sm font-medium">User Account</span>
             </button>
-            <div id="settingsMenu" class="hidden absolute bottom-20 left-4 right-4 glass p-2 rounded-2xl shadow-2xl">
+            <div id="settingsMenu" class="hidden absolute bottom-20 left-4 right-4 glass p-2 rounded-2xl shadow-2xl z-50">
                 <button class="w-full text-left p-3 hover:bg-white/5 rounded-xl text-sm">Settings</button>
-                <button class="w-full text-left p-3 hover:bg-red-500/10 text-red-400 rounded-xl text-sm">Sign Out</button>
+                <button class="w-full text-left p-3 hover:bg-red-500/10 text-red-400 rounded-xl text-sm mt-1">Sign Out</button>
             </div>
         </div>
     </aside>
 
-    <main class="flex-1 h-screen overflow-y-auto bg-[url('https://www.transparenttextures.com')]">
+    <main class="flex-1 h-screen overflow-y-auto">
         
-        <!-- DISCOVER SECTION -->
-        <section id="discover" class="section p-10 max-w-6xl mx-auto space-y-8">
-            <h2 class="text-4xl font-bold">Discover</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- STARTER BOT -->
-                <div class="glass p-8 rounded-[2.5rem] space-y-4 border-blue-500/20 hover:border-blue-500/50 transition cursor-pointer">
-                    <span class="text-5xl">🛡️</span>
-                    <h3 class="text-xl font-bold text-white">Forge Sentry</h3>
-                    <p class="text-slate-400 text-sm">The default Botforge guardian. I help you test your Filen storage connection and guide you through the forge process.</p>
-                    <div class="pt-4"><span class="text-[10px] bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full uppercase font-bold">Starter Bot</span></div>
+        <!-- Discover -->
+        <section id="discover" class="section p-10 max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold text-white mb-8">Discover</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="discoverList">
+                <div class="col-span-full glass p-12 rounded-[3rem] text-center border-dashed border-slate-700 opacity-50">
+                    <p class="text-slate-500 italic">No public forges found in Filen.</p>
                 </div>
             </div>
         </section>
 
-        <!-- CREATE SECTION -->
+        <!-- Create Bot -->
         <section id="create" class="section hidden p-10 max-w-3xl mx-auto">
-            <div class="glass p-10 rounded-[3rem] shadow-2xl">
+            <div class="glass p-10 rounded-[3rem]">
                 <h2 class="text-3xl font-bold mb-8">Forge New Bot</h2>
                 <div class="space-y-6">
                     <div class="flex gap-4">
-                        <input type="text" id="botEmoji" placeholder="🤖" class="w-24 bg-slate-900/50 p-4 rounded-2xl border border-slate-700 text-center text-2xl outline-none focus:border-blue-500">
-                        <input type="text" id="botName" placeholder="Bot Name" class="flex-1 bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none focus:border-blue-500">
+                        <input type="text" id="botEmoji" placeholder="🤖" class="w-24 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 text-center text-2xl outline-none">
+                        <input type="text" id="botName" placeholder="Bot Name" class="flex-1 bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none">
                     </div>
-                    <input type="text" id="botDesc" placeholder="Brief Description" class="w-full bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none">
-                    <textarea id="botPrompt" placeholder="System Prompt (Instructions)" class="w-full bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none h-24"></textarea>
-                    <textarea id="botLore" placeholder="Bot Lore & Background Knowledge" class="w-full bg-slate-900/50 p-4 rounded-2xl border border-slate-700 outline-none h-32"></textarea>
-                    
-                    <button onclick="saveBot()" id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-2xl font-black tracking-widest transition-all active:scale-95">
-                        ENCRYPT & SAVE TO FILEN
-                    </button>
+                    <input type="text" id="botDesc" placeholder="Catchphrase" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none">
+                    <textarea id="botPrompt" placeholder="System Instructions" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-28"></textarea>
+                    <textarea id="botLore" placeholder="Lore / Knowledge" class="w-full bg-slate-900/50 p-5 rounded-2xl border border-slate-700 outline-none h-36"></textarea>
+                    <button onclick="saveBot()" id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-2xl font-black text-white shadow-xl">ENCRYPT & SAVE TO FILEN</button>
                 </div>
             </div>
         </section>
 
-        <!-- CHATS SECTION -->
+        <!-- Chats History -->
         <section id="chats" class="section hidden p-10 max-w-6xl mx-auto">
-            <h2 class="text-4xl font-bold mb-8">Active Chats</h2>
-            <div class="flex flex-wrap gap-6" id="chatList">
-                <div class="chat-square glass w-48 p-6 rounded-[2.5rem] flex flex-col items-center justify-center text-center cursor-pointer border-dashed border-slate-700">
-                    <div class="text-4xl mb-3 opacity-20"><i class="fa-solid fa-plus"></i></div>
-                    <span class="text-xs text-slate-500">No active chats found in Filen</span>
-                </div>
+            <h2 class="text-4xl font-bold mb-8 text-white">Active Chats</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="chatList">
+                <!-- Loaded from localStorage -->
             </div>
         </section>
     </main>
 
     <script>
-        // ⚠️ REPLACE THIS with your Render URL
-        const RENDER_BACKEND_URL = "https://your-botforge-backend.onrender.com";
+        // ✅ Live Render URL Integrated
+        const RENDER_BACKEND_URL = "https://webapi-j9li.onrender.com";
 
-        // 1. Navigation Logic
         function nav(id, btn) {
             document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('nav-active'));
             btn.classList.add('nav-active');
+            if(id === 'chats') loadChats();
         }
 
         function toggleSettings() {
             document.getElementById('settingsMenu').classList.toggle('hidden');
         }
 
-        // 2. Connection Check (To handle Render's "Spin Down")
         async function checkConnection() {
             const statusEl = document.getElementById('api-status');
             try {
                 const res = await fetch(RENDER_BACKEND_URL);
                 if (res.ok) {
-                    statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div> System Online`;
-                    statusEl.classList.remove('text-slate-500');
-                    statusEl.classList.add('text-emerald-500');
+                    statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div> System Ready`;
+                    statusEl.classList.replace('text-slate-500', 'text-emerald-500');
                 }
             } catch (e) {
-                statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-red-500 mr-2 pulse"></div> Backend Offline`;
+                statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-red-500 mr-2 pulse"></div> Connection Error`;
             }
         }
         checkConnection();
 
-        // 3. Save Logic
+        // Save Bot (Stays in Filen, does not auto-add to Chats)
         async function saveBot() {
             const btn = document.getElementById('saveBtn');
             const data = {
+                id: Date.now().toString(),
                 name: document.getElementById('botName').value,
                 emoji: document.getElementById('botEmoji').value || '🤖',
                 desc: document.getElementById('botDesc').value,
@@ -145,34 +140,65 @@
                 lore: document.getElementById('botLore').value
             };
 
-            if (!data.name) return alert("Please name your bot!");
-
-            btn.innerText = "FORGING... (MAY TAKE 30s)";
+            if (!data.name) return alert("Bot needs a name!");
+            btn.innerText = "FORGING...";
             btn.disabled = true;
 
             try {
-                // The /hold-data endpoint is used here
                 const response = await fetch(`${RENDER_BACKEND_URL}/hold-data`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        filename: data.name.toLowerCase().replace(/\s+/g, '-'), 
-                        chatContent: data 
-                    })
+                    body: JSON.stringify({ filename: data.name.toLowerCase().replace(/\s+/g, '-'), chatContent: data })
                 });
 
                 if (response.ok) {
-                    alert("Success! Bot secured in Filen cloud.");
-                    nav('chats', document.getElementById('btn-chats'));
-                } else {
-                    throw new Error("Server Error");
+                    alert("✅ Bot secured in Filen! You can now start a chat from the forge screen or discover.");
+                    // Optional: Ask user if they want to chat now
+                    if(confirm("Would you like to start a chat with this bot now?")) {
+                        startNewChat(data);
+                    } else {
+                        location.reload();
+                    }
                 }
             } catch (err) {
-                alert("Connection Error: Your Render server is either sleeping or not configured for CORS. Check the console (F12).");
+                alert("❌ Connection Error");
             } finally {
-                btn.innerText = "ENCRYPT & SAVE TO FILEN";
                 btn.disabled = false;
             }
+        }
+
+        // Add to active chat history (LocalStorage)
+        function startNewChat(botData) {
+            let history = JSON.parse(localStorage.getItem('botforge_active_chats') || '[]');
+            if (!history.find(b => b.name === botData.name)) {
+                history.push(botData);
+                localStorage.setItem('botforge_active_chats', JSON.stringify(history));
+            }
+            nav('chats', document.getElementById('btn-chats'));
+            loadChats();
+        }
+
+        // Only load bots that have been "Started"
+        function loadChats() {
+            const list = document.getElementById('chatList');
+            const activeBots = JSON.parse(localStorage.getItem('botforge_active_chats') || '[]');
+            
+            if (activeBots.length === 0) {
+                list.innerHTML = `
+                    <div class="col-span-full text-slate-500 italic p-20 text-center glass rounded-[3rem] border-dashed border-slate-800">
+                        No active conversations. Start a chat from the forge.
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = '';
+            activeBots.forEach(bot => {
+                const div = document.createElement('div');
+                div.className = "chat-square glass p-6 rounded-[2rem] flex flex-col items-center justify-center text-center";
+                div.onclick = () => alert(`Entering secure tunnel to chat with ${bot.name}...`);
+                div.innerHTML = `<div class="text-4xl mb-3">${bot.emoji}</div><span class="font-bold text-white text-sm">${bot.name}</span>`;
+                list.appendChild(div);
+            });
         }
     </script>
 </body>
