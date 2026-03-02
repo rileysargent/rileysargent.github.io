@@ -2,75 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hyperspace-R | Server Matrix</title>
+    <title>Hyperspace-R | Data Link</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     
     <style>
-        :root { --red: #ff2a2a; --dark: #050505; --gold: #ffd700; --dim: #331111; }
-        body { background: var(--dark); color: var(--red); font-family: 'Courier New', monospace; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* --- SERVER LIST SIDEBAR --- */
-        #sidebar { width: 300px; background: #080808; border-right: 2px solid #222; padding: 20px; overflow-y: auto; z-index: 100; }
-        .server-item { padding: 15px; border: 1px solid #111; margin-bottom: 10px; cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
-        .server-item:hover { border-color: var(--red); background: #110000; }
-        .server-item.active { border-color: var(--gold); background: #1a1500; }
-
-        /* --- MAIN CONSOLE --- */
-        #console { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        #static { position: fixed; inset: 0; opacity: 0.04; pointer-events: none; background: url('https://media.giphy.com/media/oEI9uWUicKgR6/giphy.gif'); z-index: 1; }
-
-        .dial-mount { width: 260px; height: 260px; border: 10px solid #222; border-radius: 50%; position: relative; background: radial-gradient(circle, #1a1a1a, #000); cursor: grab; z-index: 2; }
-        #knob { position: absolute; inset: 0; pointer-events: none; transition: transform 0.1s ease-out; }
-        #knob::after { content: ''; position: absolute; top: 10px; left: 50%; width: 8px; height: 30px; background: var(--red); transform: translateX(-50%); box-shadow: 0 0 10px var(--red); }
-
-        .mhz-text { font-size: 5rem; color: var(--gold); text-shadow: 0 0 20px var(--gold); z-index: 2; margin: 10px 0; }
-        
-        /* --- BUTTON STATES --- */
-        .btn-group { display: flex; gap: 10px; width: 300px; z-index: 2; margin-top: 20px; }
-        button { flex: 1; padding: 15px; font-weight: bold; cursor: pointer; border: 1px solid var(--red); background: #000; color: var(--red); text-transform: uppercase; }
-        button:disabled { border-color: #222; color: #444; cursor: not-allowed; opacity: 0.3; }
-        button.join-mode { border-color: #00ff00; color: #00ff00; }
-        button.join-mode:hover { background: #00ff00; color: #000; }
-        
-        .hidden { display: none !important; }
-        #radar { width: 400px; background: #0a0a0a; border: 1px solid #333; padding: 20px; z-index: 10; margin-top: 20px; text-align: center; }
+        :root { --red: #ff2a2a; --dark: #050505; --gold: #ffd700; }
+        body { background: var(--dark); color: var(--red); font-family: 'Courier New', monospace; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
+        #terminal { flex-grow: 1; background: #000; border: 1px solid #333; padding: 15px; overflow-y: auto; font-size: 0.8rem; color: #0f0; margin-bottom: 10px; }
+        .controls { display: flex; gap: 10px; }
+        button { flex: 1; padding: 15px; background: #111; color: var(--red); border: 1px solid var(--red); cursor: pointer; font-weight: bold; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        input { background: #000; border: 1px solid #333; color: var(--gold); padding: 10px; text-align: center; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-<div id="static"></div>
+<div id="terminal">> Awaiting System Initialization...</div>
 
-<div id="sidebar">
-    <h3 style="color:var(--gold); margin-top:0;">AIRWAVE SCANNER</h3>
-    <div id="server-list">Scanning...</div>
+<div style="text-align:center; margin-bottom:20px;">
+    <h1 style="color:var(--gold); margin:0;">STATION MONITOR</h1>
+    <p>Current Freq: <span id="mhz-label">88.0</span> MHz</p>
+    <input type="range" min="88" max="108" step="0.1" value="88" style="width:100%;" oninput="updateFreq(this.value)">
 </div>
 
-<div id="console">
-    <div id="boot-screen" style="z-index:100; text-align:center;">
-        <h1 style="color:var(--gold)">HYPERSPACE-R</h1>
-        <button onclick="powerOn()" style="width:200px;">POWER ON</button>
-    </div>
-
-    <div id="station-ui" class="hidden" style="text-align:center;">
-        <div class="mhz-text" id="readout">88.0</div>
-        <div class="dial-mount" id="dial">
-            <div id="knob"></div>
-        </div>
-
-        <div class="btn-group">
-            <button id="host-btn" onclick="action('host')">Broadcast</button>
-            <button id="join-btn" onclick="action('join')" class="join-mode" disabled>Join Signal</button>
-        </div>
-
-        <div id="radar" class="hidden">
-            <h4 id="freq-id" style="color:var(--gold)">---</h4>
-            <div id="players">Searching...</div>
-            <button onclick="location.reload()" style="margin-top:15px; font-size:0.6rem;">Kill Signal</button>
-        </div>
-    </div>
+<div class="controls">
+    <button id="host-btn" onclick="hostSignal()">BROADCAST (FSDB + RTDB)</button>
+    <button id="join-btn" onclick="joinSignal()" disabled>JOIN SIGNAL</button>
 </div>
 
 <script>
@@ -85,118 +45,101 @@
         measurementId: "G-RRQTTD9M4V"
     };
 
-    let db, auth, rtdb, userProfile, mhz = 88.0, activeServers = {};
+    let db, rtdb, auth, mhz = "88.0", activeFreqs = {};
 
-    function powerOn() {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        auth = firebase.auth();
-        rtdb = firebase.database();
-        
-        document.getElementById('boot-screen').classList.add('hidden');
-        document.getElementById('station-ui').classList.remove('hidden');
-
-        auth.signInAnonymously().then(() => {
-            userProfile = { username: "USER_" + Math.floor(Math.random()*9999) };
-            listenForServers();
-        });
+    function log(msg, color="#0f0") {
+        const t = document.getElementById('terminal');
+        t.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+        t.scrollTop = t.scrollHeight;
     }
 
-    // --- DIAL LOGIC ---
-    const dial = document.getElementById('dial');
-    const knob = document.getElementById('knob');
-    let dragging = false;
+    // --- INITIALIZE ---
+    window.onload = () => {
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            rtdb = firebase.database();
+            auth = firebase.auth();
+            log("Firebase Systems Online.");
 
-    dial.onmousedown = () => dragging = true;
-    window.onmouseup = () => dragging = false;
-    window.onmousemove = (e) => {
-        if(!dragging) return;
-        const rect = dial.getBoundingClientRect();
-        const angle = Math.atan2(e.clientY - (rect.top + 130), e.clientX - (rect.left + 130)) * (180 / Math.PI) + 90;
-        knob.style.transform = `rotate(${angle}deg)`;
-        
-        const norm = (angle % 360 + 360) % 360;
-        mhz = (88 + (norm / 360) * 20).toFixed(1);
-        document.getElementById('readout').innerText = mhz;
-        checkFrequencyStatus();
+            auth.signInAnonymously().then(u => {
+                log(`Authenticated as Anonymous Overlord: ${u.user.uid}`);
+                syncScanner();
+            });
+        } catch (e) {
+            log(`BOOT CRITICAL ERROR: ${e.message}`, "red");
+        }
     };
 
-    // --- SERVER LIST LOGIC ---
-    function listenForServers() {
+    function updateFreq(val) {
+        mhz = parseFloat(val).toFixed(1);
+        document.getElementById('mhz-label').innerText = mhz;
+        checkStatus();
+    }
+
+    // --- THE SCANNER ---
+    function syncScanner() {
+        log("Scanning Firestore for active frequency folders...");
         db.collection("matches").onSnapshot(snap => {
-            const list = document.getElementById('server-list');
-            list.innerHTML = "";
-            activeServers = {};
-
-            snap.forEach(doc => {
-                const data = doc.data();
-                const id = doc.id;
-                activeServers[id] = data;
-
-                const item = document.createElement('div');
-                item.className = 'server-item';
-                item.innerHTML = `<strong>${data.mhz} MHz</strong><br>Host: ${data.host}<br>Peers: ${data.players.length}`;
-                item.onclick = () => {
-                    mhz = data.mhz;
-                    document.getElementById('readout').innerText = mhz;
-                    const rot = ((mhz - 88) / 20) * 360;
-                    knob.style.transform = `rotate(${rot}deg)`;
-                    checkFrequencyStatus();
-                };
-                list.appendChild(item);
-            });
-            checkFrequencyStatus();
-        });
+            activeFreqs = {};
+            snap.forEach(doc => { activeFreqs[doc.id] = doc.data(); });
+            log(`Scanner Update: ${snap.size} signals detected.`);
+            checkStatus();
+        }, err => log(`FSDB SCANNER ERROR: ${err.message}`, "red"));
     }
 
-    // --- BUTTON INTELLIGENCE ---
-    function checkFrequencyStatus() {
-        const id = mhz.toString().replace('.', '');
-        const hostBtn = document.getElementById('host-btn');
-        const joinBtn = document.getElementById('join-btn');
-
-        if (activeServers[id]) {
-            // Signal exists: Join only
-            hostBtn.disabled = true;
-            joinBtn.disabled = false;
-        } else {
-            // Airwaves clear: Host only
-            hostBtn.disabled = false;
-            joinBtn.disabled = true;
-        }
+    function checkStatus() {
+        const id = mhz.replace('.', '');
+        const exists = activeFreqs[id];
+        document.getElementById('host-btn').disabled = !!exists;
+        document.getElementById('join-btn').disabled = !exists;
+        if(exists) document.getElementById('host-btn').innerText = "OCCUPIED";
+        else document.getElementById('host-btn').innerText = "BROADCAST";
     }
 
-    // --- ACTION: HOST OR JOIN ---
-    async function action(type) {
-        const id = mhz.toString().replace('.', '');
-        const fRef = db.collection("matches").doc(id);
-
-        document.getElementById('dial').classList.add('hidden');
-        document.querySelector('.btn-group').classList.add('hidden');
-        document.getElementById('radar').classList.remove('hidden');
-        document.getElementById('freq-id').innerText = id + "_SIG";
-
-        if (type === 'host') {
-            await fRef.set({
+    // --- THE WRITES ---
+    async function hostSignal() {
+        const id = mhz.replace('.', '');
+        log(`Creating FSDB Folder: [${id}]...`);
+        
+        try {
+            // Write to Firestore (The Folder)
+            await db.collection("matches").doc(id).set({
                 mhz: mhz,
-                host: userProfile.username,
-                players: [userProfile.username]
+                host: "AIan_" + id,
+                players: ["AIan_" + id],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            // Cleanup logic
-            const pRef = rtdb.ref(`broadcasts/${id}`);
-            pRef.set(true);
-            pRef.onDisconnect().remove().then(() => fRef.delete());
-        } else {
-            await fRef.update({
-                players: firebase.firestore.FieldValue.arrayUnion(userProfile.username)
-            });
-        }
+            log(`FSDB WRITE SUCCESS: Folder ${id} created.`, "var(--gold)");
 
-        fRef.onSnapshot(snap => {
-            const data = snap.data();
-            if(!data) return;
-            document.getElementById('players').innerHTML = data.players.map(p => `[${p}]`).join(' ');
-        });
+            // Write to RTDB (The Life Support)
+            log(`Connecting RTDB Life Support for ${id}...`);
+            const presenceRef = rtdb.ref(`active_signals/${id}`);
+            presenceRef.set({ status: "alive" });
+
+            // Setup Disconnect Cleanup
+            presenceRef.onDisconnect().remove().then(() => {
+                db.collection("matches").doc(id).delete();
+                log(`Presence Guard: Disconnect handler armed for ${id}.`);
+            });
+
+        } catch (e) {
+            log(`WRITE FAILED: ${e.message}`, "red");
+            log(`HINT: Check if Firestore Rules are set to 'allow read, write: if true;'`, "gray");
+        }
+    }
+
+    async function joinSignal() {
+        const id = mhz.replace('.', '');
+        log(`Attempting to join signal ${id}...`);
+        try {
+            await db.collection("matches").doc(id).update({
+                players: firebase.firestore.FieldValue.arrayUnion("Peer_" + Math.floor(Math.random()*99))
+            });
+            log("JOIN SUCCESSFUL.");
+        } catch (e) {
+            log(`JOIN ERROR: ${e.message}`, "red");
+        }
     }
 </script>
 </body>
