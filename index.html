@@ -2,155 +2,55 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Snow Rider | Admin Engine</title>
-    <style>
-        body { margin: 0; background: #0a0a0a; color: #0f0; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
-        #canvas { display: block; width: 100vw; height: 65vh; background: #000; border-bottom: 2px solid #222; }
-        
-        /* The UI Console */
-        #console-container { height: 35vh; padding: 10px; background: #000; overflow-y: auto; box-sizing: border-box; }
-        .log-entry { margin-bottom: 4px; border-left: 3px solid #0f0; padding-left: 8px; font-size: 12px; }
-        .status-header { color: #fff; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #333; }
-
-        /* Secret Admin Panel */
-        #admin-panel { 
-            display: none; position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); 
-            background: rgba(0, 20, 0, 0.95); border: 2px solid #0f0; padding: 20px; z-index: 1000; width: 400px;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snow Rider 3D | Admin Edition</title>
+    
+    <!-- Link to your CSS file -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Import Map for Three.js (Must be before index.js) -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com"
+            }
         }
-        #cmd-input { width: 100%; background: #000; color: #0f0; border: 1px solid #0f0; padding: 8px; box-sizing: border-box; }
-        .help-text { font-size: 10px; color: #888; margin-top: 10px; }
-    </style>
+    </script>
 </head>
 <body>
 
-    <canvas id="canvas"></canvas>
-
+    <!-- 1. The Secret Admin Terminal (poleds) -->
     <div id="admin-panel">
-        <h3 style="margin-top:0">TERMINAL_ACCESS::ROOT</h3>
+        <h3>[ROOT_ACCESS_GRANTED]</h3>
         <input type="text" id="cmd-input" placeholder="Enter command (type 'help' for list)..." autocomplete="off">
-        <div class="help-text">Type 'exit' or press ESC to lock terminal.</div>
+        <div style="font-size: 10px; margin-top: 10px; color: #666;">Type 'exit' to lock terminal.</div>
     </div>
 
-    <div id="console-container">
-        <div class="status-header">SYSTEM_BOOT: SUCCESS | GIFTS: <span id="gift-display">154</span></div>
-        <div id="log-output"></div>
+    <!-- 2. The Moveable Command List -->
+    <div id="cmd-list">
+        <div id="cmd-header">COMMAND_REFERENCE_v1.0</div>
+        <div id="list-content">
+            <span class="cmd-category">PHYSICS</span>
+            gravity / ungravity<br>speed / unspeed<br>friction / unfriction<br>jump / unjump<br>mass / unmass<br>drift / undrift
+            
+            <span class="cmd-category">VISUALS</span>
+            fog / unfog<br>glitch / unglitch<br>ghost / unghost<br>rainbow / unrainbow<br>wire / unwire<br>night / unnight
+            
+            <span class="cmd-category">MODES</span>
+            god / ungod<br>fly / unfly<br>noclip / unnoclip<br>nitro / unnitro<br>slowmo / unslowmo<br>freeze / unfreeze
+            
+            <span class="cmd-category">UTILITY</span>
+            setgifts / unsetgifts<br>tp / untp<br>zoom / unzoom<br>exit / lock
+        </div>
     </div>
 
-    <script>
-        const logOutput = document.getElementById('log-output');
-        const adminPanel = document.getElementById('admin-panel');
-        const cmdInput = document.getElementById('cmd-input');
-        const giftDisplay = document.getElementById('gift-display');
-        
-        let wasmInstance;
-        let inputBuffer = "";
-        let isAdminActive = false;
-        const secretCode = "poleds";
+    <!-- 3. The Game HUD -->
+    <div id="hud">
+        GIFTS: <span id="gift-count">154</span>
+    </div>
 
-        function printToConsole(msg, color = "#0f0") {
-            const div = document.createElement('div');
-            div.className = 'log-entry';
-            div.style.color = color;
-            div.textContent = `[${new Date().toLocaleTimeString()}] > ${msg}`;
-            logOutput.appendChild(div);
-            document.getElementById('console-container').scrollTop = logOutput.scrollHeight;
-        }
+    <!-- 4. Link to your JavaScript Game Engine -->
+    <script type="module" src="index.js"></script>
 
-        async function init() {
-            try {
-                const response = await fetch('index.wasm');
-                const bytes = await response.arrayBuffer();
-                const results = await WebAssembly.instantiate(bytes, { env: { memory: new WebAssembly.Memory({ initial: 256 }) } });
-                wasmInstance = results.instance.exports;
-                printToConsole("Wasm Engine Online.");
-            } catch (e) { printToConsole("Wasm Load Failed: " + e.message, "red"); }
-        }
-
-        // --- COMMAND PROCESSOR (30 COMMANDS) ---
-        const commands = {
-            "help": () => printToConsole("Available: setspeed, setgifts, reset, teleport, ghost, noclip, fog, gravity, friction, snowmode, debug, clear, stats, gifts++, gifts--, drift, jumpforce, lock, unlock, nitro, slowmo, invert, fly, vanish, rainbow, glitch, spawn, del, save, exit"),
-            "setgifts": (val) => { giftDisplay.textContent = val; printToConsole("Gifts set to " + val); },
-            "setspeed": (val) => printToConsole("Speed modified to " + val + "x"),
-            "reset": () => { window.location.reload(); },
-            "clear": () => { logOutput.innerHTML = ""; },
-            "teleport": (val) => printToConsole("Teleporting to Z=" + val),
-            "ghost": () => printToConsole("Ghost mode: ENABLED"),
-            "noclip": () => printToConsole("Noclip: ENABLED"),
-            "fog": (val) => printToConsole("Fog density set to " + val),
-            "gravity": (val) => printToConsole("Gravity set to " + val),
-            "friction": (val) => printToConsole("Friction set to " + val),
-            "snowmode": (val) => printToConsole("Snow intensity: " + val),
-            "stats": () => printToConsole("Engine: GLES2 | Mem: 256MB | FPS: 60"),
-            "gifts++": () => { giftDisplay.textContent = parseInt(giftDisplay.textContent) + 1; },
-            "gifts--": () => { giftDisplay.textContent = parseInt(giftDisplay.textContent) - 1; },
-            "drift": () => printToConsole("Drift Physics: ENABLED"),
-            "jumpforce": (val) => printToConsole("Jump Power: " + val),
-            "lock": () => closeAdmin(),
-            "nitro": () => printToConsole("Nitro Boost: READY"),
-            "slowmo": () => printToConsole("Slow Motion: 0.5x"),
-            "invert": () => printToConsole("Controls Inverted."),
-            "fly": () => printToConsole("Flight Mode: ACTIVE"),
-            "vanish": () => printToConsole("Sled Visibility: 0%"),
-            "rainbow": () => printToConsole("Rainbow Sled Activated."),
-            "glitch": () => printToConsole("Glitch Visuals Enabled."),
-            "spawn": (type) => printToConsole("Spawning " + type),
-            "del": () => printToConsole("Deleted nearby obstacles."),
-            "save": () => printToConsole("Game state saved to LocalStorage."),
-            "debug": () => printToConsole("Debug Overlays: ENABLED"),
-            "exit": () => closeAdmin()
-        };
-
-        function processCommand(rawInput) {
-            const parts = rawInput.toLowerCase().split(" ");
-            const cmd = parts[0];
-            const arg = parts[1];
-
-            if (commands[cmd]) {
-                commands[cmd](arg);
-                cmdInput.value = "";
-            } else {
-                printToConsole("Unknown Command: " + cmd, "yellow");
-            }
-        }
-
-        // --- KEYBOARD LISTENERS ---
-        window.addEventListener('keydown', (e) => {
-            if (isAdminActive) {
-                if (e.key === "Enter") processCommand(cmdInput.value);
-                if (e.key === "Escape") closeAdmin();
-                return; // Block game controls while typing
-            }
-
-            // Detect secret code "poleds"
-            inputBuffer += e.key.toLowerCase();
-            if (inputBuffer.endsWith(secretCode)) {
-                openAdmin();
-                inputBuffer = "";
-            }
-            if (inputBuffer.length > 20) inputBuffer = inputBuffer.slice(-10);
-
-            // Standard Controls
-            if (!isAdminActive && wasmInstance) {
-                if (e.key === "a" || e.key === "ArrowLeft") wasmInstance.move_left();
-                if (e.key === "d" || e.key === "ArrowRight") wasmInstance.move_right();
-            }
-        });
-
-        function openAdmin() {
-            isAdminActive = true;
-            adminPanel.style.display = "block";
-            cmdInput.focus();
-            printToConsole("!!! ROOT ACCESS GRANTED !!!", "white");
-        }
-
-        function closeAdmin() {
-            isAdminActive = false;
-            adminPanel.style.display = "none";
-            printToConsole("Terminal Locked. Sled controls resumed.", "gray");
-        }
-
-        init();
-    </script>
 </body>
 </html>
