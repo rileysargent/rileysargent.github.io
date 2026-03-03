@@ -1,43 +1,43 @@
 move_left:
         i32.const       0
-        f32.load        sledX
+        f32.load        _ZL5sledX
         f32.const       0x1p-1
         f32.sub 
         local.set       0
         i32.const       0
         local.get       0
-        f32.store       sledX
+        f32.store       _ZL5sledX
         return
         end_function
 
 move_right:
         i32.const       0
-        f32.load        sledX
+        f32.load        _ZL5sledX
         f32.const       0x1p-1
         f32.add 
         local.set       0
         i32.const       0
         local.get       0
-        f32.store       sledX
+        f32.store       _ZL5sledX
         return
         end_function
 
 get_sled_x:
         i32.const       0
-        f32.load        sledX
+        f32.load        _ZL5sledX
         return
         end_function
 
 get_gifts:
         i32.const       0
-        i32.load        giftCount
+        i32.load        _ZL9giftCount
         return
         end_function
 
 game_loop:
         block           
         i32.const       0
-        f32.load        sledX
+        f32.load        _ZL5sledX
         f32.const       -0x1.ep3
         f32.lt  
         i32.const       1
@@ -48,11 +48,11 @@ game_loop:
         local.set       0
         i32.const       0
         local.get       0
-        f32.store       sledX
+        f32.store       _ZL5sledX
         end_block
         block           
         i32.const       0
-        f32.load        sledX
+        f32.load        _ZL5sledX
         f32.const       0x1.ep3
         f32.gt  
         i32.const       1
@@ -63,13 +63,13 @@ game_loop:
         local.set       1
         i32.const       0
         local.get       1
-        f32.store       sledX
+        f32.store       _ZL5sledX
         end_block
         return
         end_function
 
-sledX:
+_ZL5sledX:
         .int32  0x00000000
 
-giftCount:
+_ZL9giftCount:
         .int32  154
