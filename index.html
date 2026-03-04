@@ -3,55 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snow Rider 3D | Admin Edition</title>
-    
-    <!-- Link to your CSS file -->
-    <link rel="stylesheet" href="style.css">
-    
-    <!-- Import Map for Three.js (Must be before index.js) -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com"
-            }
+    <title>Firebase Scrabble - Narrabri Edition</title>
+    <style>
+        :root { --bg: #1a1a1a; --tile: #f1d38e; --board: #2e7d32; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; margin: 0; }
+        
+        #auth-status { margin: 10px; padding: 10px; background: #333; border-radius: 8px; width: 90%; text-align: center; }
+        #game-area { display: none; flex-direction: column; align-items: center; }
+        
+        #board { 
+            display: grid; grid-template-columns: repeat(15, 35px); grid-template-rows: repeat(15, 35px); 
+            gap: 2px; background: #444; border: 4px solid #222; margin-bottom: 20px;
         }
-    </script>
-    <script type="module" src="index.js"></script>
+        .sq { width: 35px; height: 35px; background: var(--board); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border-radius: 2px; }
+        .sq.occupied { background: #555; }
+        
+        .tile { 
+            width: 32px; height: 32px; background: var(--tile); color: #333; 
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+            border-radius: 3px; cursor: grab; box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        #rack { display: flex; gap: 8px; background: #333; padding: 15px; border-radius: 10px; min-width: 300px; justify-content: center; }
+        button { padding: 10px 15px; background: #f39c12; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; margin: 5px; }
+        button:hover { background: #e67e22; }
+    </style>
 </head>
 <body>
 
-    <!-- 1. The Secret Admin Terminal (poleds) -->
-    <div id="admin-panel">
-        <h3>[ROOT_ACCESS_GRANTED]</h3>
-        <input type="text" id="cmd-input" placeholder="Enter command (type 'help' for list)..." autocomplete="off">
-        <div style="font-size: 10px; margin-top: 10px; color: #666;">Type 'exit' to lock terminal.</div>
+    <div id="auth-status">
+        <p id="user-info">Loading Firebase...</p>
+        <button id="login-btn" onclick="signIn()">Login with Google</button>
     </div>
 
-    <!-- 2. The Moveable Command List -->
-    <div id="cmd-list">
-        <div id="cmd-header">COMMAND_REFERENCE_v1.0</div>
-        <div id="list-content">
-            <span class="cmd-category">PHYSICS</span>
-            gravity / ungravity<br>speed / unspeed<br>friction / unfriction<br>jump / unjump<br>mass / unmass<br>drift / undrift
-            
-            <span class="cmd-category">VISUALS</span>
-            fog / unfog<br>glitch / unglitch<br>ghost / unghost<br>rainbow / unrainbow<br>wire / unwire<br>night / unnight
-            
-            <span class="cmd-category">MODES</span>
-            god / ungod<br>fly / unfly<br>noclip / unnoclip<br>nitro / unnitro<br>slowmo / unslowmo<br>freeze / unfreeze
-            
-            <span class="cmd-category">UTILITY</span>
-            setgifts / unsetgifts<br>tp / untp<br>zoom / unzoom<br>exit / lock
+    <div id="game-area">
+        <div id="board"></div>
+        <div id="rack"></div>
+        <div class="controls">
+            <button onclick="clearMove()">Reset Turn</button>
+            <button onclick="submitTurn()">Finish Move</button>
         </div>
     </div>
 
-    <!-- 3. The Game HUD -->
-    <div id="hud">
-        GIFTS: <span id="gift-count">154</span>
-    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    <!-- 4. Link to your JavaScript Game Engine -->
-    <script type="module" src="index.js"></script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+            authDomain: "hyperspace-r.firebaseapp.com",
+            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "hyperspace-r",
+            storageBucket: "hyperspace-r.firebasestorage.app",
+            messagingSenderId: "1050495683444",
+            appId: "1:1050495683444:web:42d7284bee34d749313a21",
+            measurementId: "G-RRQTTD9M4V"
+        };
 
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+        const boardRef = ref(db, 'game/board');
+
+        // --- Auth Logic ---
+        window.signIn = () => signInWithPopup(auth, provider);
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-info').innerText = `Playing as: ${user.displayName}`;
+                document.getElementById('login-btn').style.display = 'none';
+                document.getElementById('game-area').style.display = 'flex';
+                initGame();
+            }
+        });
+
+        // --- Game Logic ---
+        function initGame() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            
+            // Create 15x15 board
+            for (let i = 0; i < 225; i++) {
+                const sq = document.createElement('div');
+                sq.className = 'sq';
+                sq.id = `sq-${i}`;
+                sq.addEventListener('dragover', e => e.preventDefault());
+                sq.addEventListener('drop', e => dropTile(e, i));
+                boardDiv.appendChild(sq);
+            }
+
+            // Sync board from Firebase
+            onValue(boardRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                renderBoard(data);
+            });
+
+            generateRack();
+        }
+
+        function renderBoard(data) {
+            Object.keys(data).forEach(index => {
+                const sq = document.getElementById(`sq-${index}`);
+                if (!sq.hasChildNodes()) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.innerText = data[index].letter;
+                    sq.appendChild(tile);
+                    sq.classList.add('occupied');
+                }
+            });
+        }
+
+        function generateRack() {
+            const rack = document.getElementById('rack');
+            const letters = "EEEEEEEEEEEEAAAAAAAAAIIIIIIIIIOOOOOOOONNNNNNRRRRRRTTTTTTLLLLSSSSUUUU"; // Standard distribution
+            for(let i=0; i<7; i++) {
+                const char = letters[Math.floor(Math.random() * letters.length)];
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.draggable = true;
+                tile.innerText = char;
+                tile.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('letter', char);
+                    window.draggedTile = tile;
+                });
+                rack.appendChild(tile);
+            }
+        }
+
+        async function dropTile(e, index) {
+            e.preventDefault();
+            const letter = e.dataTransfer.getData('letter');
+            
+            // Update Firebase Immediately for real-time sync
+            const updates = {};
+            updates[index] = { letter: letter, player: currentUser.uid };
+            update(boardRef, updates);
+            
+            if (window.draggedTile) window.draggedTile.remove();
+        }
+
+        window.submitTurn = () => {
+            alert("Turn submitted! (Add dictionary validation here)");
+        };
+
+        window.clearMove = () => {
+             // Logic to local-reset before firebase update
+             location.reload(); 
+        };
+    </script>
 </body>
 </html>
