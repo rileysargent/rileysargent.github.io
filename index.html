@@ -2,283 +2,190 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace | Secure Voice & Chat</title>
+    <title>Who's Your Daddy: High Fidelity</title>
     <style>
-        :root {
-            --bg: #0b0e11; --panel: #15191c; --accent: #00d2ff; 
-            --text: #ffffff; --dim: #94a3b8; --border: #2d3748; --danger: #f56565;
-        }
-
-        body {
-            margin: 0; background: var(--bg); color: var(--text);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-        }
-
-        /* --- AUTH OVERLAY --- */
-        #authOverlay {
-            position: fixed; inset: 0; background: var(--bg); z-index: 10000;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .auth-card {
-            background: var(--panel); padding: 40px; border-radius: 20px;
-            border: 1px solid var(--border); width: 90%; max-width: 400px; text-align: center;
-        }
-        .auth-card h1 { color: var(--accent); margin: 0 0 10px 0; letter-spacing: 3px; }
-
-        /* --- LAYOUT --- */
-        header {
-            background: var(--panel); padding: 12px 20px; display: flex;
-            justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);
-        }
-        main { display: grid; grid-template-columns: 280px 1fr; flex-grow: 1; overflow: hidden; }
-        .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; }
-        .chat-section { display: flex; flex-direction: column; background: var(--bg); }
-        
-        #messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px 16px; border-radius: 12px; max-width: 75%; font-size: 0.95rem; }
-        .msg.me { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.peer { background: var(--panel); align-self: flex-start; border: 1px solid var(--border); border-bottom-left-radius: 2px; }
-
-        .input-bar { padding: 20px; background: var(--panel); display: flex; gap: 10px; border-top: 1px solid var(--border); }
-        input { background: #0b0e11; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; font-size: 1rem; }
-        button { background: var(--accent); color: #000; border: none; font-weight: bold; cursor: pointer; border-radius: 8px; padding: 10px 20px; transition: 0.2s; }
-        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        button:disabled { background: #2d3748; color: #4a5568; cursor: not-allowed; }
-
-        .status-badge { background: #1a202c; padding: 12px; border-radius: 10px; font-size: 0.8rem; border: 1px solid var(--border); }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #4a5568; margin-right: 8px; }
-        .dot.on { background: #48bb78; box-shadow: 0 0 8px #48bb78; }
-        
-        @media (max-width: 768px) {
-            main { grid-template-columns: 1fr; }
-            .sidebar { display: none; }
-        }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
+        #timer { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #222; color: #ffcc00; padding: 10px 40px; border-radius: 50px; font-size: 35px; border: 4px solid #ffcc00; box-shadow: 0 0 20px gold; z-index: 100; pointer-events: none; }
+        #hud { position: absolute; inset: 0; pointer-events: none; }
+        .win-screen { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; color: white; flex-direction: column; justify-content: center; align-items: center; }
+        #diag { position: absolute; bottom: 10px; left: 10px; color: #555; font-size: 10px; font-family: monospace; }
     </style>
 </head>
 <body>
 
-    <div id="authOverlay">
-        <div class="auth-card">
-            <h1>HYPERSPACE</h1>
-            <p style="color:var(--dim); margin-bottom: 25px;">Enter your school email to receive a login link.</p>
-            <input type="email" id="emailInput" placeholder="name@stu.pacificeducation.online" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;">
-            <button id="sendLinkBtn" style="width: 100%;">Send Magic Link</button>
-            <p id="authMsg" style="margin-top: 20px; font-size: 0.9rem; color: var(--accent);"></p>
-        </div>
-    </div>
+<div id="timer">15:00</div>
+<div id="diag">ChromeOS Build: Standard</div>
 
-    <header>
-        <div style="font-weight: bold; color: var(--accent); letter-spacing: 1px;">HYPERSPACE <span id="roomDisplay" style="color:var(--dim); margin-left:10px; font-weight: normal;"></span></div>
-        <div style="display: flex; gap: 10px;">
-            <button id="hostBtn">Host</button>
-            <input type="text" id="roomInput" placeholder="Room ID" style="width: 80px;">
-            <button id="joinBtn">Join</button>
-        </div>
-    </header>
+<div id="winScreen" class="win-screen">
+    <h1 id="winMsg" style="font-size: 80px; margin: 0;"></h1>
+    <p id="winSub" style="font-size: 24px; color: #aaa;"></p>
+    <button onclick="location.reload()" style="padding: 20px 60px; font-size: 25px; cursor: pointer; background: #ff4500; color: white; border: none; border-radius: 10px; margin-top: 20px;">RESTART MATCH</button>
+</div>
 
-    <main>
-        <div class="sidebar">
-            <div class="status-badge">
-                <span class="dot" id="statusDot"></span> <span id="statusLabel">Offline</span>
-            </div>
-            <button id="muteBtn" style="width: 100%;" disabled>Mute Microphone</button>
-            <button id="kickBtn" style="width: 100%; background: var(--danger); color: white;" disabled>Kick Peer</button>
-            
-            <div style="margin-top: auto;">
-                <div id="userDisplay" style="font-size: 0.75rem; color: var(--dim); margin-bottom: 10px; word-break: break-all;"></div>
-                <button id="logoutBtn" style="width: 100%; background: transparent; border: 1px solid var(--border); color: var(--dim);">Sign Out</button>
-            </div>
-        </div>
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
 
-        <div class="chat-section">
-            <div id="messages"></div>
-            <div class="input-bar">
-                <input type="text" id="chatInput" placeholder="Type a message..." style="flex-grow: 1;" disabled>
-                <button id="sendBtn" disabled>Send</button>
-            </div>
-        </div>
-    </main>
+<script type="module">
+    import * as THREE from 'three';
 
-    <audio id="remoteAudio" autoplay></audio>
+    // --- 1. ENGINE & ADVANCED GRAPHICS ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x74b9ff); // Vivid Sky
+    scene.fog = new THREE.Fog(0x74b9ff, 30, 160);
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setScissorTest(true);
+    document.body.appendChild(renderer.domElement);
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-            authDomain: "hyperspace-r.firebaseapp.com",
-            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "hyperspace-r",
-            storageBucket: "hyperspace-r.firebasestorage.app",
-            messagingSenderId: "1050495683444",
-            appId: "1:1050495683444:web:846c42d274197b20313a21"
-        };
+    const dadCam = new THREE.PerspectiveCamera(75, (window.innerWidth/2)/window.innerHeight, 0.1, 1000);
+    const babyCam = new THREE.PerspectiveCamera(75, (window.innerWidth/2)/window.innerHeight, 0.1, 1000);
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+    // Dynamic Lighting
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambient);
 
-        // --- MAGIC LINK AUTH LOGIC ---
-        
-        // 1. Handle the "Catch": If user just landed here from an email link
-        if (isSignInWithEmailLink(auth, window.location.href)) {
-            let email = window.localStorage.getItem('emailForSignIn');
-            if (!email) {
-                email = window.prompt('Please provide your email for confirmation');
-            }
-            signInWithEmailLink(auth, email, window.location.href)
-                .then(() => {
-                    window.localStorage.removeItem('emailForSignIn');
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                })
-                .catch(err => {
-                    alert("The link is invalid or has expired.");
-                    console.error(err);
-                });
+    const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+    sun.position.set(40, 60, 20);
+    sun.castShadow = true;
+    sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
+    sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
+    sun.shadow.mapSize.width = 4096; sun.shadow.mapSize.height = 4096;
+    scene.add(sun);
+
+    // --- 2. ARCHITECTURE ---
+    const createWall = (w, h, d, x, y, z, color = 0xffffff) => {
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color }));
+        mesh.position.set(x, y, z);
+        mesh.receiveShadow = true; mesh.castShadow = true;
+        scene.add(mesh);
+        return mesh;
+    };
+
+    // Main House Structure
+    createWall(150, 1, 150, 0, -0.5, 0, 0x2e7d32); // Grass
+    createWall(80, 1.2, 80, 0, 0, 0, 0xecf0f1); // Main Floor Plate
+    createWall(1, 15, 80, -40, 7.5, 0, 0x3498db); // Left Outer Wall (Blue)
+    createWall(1, 15, 80, 40, 7.5, 0, 0x3498db); // Right Outer Wall (Blue)
+    createWall(80, 15, 1, 0, 7.5, -40, 0x3498db); // Back Wall
+
+    // Kitchen Area
+    const counter = createWall(20, 4, 6, -30, 2, -37, 0xffffff); // Kitchen Counter
+    const oven = createWall(5, 5, 5, -30, 2.5, -30, 0x2c3e50); // Oven
+    const stoveLight = new THREE.PointLight(0xff4500, 0, 10);
+    stoveLight.position.set(-30, 5, -30);
+    scene.add(stoveLight);
+
+    // Living Room
+    createWall(15, 4, 6, 10, 2, -10, 0xe67e22); // Orange Couch
+    createWall(10, 0.5, 10, 10, 1.5, 5, 0xffffff); // Table
+
+    // The Pool
+    const poolWater = createWall(30, 0.5, 25, 0, 0.1, 55, 0x00d2ff);
+    poolWater.material.transparent = true;
+    poolWater.material.opacity = 0.7;
+
+    // --- 3. PLAYERS ---
+    const dad = new THREE.Group();
+    dad.position.set(-15, 5, 10);
+    scene.add(dad);
+    dad.add(dadCam);
+
+    const baby = new THREE.Group();
+    const babyVisual = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.5, 4, 8), new THREE.MeshStandardMaterial({ color: 0xffdbac }));
+    baby.add(babyVisual);
+    baby.position.set(15, 1, 10);
+    scene.add(baby);
+
+    // --- 4. ENGINE LOGIC ---
+    let timeLeft = 15 * 60;
+    let isHeld = false;
+    let gameOver = false;
+    const keys = {};
+
+    window.onkeydown = e => keys[e.code] = true;
+    window.onkeyup = e => keys[e.code] = false;
+    window.onclick = () => {
+        renderer.domElement.requestPointerLock();
+        // Oven Toggle if close
+        if(dad.position.distanceTo(oven.position) < 6) {
+            stoveLight.intensity = stoveLight.intensity > 0 ? 0 : 50;
+        }
+    };
+    document.onmousemove = e => { if(document.pointerLockElement) dad.rotation.y -= e.movementX * 0.003; };
+
+    function animate() {
+        if(gameOver) return;
+
+        // Timer
+        timeLeft -= 1/60;
+        const m = Math.floor(timeLeft/60), s = Math.floor(timeLeft%60);
+        document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        if(timeLeft <= 0) doWin("DAD WINS", "TIME EXPIRED");
+
+        // Dad Movement (PC)
+        const dSpd = keys['ShiftLeft'] ? 0.35 : 0.2;
+        if(keys['KeyW']) dad.translateZ(-dSpd);
+        if(keys['KeyS']) dad.translateZ(dSpd);
+        if(keys['KeyA']) dad.translateX(-dSpd);
+        if(keys['KeyD']) dad.translateX(dSpd);
+
+        // Baby Movement (AGGRESSIVE GAMEPAD POLLING)
+        const pads = navigator.getGamepads();
+        let gp = null;
+        for(let i=0; i<4; i++) { if(pads[i]) { gp = pads[i]; break; } }
+
+        if (gp && !isHeld) {
+            const dz = 0.15;
+            const bSpd = gp.buttons[10].pressed ? 0.3 : 0.15; // L3 Sprint
+            if (Math.abs(gp.axes[0]) > dz) baby.position.x += gp.axes[0] * bSpd;
+            if (Math.abs(gp.axes[1]) > dz) baby.position.z += gp.axes[1] * bSpd;
+            if (gp.buttons[0].pressed && baby.position.y <= 1.5) baby.position.y += 0.8; // A Jump
         }
 
-        // 2. Handle the "Send": Trigger the email link
-        document.getElementById('sendLinkBtn').onclick = async () => {
-            const email = document.getElementById('emailInput').value;
-            if (!email.endsWith('@stu.pacificeducation.online')) {
-                return alert("Access Restricted: Please use your @pacificeducation.online email.");
-            }
+        // Grab Mechanics
+        if (keys['KeyE'] && dad.position.distanceTo(baby.position) < 5) isHeld = true;
+        if (keys['KeyQ']) isHeld = false;
 
-            const actionCodeSettings = {
-                url: window.location.href, // Returns user to this exact page
-                handleCodeInApp: true
-            };
-
-            try {
-                await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-                window.localStorage.setItem('emailForSignIn', email);
-                document.getElementById('authMsg').innerText = "Check your inbox for the login link!";
-            } catch (error) {
-                alert("Error: " + error.message);
-            }
-        };
-
-        // 3. Auth Observer
-        onAuthStateChanged(auth, user => {
-            if (user && user.email.endsWith('@pacificeducation.online')) {
-                document.getElementById('authOverlay').style.display = 'none';
-                document.getElementById('userDisplay').innerText = user.email;
-            } else {
-                document.getElementById('authOverlay').style.display = 'flex';
-                if(user) signOut(auth); // Kick if domain wrong
-            }
-        });
-
-        document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.reload());
-
-        // --- WEBRTC SIGNALING ---
-        let pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-        let localStream, dataChannel, roomId;
-
-        const setStatus = (txt, on) => {
-            document.getElementById('statusDot').className = on ? 'dot on' : 'dot';
-            document.getElementById('statusLabel').innerText = txt;
-        };
-
-        async function initMedia() {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-            pc.ontrack = e => document.getElementById('remoteAudio').srcObject = e.streams[0];
-            document.getElementById('muteBtn').disabled = false;
+        if (isHeld) {
+            const holdPos = new THREE.Vector3(0, 0, -4).applyQuaternion(dad.quaternion);
+            baby.position.copy(dad.position).add(holdPos);
+            baby.position.y = 4;
+        } else if (baby.position.y > 1) {
+            baby.position.y -= 0.1;
         }
 
-        function setupDataChannel() {
-            dataChannel.onopen = () => {
-                document.getElementById('chatInput').disabled = false;
-                document.getElementById('sendBtn').disabled = false;
-                setStatus("Peer Connected", true);
-            };
-            dataChannel.onmessage = e => appendMsg(e.data, 'peer');
-        }
+        // Hazards
+        if (baby.position.z > 43 && !isHeld) doWin("BABY WINS", "DROWNED IN POOL");
+        if (baby.position.distanceTo(oven.position) < 3 && stoveLight.intensity > 0) doWin("BABY WINS", "COOKED IN OVEN");
 
-        // --- HOST ---
-        document.getElementById('hostBtn').onclick = async () => {
-            roomId = Math.floor(1000 + Math.random()*9000).toString();
-            document.getElementById('roomDisplay').innerText = `#${roomId}`;
-            await initMedia();
-            
-            dataChannel = pc.createDataChannel("chat");
-            setupDataChannel();
+        // Split Rendering
+        const w = window.innerWidth, h = window.innerHeight;
+        renderer.setViewport(0, 0, w/2, h);
+        renderer.setScissor(0, 0, w/2, h);
+        renderer.render(scene, dadCam);
 
-            pc.onicecandidate = e => e.candidate && push(ref(db, `rooms/${roomId}/callerCandidates`), e.candidate.toJSON());
-            
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            set(ref(db, `rooms/${roomId}`), { 
-                host: auth.currentUser.uid, 
-                offer: {sdp: offer.sdp, type: offer.type} 
-            });
+        babyCam.position.copy(baby.position).add(new THREE.Vector3(0, 8, 15));
+        babyCam.lookAt(baby.position);
+        renderer.setViewport(w/2, 0, w/2, h);
+        renderer.setScissor(w/2, 0, w/2, h);
+        renderer.render(scene, babyCam);
 
-            onValue(ref(db, `rooms/${roomId}/answer`), async s => {
-                if(s.exists() && !pc.currentRemoteDescription) {
-                    await pc.setRemoteDescription(new RTCSessionDescription(s.val()));
-                    document.getElementById('kickBtn').disabled = false;
-                }
-            });
+        requestAnimationFrame(animate);
+    }
 
-            onChildAdded(ref(db, `rooms/${roomId}/calleeCandidates`), s => pc.addIceCandidate(new RTCIceCandidate(s.val())));
-            setStatus("Waiting for peer...", false);
-        };
+    function doWin(title, sub) {
+        gameOver = true;
+        document.getElementById('winMsg').innerText = title;
+        document.getElementById('winSub').innerText = sub;
+        document.getElementById('winScreen').style.display = 'flex';
+        document.exitPointerLock();
+    }
 
-        // --- JOIN ---
-        document.getElementById('joinBtn').onclick = async () => {
-            roomId = document.getElementById('roomInput').value;
-            if(!roomId) return alert("Enter Room ID");
-            await initMedia();
-
-            pc.ondatachannel = e => { dataChannel = e.channel; setupDataChannel(); };
-            pc.onicecandidate = e => e.candidate && push(ref(db, `rooms/${roomId}/calleeCandidates`), e.candidate.toJSON());
-
-            onValue(ref(db, `rooms/${roomId}`), async s => {
-                const data = s.val();
-                if (data?.offer && !pc.currentRemoteDescription) {
-                    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-                    const ans = await pc.createAnswer();
-                    await pc.setLocalDescription(ans);
-                    set(ref(db, `rooms/${roomId}/answer`), {sdp: ans.sdp, type: ans.type});
-                }
-                if (data?.kicked) { alert("Kicked by host"); location.reload(); }
-            });
-
-            onChildAdded(ref(db, `rooms/${roomId}/callerCandidates`), s => pc.addIceCandidate(new RTCIceCandidate(s.val())));
-        };
-
-        // --- UI HELPERS ---
-        document.getElementById('sendBtn').onclick = () => {
-            const val = document.getElementById('chatInput').value;
-            if(val && dataChannel.readyState === 'open') {
-                dataChannel.send(val);
-                appendMsg(val, 'me');
-                document.getElementById('chatInput').value = "";
-            }
-        };
-
-        document.getElementById('muteBtn').onclick = (e) => {
-            const t = localStream.getAudioTracks()[0];
-            t.enabled = !t.enabled;
-            e.target.innerText = t.enabled ? "Mute Microphone" : "Unmute Microphone";
-            e.target.style.background = t.enabled ? "" : "var(--danger)";
-        };
-
-        document.getElementById('kickBtn').onclick = () => set(ref(db, `rooms/${roomId}/kicked`), true);
-
-        function appendMsg(t, s) {
-            const div = document.createElement('div');
-            div.className = `msg ${s}`;
-            div.textContent = t;
-            const m = document.getElementById('messages');
-            m.appendChild(div);
-            m.scrollTop = m.scrollHeight;
-        }
-    </script>
+    animate();
+</script>
 </body>
 </html>
