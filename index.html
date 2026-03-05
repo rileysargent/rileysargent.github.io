@@ -1,76 +1,148 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Llama 3.1 Narrabri Debugger</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omega UNO - Narrabri Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }
-        textarea { width: 100%; height: 200px; background: #161b22; color: #79c0ff; border: 1px solid #30363d; padding: 10px; border-radius: 6px; }
-        button { background: #238636; color: white; border: none; padding: 15px 30px; cursor: pointer; border-radius: 6px; font-weight: bold; }
-        button:disabled { background: #1b4b27; color: #888; }
-        #output { background: #000; padding: 15px; border-radius: 6px; margin-top: 20px; white-space: pre-wrap; border: 1px solid #30363d; color: #d1d5da; }
-        #status { font-size: 14px; margin: 10px 0; color: #e3b341; }
+        .card {
+            width: 80px;
+            height: 120px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .card:hover { transform: translateY(-10px); }
+        .bg-uno-red { background-color: #ff5555; }
+        .bg-uno-blue { background-color: #5555ff; }
+        .bg-uno-green { background-color: #55aa55; }
+        .bg-uno-yellow { background-color: #ffaa00; }
+        .bg-dark-pink { background-color: #ff00ff; }
+        .bg-dark-purple { background-color: #6a0dad; }
+        /* Add other colors as needed */
     </style>
 </head>
-<body>
-    <h2>Llama 3.1 <span style="color:#238636">API Fix</span></h2>
-    <textarea id="prompt" placeholder="Paste your code here..."></textarea><br>
-    <button id="runBtn">RECONSTRUCT CODE</button>
-    <div id="status">Ready</div>
-    <div id="output">Output will appear here...</div>
+<body class="bg-zinc-900 text-white min-h-screen">
 
-    <script>
-        const HF_TOKEN = "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";
-        // Use the v1 endpoint which is more CORS-friendly for Llama 3
-        const API_URL = "https://api-inference.huggingface.co/v1/chat/completions";
+    <div id="auth-screen" class="flex flex-col items-center justify-center h-screen">
+        <h1 class="text-5xl font-black mb-8 italic tracking-tighter">OMEGA UNO</h1>
+        <div class="space-y-4">
+            <button id="google-login" class="bg-white text-black px-6 py-2 rounded-full font-bold flex items-center">
+                Sign in with Google
+            </button>
+            <input id="email" type="email" placeholder="Email" class="block w-full p-2 rounded bg-zinc-800 border border-zinc-700">
+            <input id="password" type="password" placeholder="Password" class="block w-full p-2 rounded bg-zinc-800 border border-zinc-700">
+            <button id="email-login" class="w-full bg-blue-600 p-2 rounded font-bold">Login / Register</button>
+        </div>
+    </div>
 
-        const runBtn = document.getElementById('runBtn');
-        const outputDiv = document.getElementById('output');
-        const statusDiv = document.getElementById('status');
+    <div id="game-screen" class="hidden p-4">
+        <div class="flex justify-between items-center mb-4">
+            <div id="player-info">Loading player...</div>
+            <div id="game-status" class="text-xl font-bold text-yellow-400">Light Side Active</div>
+        </div>
 
-        runBtn.addEventListener('click', async () => {
-            const promptText = document.getElementById('prompt').value;
-            if (!HF_TOKEN.startsWith("hf_")) {
-                statusDiv.innerText = "Error: Invalid Token Format";
-                return;
+        <div class="flex justify-center mb-8">
+            <div id="discard-pile" class="card bg-zinc-700 text-2xl"></div>
+            <div id="deck" class="card bg-zinc-800 ml-4 border-dashed border-zinc-500">Deck</div>
+        </div>
+
+        <div id="hand" class="flex flex-wrap justify-center gap-2 mt-20">
+            </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+  authDomain: "hyperspace-r.firebaseapp.com",
+  databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "hyperspace-r",
+  storageBucket: "hyperspace-r.firebasestorage.app",
+  messagingSenderId: "1050495683444",
+  appId: "1:1050495683444:web:42d7284bee34d749313a21",
+  measurementId: "G-RRQTTD9M4V"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- Game Logic ---
+        let currentGame = {
+            side: 'light', // or 'dark'
+            pile: { color: 'red', value: '5' },
+            hand: []
+        };
+
+        const createDeck = () => {
+            const colors = ['red', 'blue', 'green', 'yellow'];
+            const darkColors = ['pink', 'teal', 'purple', 'orange'];
+            const deck = [];
+            
+            // Add No Mercy & Flip Specific Cards
+            colors.forEach(c => {
+                // Numbers 0-9
+                for(let i=0; i<=9; i++) deck.push({ color: c, value: i.toString(), side: 'light' });
+                // No Mercy additions
+                deck.push({ color: c, value: '+6', side: 'light' });
+                deck.push({ color: c, value: 'Skip All', side: 'light' });
+                deck.push({ color: c, value: 'Flip', side: 'light' });
+            });
+
+            // Add Dark Side cards
+            darkColors.forEach(c => {
+                deck.push({ color: c, value: 'Draw 5', side: 'dark' });
+                deck.push({ color: c, value: 'Reverse', side: 'dark' });
+                deck.push({ color: c, value: 'Flip', side: 'dark' });
+            });
+
+            return deck.sort(() => Math.random() - 0.5);
+        };
+
+        // UI Rendering
+        function renderHand(hand) {
+            const handEl = document.getElementById('hand');
+            handEl.innerHTML = '';
+            hand.forEach(card => {
+                const div = document.createElement('div');
+                div.className = `card bg-uno-${card.color}`;
+                div.innerText = card.value;
+                div.onclick = () => playCard(card);
+                handEl.appendChild(div);
+            });
+        }
+
+        async function playCard(card) {
+            // Check if move is valid against discard pile
+            if (card.color === currentGame.pile.color || card.value === currentGame.pile.value) {
+                console.log("Valid Move");
+                // Update Firestore logic here
+            } else {
+                alert("Invalid move!");
             }
+        }
 
-            statusDiv.innerText = "Connecting... (Wait up to 30s for model to load)";
-            runBtn.disabled = true;
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${HF_TOKEN}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        model: "meta-llama/Llama-3.1-8B-Instruct",
-                        messages: [{ role: "user", content: promptText }],
-                        max_tokens: 2048,
-                        temperature: 0.2
-                    }),
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    outputDiv.innerText = data.choices[0].message.content;
-                    statusDiv.style.color = "#238636";
-                    statusDiv.innerText = "Success!";
-                } else {
-                    statusDiv.style.color = "#f85149";
-                    statusDiv.innerText = `Error: ${data.error || response.statusText}`;
-                    if (response.status === 503) statusDiv.innerText += " (Model is loading, try again in 20s)";
-                }
-            } catch (err) {
-                statusDiv.style.color = "#f85149";
-                statusDiv.innerText = "Fetch Failed. Check internet or Token permissions.";
-                console.error(err);
-            } finally {
-                runBtn.disabled = false;
-            }
-        });
+        // Auth Listeners
+        document.getElementById('google-login').onclick = () => {
+            signInWithPopup(auth, new GoogleAuthProvider()).then(() => {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+                // Initialize Hand
+                renderHand([{color: 'red', value: '7'}, {color: 'blue', value: '+6'}, {color: 'green', value: 'Flip'}]);
+            });
+        };
     </script>
 </body>
 </html>
