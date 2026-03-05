@@ -1,191 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Who's Your Daddy: High Fidelity</title>
+    <title>Llama 3.1 Narrabri Debugger</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
-        #timer { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #222; color: #ffcc00; padding: 10px 40px; border-radius: 50px; font-size: 35px; border: 4px solid #ffcc00; box-shadow: 0 0 20px gold; z-index: 100; pointer-events: none; }
-        #hud { position: absolute; inset: 0; pointer-events: none; }
-        .win-screen { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; color: white; flex-direction: column; justify-content: center; align-items: center; }
-        #diag { position: absolute; bottom: 10px; left: 10px; color: #555; font-size: 10px; font-family: monospace; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }
+        textarea { width: 100%; height: 200px; background: #161b22; color: #79c0ff; border: 1px solid #30363d; padding: 10px; border-radius: 6px; }
+        button { background: #238636; color: white; border: none; padding: 15px 30px; cursor: pointer; border-radius: 6px; font-weight: bold; }
+        button:disabled { background: #1b4b27; color: #888; }
+        #output { background: #000; padding: 15px; border-radius: 6px; margin-top: 20px; white-space: pre-wrap; border: 1px solid #30363d; color: #d1d5da; }
+        #status { font-size: 14px; margin: 10px 0; color: #e3b341; }
     </style>
 </head>
 <body>
+    <h2>Llama 3.1 <span style="color:#238636">API Fix</span></h2>
+    <textarea id="prompt" placeholder="Paste your code here..."></textarea><br>
+    <button id="runBtn">RECONSTRUCT CODE</button>
+    <div id="status">Ready</div>
+    <div id="output">Output will appear here...</div>
 
-<div id="timer">15:00</div>
-<div id="diag">ChromeOS Build: Standard</div>
+    <script>
+        const HF_TOKEN = "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";
+        // Use the v1 endpoint which is more CORS-friendly for Llama 3
+        const API_URL = "https://api-inference.huggingface.co/v1/chat/completions";
 
-<div id="winScreen" class="win-screen">
-    <h1 id="winMsg" style="font-size: 80px; margin: 0;"></h1>
-    <p id="winSub" style="font-size: 24px; color: #aaa;"></p>
-    <button onclick="location.reload()" style="padding: 20px 60px; font-size: 25px; cursor: pointer; background: #ff4500; color: white; border: none; border-radius: 10px; margin-top: 20px;">RESTART MATCH</button>
-</div>
+        const runBtn = document.getElementById('runBtn');
+        const outputDiv = document.getElementById('output');
+        const statusDiv = document.getElementById('status');
 
-<script type="importmap">
-    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
-</script>
+        runBtn.addEventListener('click', async () => {
+            const promptText = document.getElementById('prompt').value;
+            if (!HF_TOKEN.startsWith("hf_")) {
+                statusDiv.innerText = "Error: Invalid Token Format";
+                return;
+            }
 
-<script type="module">
-    import * as THREE from 'three';
+            statusDiv.innerText = "Connecting... (Wait up to 30s for model to load)";
+            runBtn.disabled = true;
 
-    // --- 1. ENGINE & ADVANCED GRAPHICS ---
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x74b9ff); // Vivid Sky
-    scene.fog = new THREE.Fog(0x74b9ff, 30, 160);
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${HF_TOKEN}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        model: "meta-llama/Llama-3.1-8B-Instruct",
+                        messages: [{ role: "user", content: promptText }],
+                        max_tokens: 2048,
+                        temperature: 0.2
+                    }),
+                });
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setScissorTest(true);
-    document.body.appendChild(renderer.domElement);
+                const data = await response.json();
 
-    const dadCam = new THREE.PerspectiveCamera(75, (window.innerWidth/2)/window.innerHeight, 0.1, 1000);
-    const babyCam = new THREE.PerspectiveCamera(75, (window.innerWidth/2)/window.innerHeight, 0.1, 1000);
-
-    // Dynamic Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambient);
-
-    const sun = new THREE.DirectionalLight(0xffffff, 1.8);
-    sun.position.set(40, 60, 20);
-    sun.castShadow = true;
-    sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
-    sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
-    sun.shadow.mapSize.width = 4096; sun.shadow.mapSize.height = 4096;
-    scene.add(sun);
-
-    // --- 2. ARCHITECTURE ---
-    const createWall = (w, h, d, x, y, z, color = 0xffffff) => {
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color }));
-        mesh.position.set(x, y, z);
-        mesh.receiveShadow = true; mesh.castShadow = true;
-        scene.add(mesh);
-        return mesh;
-    };
-
-    // Main House Structure
-    createWall(150, 1, 150, 0, -0.5, 0, 0x2e7d32); // Grass
-    createWall(80, 1.2, 80, 0, 0, 0, 0xecf0f1); // Main Floor Plate
-    createWall(1, 15, 80, -40, 7.5, 0, 0x3498db); // Left Outer Wall (Blue)
-    createWall(1, 15, 80, 40, 7.5, 0, 0x3498db); // Right Outer Wall (Blue)
-    createWall(80, 15, 1, 0, 7.5, -40, 0x3498db); // Back Wall
-
-    // Kitchen Area
-    const counter = createWall(20, 4, 6, -30, 2, -37, 0xffffff); // Kitchen Counter
-    const oven = createWall(5, 5, 5, -30, 2.5, -30, 0x2c3e50); // Oven
-    const stoveLight = new THREE.PointLight(0xff4500, 0, 10);
-    stoveLight.position.set(-30, 5, -30);
-    scene.add(stoveLight);
-
-    // Living Room
-    createWall(15, 4, 6, 10, 2, -10, 0xe67e22); // Orange Couch
-    createWall(10, 0.5, 10, 10, 1.5, 5, 0xffffff); // Table
-
-    // The Pool
-    const poolWater = createWall(30, 0.5, 25, 0, 0.1, 55, 0x00d2ff);
-    poolWater.material.transparent = true;
-    poolWater.material.opacity = 0.7;
-
-    // --- 3. PLAYERS ---
-    const dad = new THREE.Group();
-    dad.position.set(-15, 5, 10);
-    scene.add(dad);
-    dad.add(dadCam);
-
-    const baby = new THREE.Group();
-    const babyVisual = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.5, 4, 8), new THREE.MeshStandardMaterial({ color: 0xffdbac }));
-    baby.add(babyVisual);
-    baby.position.set(15, 1, 10);
-    scene.add(baby);
-
-    // --- 4. ENGINE LOGIC ---
-    let timeLeft = 15 * 60;
-    let isHeld = false;
-    let gameOver = false;
-    const keys = {};
-
-    window.onkeydown = e => keys[e.code] = true;
-    window.onkeyup = e => keys[e.code] = false;
-    window.onclick = () => {
-        renderer.domElement.requestPointerLock();
-        // Oven Toggle if close
-        if(dad.position.distanceTo(oven.position) < 6) {
-            stoveLight.intensity = stoveLight.intensity > 0 ? 0 : 50;
-        }
-    };
-    document.onmousemove = e => { if(document.pointerLockElement) dad.rotation.y -= e.movementX * 0.003; };
-
-    function animate() {
-        if(gameOver) return;
-
-        // Timer
-        timeLeft -= 1/60;
-        const m = Math.floor(timeLeft/60), s = Math.floor(timeLeft%60);
-        document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-        if(timeLeft <= 0) doWin("DAD WINS", "TIME EXPIRED");
-
-        // Dad Movement (PC)
-        const dSpd = keys['ShiftLeft'] ? 0.35 : 0.2;
-        if(keys['KeyW']) dad.translateZ(-dSpd);
-        if(keys['KeyS']) dad.translateZ(dSpd);
-        if(keys['KeyA']) dad.translateX(-dSpd);
-        if(keys['KeyD']) dad.translateX(dSpd);
-
-        // Baby Movement (AGGRESSIVE GAMEPAD POLLING)
-        const pads = navigator.getGamepads();
-        let gp = null;
-        for(let i=0; i<4; i++) { if(pads[i]) { gp = pads[i]; break; } }
-
-        if (gp && !isHeld) {
-            const dz = 0.15;
-            const bSpd = gp.buttons[10].pressed ? 0.3 : 0.15; // L3 Sprint
-            if (Math.abs(gp.axes[0]) > dz) baby.position.x += gp.axes[0] * bSpd;
-            if (Math.abs(gp.axes[1]) > dz) baby.position.z += gp.axes[1] * bSpd;
-            if (gp.buttons[0].pressed && baby.position.y <= 1.5) baby.position.y += 0.8; // A Jump
-        }
-
-        // Grab Mechanics
-        if (keys['KeyE'] && dad.position.distanceTo(baby.position) < 5) isHeld = true;
-        if (keys['KeyQ']) isHeld = false;
-
-        if (isHeld) {
-            const holdPos = new THREE.Vector3(0, 0, -4).applyQuaternion(dad.quaternion);
-            baby.position.copy(dad.position).add(holdPos);
-            baby.position.y = 4;
-        } else if (baby.position.y > 1) {
-            baby.position.y -= 0.1;
-        }
-
-        // Hazards
-        if (baby.position.z > 43 && !isHeld) doWin("BABY WINS", "DROWNED IN POOL");
-        if (baby.position.distanceTo(oven.position) < 3 && stoveLight.intensity > 0) doWin("BABY WINS", "COOKED IN OVEN");
-
-        // Split Rendering
-        const w = window.innerWidth, h = window.innerHeight;
-        renderer.setViewport(0, 0, w/2, h);
-        renderer.setScissor(0, 0, w/2, h);
-        renderer.render(scene, dadCam);
-
-        babyCam.position.copy(baby.position).add(new THREE.Vector3(0, 8, 15));
-        babyCam.lookAt(baby.position);
-        renderer.setViewport(w/2, 0, w/2, h);
-        renderer.setScissor(w/2, 0, w/2, h);
-        renderer.render(scene, babyCam);
-
-        requestAnimationFrame(animate);
-    }
-
-    function doWin(title, sub) {
-        gameOver = true;
-        document.getElementById('winMsg').innerText = title;
-        document.getElementById('winSub').innerText = sub;
-        document.getElementById('winScreen').style.display = 'flex';
-        document.exitPointerLock();
-    }
-
-    animate();
-</script>
+                if (response.ok) {
+                    outputDiv.innerText = data.choices[0].message.content;
+                    statusDiv.style.color = "#238636";
+                    statusDiv.innerText = "Success!";
+                } else {
+                    statusDiv.style.color = "#f85149";
+                    statusDiv.innerText = `Error: ${data.error || response.statusText}`;
+                    if (response.status === 503) statusDiv.innerText += " (Model is loading, try again in 20s)";
+                }
+            } catch (err) {
+                statusDiv.style.color = "#f85149";
+                statusDiv.innerText = "Fetch Failed. Check internet or Token permissions.";
+                console.error(err);
+            } finally {
+                runBtn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
