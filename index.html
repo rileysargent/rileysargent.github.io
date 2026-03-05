@@ -2,180 +2,180 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Infinite Craft: Gemini Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Voice & Text Chat</title>
     <style>
-        :root {
-            --bg: #0b0e14;
-            --sidebar-bg: #1a1d23;
-            --text: #e0e0e0;
-            --accent: #4a90e2;
-            --item-bg: #252932;
-        }
-
-        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
-
-        /* Sidebar */
-        #sidebar {
-            width: 280px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid #333;
-            display: flex;
-            flex-direction: column;
-            padding: 15px;
-        }
-
-        #inventory {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 10px 0;
-        }
-
-        /* Canvas */
-        #canvas {
-            flex-grow: 1;
-            position: relative;
-            background-image: radial-gradient(#222 1px, transparent 1px);
-            background-size: 30px 30px;
-        }
-
-        /* Item Styling */
-        .item {
-            padding: 8px 14px;
-            background: var(--item-bg);
-            border: 1px solid #444;
-            border-radius: 6px;
-            cursor: pointer;
-            user-select: none;
-            font-size: 14px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .canvas-item { position: absolute; cursor: grab; z-index: 10; }
-        
-        .controls { position: absolute; bottom: 20px; right: 20px; }
-        button { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
-        button:hover { background: var(--accent); }
-
-        #status { margin-top: 10px; font-size: 12px; color: #888; text-align: center; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; }
+        #chat-container { width: 90%; max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; }
+        #messages { height: 200px; border: 1px solid #ddd; overflow-y: scroll; margin-bottom: 10px; padding: 10px; display: flex; flex-direction: column; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex-grow: 1; padding: 8px; }
+        button { padding: 8px 15px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:disabled { background: #ccc; }
+        .status { font-size: 0.8em; color: #666; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <h2 style="margin-top:0">Gemini Craft</h2>
-    <div id="inventory"></div>
-    <div id="status">Click items to spawn</div>
-</div>
-
-<div id="canvas" ondrop="drop(event)" ondragover="allowDrop(event)">
+    <h2>WebRTC Voice & Text</h2>
+    
     <div class="controls">
-        <button onclick="document.querySelectorAll('.canvas-item').forEach(e => e.remove())">Clear Board</button>
+        <button id="createBtn">Create Room</button>
+        <input type="text" id="roomInput" placeholder="Enter Room ID">
+        <button id="joinBtn">Join Room</button>
     </div>
-</div>
 
-<script>
-    // Update this with your actual Render service URL
-    const RENDER_URL = "https://your-app-name.onrender.com"; 
+    <div id="chat-container">
+        <div class="status" id="status">Status: Waiting...</div>
+        <div id="messages"></div>
+        <div style="display: flex;">
+            <input type="text" id="textInput" placeholder="Type a message..." disabled>
+            <button id="sendBtn" disabled>Send</button>
+        </div>
+    </div>
 
-    // Load from local storage or start with basics
-    let discovered = JSON.parse(localStorage.getItem('craft_saves')) || ["🌍 Earth", "🔥 Fire", "💧 Water", "🌬️ Wind"];
+    <audio id="remoteAudio" autoplay></audio>
 
-    function init() {
-        renderInventory();
-    }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    function renderInventory() {
-        const inv = document.getElementById('inventory');
-        inv.innerHTML = '';
-        discovered.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'item';
-            div.innerText = item;
-            
-            // 1. DUPLICATE WITHOUT DOUBLE CLICK: Single click spawns on board
-            div.onclick = () => createCanvasElement(item, 40 + (Math.random() * 30), 40 + (Math.random() * 30));
-            
-            div.draggable = true;
-            div.ondragstart = (e) => e.dataTransfer.setData("text", item);
-            inv.appendChild(div);
-        });
-    }
-
-    function allowDrop(ev) { ev.preventDefault(); }
-
-    function drop(ev) {
-        ev.preventDefault();
-        const text = ev.dataTransfer.getData("text");
-        const rect = document.getElementById('canvas').getBoundingClientRect();
-        const x = ev.clientX - rect.left;
-        const y = ev.clientY - rect.top;
-
-        // Check if dropped on another item
-        const target = document.elementFromPoint(ev.clientX, ev.clientY).closest('.canvas-item');
-        
-        if (target) {
-            // This now triggers for Earth+Earth OR Earth+Fire
-            combine(text, target.innerText, target);
-        } else {
-            createCanvasElement(text, x, y);
-        }
-    }
-
-    function createCanvasElement(text, x, y) {
-        const div = document.createElement('div');
-        div.className = 'item canvas-item';
-        div.innerText = text;
-        div.style.left = x + 'px';
-        div.style.top = y + 'px';
-        div.draggable = true;
-        div.ondragstart = (e) => {
-            e.dataTransfer.setData("text", text);
-            // Removes it from the current spot so it "moves"
-            setTimeout(() => div.remove(), 0); 
+        const firebaseConfig = {
+            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+            authDomain: "hyperspace-r.firebaseapp.com",
+            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "hyperspace-r",
+            storageBucket: "hyperspace-r.firebasestorage.app",
+            messagingSenderId: "1050495683444",
+            appId: "1:1050495683444:web:846c42d274197b20313a21"
         };
-        document.getElementById('canvas').appendChild(div);
-    }
 
-    async function combine(item1, item2, targetEl) {
-        const status = document.getElementById('status');
-        status.innerText = "Crafting with Gemini...";
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        try {
-            const response = await fetch(`${RENDER_URL}/combine`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ item1, item2 })
-            });
+        // WebRTC Configuration
+        const servers = {
+            iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
+        };
+
+        let pc = new RTCPeerConnection(servers);
+        let localStream = null;
+        let dataChannel = null;
+
+        const remoteAudio = document.getElementById('remoteAudio');
+        const statusEl = document.getElementById('status');
+        const msgContainer = document.getElementById('messages');
+
+        // 1. Setup Local Media (Voice)
+        async function setupMedia() {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
             
-            const data = await response.json();
-            const result = data.result;
-
-            // Add to sidebar if it's a new discovery
-            if (!discovered.includes(result)) {
-                discovered.push(result);
-                localStorage.setItem('craft_saves', JSON.stringify(discovered));
-                renderInventory();
-            }
-
-            // Replace the item on the board with the new one
-            createCanvasElement(result, parseInt(targetEl.style.left), parseInt(targetEl.style.top));
-            targetEl.remove();
-            status.innerText = "New Item: " + result;
-            
-        } catch (e) {
-            status.innerText = "Server error. Is Render awake?";
-            console.error(e);
+            pc.ontrack = (event) => {
+                remoteAudio.srcObject = event.streams[0];
+                statusEl.innerText = "Status: Voice Connected";
+            };
         }
-    }
 
-    init();
-</script>
+        // 2. Data Channel Setup (Text)
+        function setupDataChannel() {
+            dataChannel.onopen = () => {
+                document.getElementById('textInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                statusEl.innerText = "Status: Connected (Text + Voice)";
+            };
+            dataChannel.onmessage = (e) => appendMessage("Peer: " + e.data);
+        }
+
+        // --- ROOM CREATION (OFFERER) ---
+        document.getElementById('createBtn').onclick = async () => {
+            const roomId = Math.floor(Math.random() * 10000).toString();
+            document.getElementById('roomInput').value = roomId;
+            statusEl.innerText = `Room Created: ${roomId}. Waiting for peer...`;
+
+            await setupMedia();
+            dataChannel = pc.createDataChannel("chat");
+            setupDataChannel();
+
+            // Handle ICE candidates
+            const iceRef = ref(db, `rooms/${roomId}/callerCandidates`);
+            pc.onicecandidate = (e) => e.candidate && push(iceRef, e.candidate.toJSON());
+
+            // Create Offer
+            const offerDescription = await pc.createOffer();
+            await pc.setLocalDescription(offerDescription);
+            await set(ref(db, `rooms/${roomId}/offer`), { 
+                sdp: offerDescription.sdp, 
+                type: offerDescription.type 
+            });
+
+            // Listen for Answer
+            onValue(ref(db, `rooms/${roomId}/answer`), async (snapshot) => {
+                const data = snapshot.val();
+                if (!pc.currentRemoteDescription && data) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(data));
+                }
+            });
+
+            // Listen for Remote ICE
+            onChildAdded(ref(db, `rooms/${roomId}/calleeCandidates`), (snapshot) => {
+                pc.addIceCandidate(new RTCIceCandidate(snapshot.val()));
+            });
+        };
+
+        // --- ROOM JOINING (ANSWERER) ---
+        document.getElementById('joinBtn').onclick = async () => {
+            const roomId = document.getElementById('roomInput').value;
+            if (!roomId) return alert("Enter Room ID");
+
+            await setupMedia();
+
+            pc.ondatachannel = (event) => {
+                dataChannel = event.channel;
+                setupDataChannel();
+            };
+
+            const roomRef = ref(db, `rooms/${roomId}`);
+            const roomSnap = await new Promise(resolve => onValue(roomRef, resolve, {onlyOnce: true}));
+            const roomData = roomSnap.val();
+
+            // Handle ICE candidates
+            const iceRef = ref(db, `rooms/${roomId}/calleeCandidates`);
+            pc.onicecandidate = (e) => e.candidate && push(iceRef, e.candidate.toJSON());
+
+            // Set Remote Offer
+            await pc.setRemoteDescription(new RTCSessionDescription(roomData.offer));
+
+            // Create Answer
+            const answerDescription = await pc.createAnswer();
+            await pc.setLocalDescription(answerDescription);
+            await set(ref(db, `rooms/${roomId}/answer`), {
+                sdp: answerDescription.sdp,
+                type: answerDescription.type
+            });
+
+            // Listen for Remote ICE
+            onChildAdded(ref(db, `rooms/${roomId}/callerCandidates`), (snapshot) => {
+                pc.addIceCandidate(new RTCIceCandidate(snapshot.val()));
+            });
+        };
+
+        // Messaging Logic
+        document.getElementById('sendBtn').onclick = () => {
+            const text = document.getElementById('textInput').value;
+            if (dataChannel && text) {
+                dataChannel.send(text);
+                appendMessage("You: " + text);
+                document.getElementById('textInput').value = "";
+            }
+        };
+
+        function appendMessage(msg) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            msgContainer.appendChild(div);
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+        }
+    </script>
 </body>
 </html>
