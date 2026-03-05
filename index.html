@@ -63,7 +63,7 @@
         <div class="auth-card">
             <h1>HYPERSPACE</h1>
             <p style="color:var(--dim); margin-bottom: 25px;">Enter your school email to receive a login link.</p>
-            <input type="email" id="emailInput" placeholder="name@pacificeducation.online" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;">
+            <input type="email" id="emailInput" placeholder="name@stu.pacificeducation.online" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;">
             <button id="sendLinkBtn" style="width: 100%;">Send Magic Link</button>
             <p id="authMsg" style="margin-top: 20px; font-size: 0.9rem; color: var(--accent);"></p>
         </div>
@@ -144,7 +144,7 @@
         // 2. Handle the "Send": Trigger the email link
         document.getElementById('sendLinkBtn').onclick = async () => {
             const email = document.getElementById('emailInput').value;
-            if (!email.endsWith('@pacificeducation.online')) {
+            if (!email.endsWith('@stu.pacificeducation.online')) {
                 return alert("Access Restricted: Please use your @pacificeducation.online email.");
             }
 
