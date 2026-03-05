@@ -3,146 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omega UNO - Narrabri Edition</title>
+    <title>Omega UNO: Narrabri Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
-        .card {
-            width: 80px;
-            height: 120px;
-            border-radius: 8px;
-            transition: transform 0.2s;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            border: 2px solid white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .card:hover { transform: translateY(-10px); }
-        .bg-uno-red { background-color: #ff5555; }
-        .bg-uno-blue { background-color: #5555ff; }
-        .bg-uno-green { background-color: #55aa55; }
-        .bg-uno-yellow { background-color: #ffaa00; }
-        .bg-dark-pink { background-color: #ff00ff; }
-        .bg-dark-purple { background-color: #6a0dad; }
-        /* Add other colors as needed */
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&display=swap');
+        body { margin: 0; background: #050505; font-family: 'Kanit', sans-serif; overflow: hidden; }
+        canvas { display: block; }
+        .menu-gradient { background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); }
+        .uno-text { font-style: italic; text-transform: uppercase; letter-spacing: -2px; }
     </style>
 </head>
-<body class="bg-zinc-900 text-white min-h-screen">
+<body>
 
-    <div id="auth-screen" class="flex flex-col items-center justify-center h-screen">
-        <h1 class="text-5xl font-black mb-8 italic tracking-tighter">OMEGA UNO</h1>
-        <div class="space-y-4">
-            <button id="google-login" class="bg-white text-black px-6 py-2 rounded-full font-bold flex items-center">
-                Sign in with Google
-            </button>
-            <input id="email" type="email" placeholder="Email" class="block w-full p-2 rounded bg-zinc-800 border border-zinc-700">
-            <input id="password" type="password" placeholder="Password" class="block w-full p-2 rounded bg-zinc-800 border border-zinc-700">
-            <button id="email-login" class="w-full bg-blue-600 p-2 rounded font-bold">Login / Register</button>
+    <div id="main-menu" class="fixed inset-0 z-50 flex items-center justify-center menu-gradient">
+        <div class="text-center p-10 border-4 border-white/10 rounded-3xl bg-black/40 backdrop-blur-md">
+            <h1 class="text-8xl text-white mb-2 uno-text">OMEGA <span class="text-red-600">UNO</span></h1>
+            <p class="text-zinc-500 mb-8 tracking-widest uppercase text-sm">Original + Flip + No Mercy</p>
+            
+            <div class="flex flex-col gap-4 w-72 mx-auto">
+                <button onclick="initMultiplayer()" class="bg-white text-black py-4 rounded-full font-black text-xl hover:scale-105 transition">MULTIPLAYER</button>
+                <button onclick="startAI()" class="bg-zinc-800 text-white py-4 rounded-full font-black text-xl hover:bg-zinc-700 transition">VS BOTS (AI)</button>
+            </div>
         </div>
     </div>
 
-    <div id="game-screen" class="hidden p-4">
-        <div class="flex justify-between items-center mb-4">
-            <div id="player-info">Loading player...</div>
-            <div id="game-status" class="text-xl font-bold text-yellow-400">Light Side Active</div>
+    <div id="game-ui" class="fixed inset-0 pointer-events-none hidden">
+        <div class="absolute top-10 left-10 text-white p-4 rounded-xl bg-black/60 border border-white/10 pointer-events-auto">
+            <div id="current-turn" class="text-2xl text-yellow-400">WAITING...</div>
+            <div id="game-mode" class="text-xs opacity-50 uppercase">Light Side Active</div>
         </div>
 
-        <div class="flex justify-center mb-8">
-            <div id="discard-pile" class="card bg-zinc-700 text-2xl"></div>
-            <div id="deck" class="card bg-zinc-800 ml-4 border-dashed border-zinc-500">Deck</div>
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-6 pointer-events-auto">
+            <button onclick="drawCard()" class="px-10 py-4 bg-zinc-200 text-black rounded-full font-black hover:bg-white shadow-xl">DRAW</button>
+            <button id="uno-btn" class="px-10 py-4 bg-red-600 text-white rounded-full font-black animate-pulse hidden">UNO!</button>
         </div>
-
-        <div id="hand" class="flex flex-wrap justify-center gap-2 mt-20">
-            </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-  authDomain: "hyperspace-r.firebaseapp.com",
-  databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "hyperspace-r",
-  storageBucket: "hyperspace-r.firebasestorage.app",
-  messagingSenderId: "1050495683444",
-  appId: "1:1050495683444:web:42d7284bee34d749313a21",
-  measurementId: "G-RRQTTD9M4V"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+            authDomain: "hyperspace-r.firebaseapp.com",
+            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "hyperspace-r",
+            storageBucket: "hyperspace-r.firebasestorage.app",
+            messagingSenderId: "1050495683444",
+            appId: "1:1050495683444:web:42d7284bee34d749313a21",
+            measurementId: "G-RRQTTD9M4V"
+        };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // --- Game Logic ---
-        let currentGame = {
-            side: 'light', // or 'dark'
-            pile: { color: 'red', value: '5' },
-            hand: []
-        };
+        // --- 2.5D Engine (Three.js) ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
 
-        const createDeck = () => {
-            const colors = ['red', 'blue', 'green', 'yellow'];
-            const darkColors = ['pink', 'teal', 'purple', 'orange'];
-            const deck = [];
+        // Lighting
+        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        const point = new THREE.PointLight(0xffffff, 0.8);
+        point.position.set(0, 5, 5);
+        scene.add(ambient, point);
+
+        camera.position.set(0, -6, 7);
+        camera.lookAt(0, 1, 0);
+
+        // Card Mesh Factory
+        function createCardMesh(cardData) {
+            const geometry = new THREE.BoxGeometry(2, 3, 0.05);
+            const materials = [
+                new THREE.MeshStandardMaterial({ color: 0x222222 }), // Side
+                new THREE.MeshStandardMaterial({ color: 0x222222 }), // Side
+                new THREE.MeshStandardMaterial({ color: 0x222222 }), // Top
+                new THREE.MeshStandardMaterial({ color: 0x222222 }), // Bottom
+                createCanvasTexture(cardData, 'front'), // Front (Light)
+                createCanvasTexture(cardData, 'back')   // Back (Dark)
+            ];
+            const mesh = new THREE.Mesh(geometry, materials);
+            mesh.userData = cardData;
+            return mesh;
+        }
+
+        function createCanvasTexture(card, side) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 384;
+            const ctx = canvas.getContext('2d');
             
-            // Add No Mercy & Flip Specific Cards
-            colors.forEach(c => {
-                // Numbers 0-9
-                for(let i=0; i<=9; i++) deck.push({ color: c, value: i.toString(), side: 'light' });
-                // No Mercy additions
-                deck.push({ color: c, value: '+6', side: 'light' });
-                deck.push({ color: c, value: 'Skip All', side: 'light' });
-                deck.push({ color: c, value: 'Flip', side: 'light' });
-            });
+            // Background Colors
+            const colorMap = {
+                red: '#ff5555', blue: '#5555ff', green: '#55aa55', yellow: '#ffaa00',
+                pink: '#ff00ff', teal: '#008080', purple: '#6a0dad', orange: '#ff8c00'
+            };
+            
+            ctx.fillStyle = side === 'front' ? colorMap[card.color] : colorMap[card.darkColor || 'purple'];
+            ctx.fillRect(0,0,256,384);
+            
+            // Design
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 15;
+            ctx.strokeRect(10,10,236,364);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'italic bold 100px Kanit';
+            ctx.textAlign = 'center';
+            ctx.fillText(side === 'front' ? card.value : card.darkValue, 128, 220);
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            return new THREE.MeshStandardMaterial({ map: tex });
+        }
 
-            // Add Dark Side cards
-            darkColors.forEach(c => {
-                deck.push({ color: c, value: 'Draw 5', side: 'dark' });
-                deck.push({ color: c, value: 'Reverse', side: 'dark' });
-                deck.push({ color: c, value: 'Flip', side: 'dark' });
-            });
+        // --- Multiplayer Logic ---
+        let gameId = "global-lobby";
+        let myId = null;
 
-            return deck.sort(() => Math.random() - 0.5);
+        window.initMultiplayer = async () => {
+            const user = await signInAnonymously(auth);
+            myId = user.user.uid;
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+
+            // Sync with Firestore
+            onSnapshot(doc(db, "games", gameId), (snap) => {
+                if (snap.exists()) {
+                    handleGameUpdate(snap.data());
+                } else {
+                    setupNewGame();
+                }
+            });
         };
 
-        // UI Rendering
-        function renderHand(hand) {
-            const handEl = document.getElementById('hand');
-            handEl.innerHTML = '';
-            hand.forEach(card => {
-                const div = document.createElement('div');
-                div.className = `card bg-uno-${card.color}`;
-                div.innerText = card.value;
-                div.onclick = () => playCard(card);
-                handEl.appendChild(div);
+        async function setupNewGame() {
+            const initialDeck = [
+                { color: 'red', value: '7', darkColor: 'pink', darkValue: 'Draw 5' },
+                { color: 'blue', value: '+6', darkColor: 'teal', darkValue: 'Skip All' },
+                { color: 'green', value: 'Flip', darkColor: 'orange', darkValue: 'Flip' }
+                // ... More cards would be generated here
+            ];
+            await setDoc(doc(db, "games", gameId), {
+                pile: initialDeck[0],
+                side: 'light',
+                turn: 0,
+                players: [myId]
             });
         }
 
-        async function playCard(card) {
-            // Check if move is valid against discard pile
-            if (card.color === currentGame.pile.color || card.value === currentGame.pile.value) {
-                console.log("Valid Move");
-                // Update Firestore logic here
+        function handleGameUpdate(data) {
+            // Update 3D Pile
+            while(scene.children.length > 2) scene.remove(scene.children[scene.children.length-1]);
+            const pile = createCardMesh(data.pile);
+            pile.rotation.x = data.side === 'light' ? 0 : Math.PI;
+            scene.add(pile);
+
+            // Handle Camera Rotation for Flip
+            if (data.side === 'dark') {
+                gsap.to(camera.position, { y: 6, z: 7, duration: 1.2, onUpdate: () => camera.lookAt(0,0,0) });
             } else {
-                alert("Invalid move!");
+                gsap.to(camera.position, { y: -6, z: 7, duration: 1.2, onUpdate: () => camera.lookAt(0,0,0) });
             }
+            
+            document.getElementById('current-turn').innerText = data.turn === 0 ? "YOUR TURN" : "OPPONENT'S TURN";
+            document.getElementById('game-mode').innerText = `${data.side.toUpperCase()} SIDE ACTIVE`;
         }
 
-        // Auth Listeners
-        document.getElementById('google-login').onclick = () => {
-            signInWithPopup(auth, new GoogleAuthProvider()).then(() => {
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('game-screen').classList.remove('hidden');
-                // Initialize Hand
-                renderHand([{color: 'red', value: '7'}, {color: 'blue', value: '+6'}, {color: 'green', value: 'Flip'}]);
-            });
-        };
+        // --- Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
     </script>
 </body>
 </html>
