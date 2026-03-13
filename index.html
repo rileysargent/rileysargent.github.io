@@ -210,7 +210,30 @@
         document.getElementById('hangupBtn').classList.remove('hidden');
     }
 
-    document.getElementById('hangupBtn').onclick = () => location.reload();
+document.getElementById('hangupBtn').onclick = async () => {
+    if (currentRoomId) {
+        const roomRef = doc(db, 'rooms', currentRoomId);
+        
+        // 1. Update status to 'ended' so it disappears from lists immediately
+        try {
+            await updateDoc(roomRef, { status: 'ended' });
+            
+            // 2. Delete the document to keep the database clean
+            await deleteDoc(roomRef);
+            console.log("Room cleaned up successfully.");
+        } catch (error) {
+            console.error("Error cleaning up room:", error);
+        }
+    }
+    
+    // 3. Stop all camera/mic tracks
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // 4. Refresh to reset the state
+    location.reload();
+};
 
 </script>
 </body>
