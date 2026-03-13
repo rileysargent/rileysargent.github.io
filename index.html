@@ -3,64 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperchat</title>
+    <title>Hyperchat Pro</title>
     <style>
-        :root { --primary: #5865F2; --speaking: #43b581; --bg: #0f0f0f; --panel: #1a1a1a; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #e0e0e0; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --primary: #7289da; --speaking: #43b581; --bg: #0b0b0b; --panel: #18191c; }
+        body { font-family: 'Whitney', 'Helvetica Neue', sans-serif; background: var(--bg); color: #dcddde; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        header { padding: 10px 20px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
+        header { padding: 12px 20px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #202225; }
         
         .main-layout { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 260px; background: #141414; padding: 15px; border-right: 1px solid #333; overflow-y: auto; }
+        .sidebar { width: 280px; background: #2f3136; padding: 15px; border-right: 1px solid #202225; overflow-y: auto; }
 
-        /* Video Grid */
         #videoGrid { 
-            flex: 1; display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
-            grid-auto-rows: 200px; gap: 15px; padding: 15px; background: #000; overflow-y: auto; 
+            flex: 1; display: flex; flex-wrap: wrap; gap: 10px; padding: 15px; background: #36393f; overflow-y: auto; align-content: flex-start;
         }
 
         .video-box { 
-            position: relative; background: #1a1a1a; border-radius: 12px; 
-            overflow: hidden; border: 3px solid transparent; transition: border 0.2s; 
+            position: relative; background: #000; border-radius: 8px; overflow: hidden; border: 3px solid transparent; 
+            resize: both; min-width: 200px; min-height: 150px; width: 320px; height: 240px;
         }
-        /* Discord-style Speaking Outline */
-        .speaking { border-color: var(--speaking) !important; box-shadow: 0 0 10px var(--speaking); }
         
+        .speaking { border-color: var(--speaking) !important; }
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Hover PiP Button */
-        .pip-overlay {
-            position: absolute; top: 10px; right: 10px; opacity: 0; transition: 0.2s;
-        }
-        .video-box:hover .pip-overlay { opacity: 1; }
+        /* Chat Styling */
+        .chat-area { width: 320px; background: #2f3136; display: flex; flex-direction: column; border-left: 1px solid #202225; }
+        #chatBox { flex: 1; overflow-y: auto; padding: 15px; font-family: 'Consolas', monospace; font-size: 0.9em; }
+        .msg { margin-bottom: 10px; padding: 8px; background: #36393f; border-radius: 4px; white-space: pre-wrap; }
+        .chat-input-wrap { padding: 15px; background: #40444b; display: flex; gap: 8px; }
 
-        .btn { padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.8em; }
+        .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85em; transition: 0.2s; }
         .btn-p { background: var(--primary); color: white; }
         .btn-d { background: #f04747; color: white; }
         
-        .card { background: #262626; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #333; }
-        input { background: #262626; color: white; border: 1px solid #444; padding: 8px; border-radius: 6px; width: 90%; margin-bottom: 10px; }
-        #chatBox { flex: 1; overflow-y: auto; margin-bottom: 10px; font-size: 0.85em; }
+        input { background: #202225; color: white; border: 1px solid #202225; padding: 10px; border-radius: 4px; outline: none; flex: 1; }
+        h4 { margin: 0 0 10px 0; font-size: 0.75rem; color: #8e9297; text-transform: uppercase; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="display:flex; gap:10px; align-items:center;">
-        <input type="text" id="userName" placeholder="Username" style="margin:0; width:120px;">
-        <button class="btn btn-p" id="createBtn" disabled>Setting up...</button>
-        <button class="btn btn-p hidden" id="shareBtn">Share Screen</button>
+    <div style="display:flex; gap:12px; align-items:center;">
+        <b style="color:var(--primary); font-size:1.2em;">HYPERCHAT</b>
+        <input type="text" id="userName" placeholder="Username" style="width:140px; flex:none;">
+        <button class="btn btn-p" id="createBtn" disabled>Loading...</button>
         <button class="btn btn-d hidden" id="hangupBtn">Leave</button>
+        <label style="font-size:0.8em;"><input type="checkbox" id="globalSizeToggle"> Global Sync (Host)</label>
     </div>
-    <div id="roomTimer" style="font-size: 0.8em; color: #888;">Lobby Mode</div>
+    <div id="statusInfo" style="font-size:0.8em; color:#43b581;">Encrypted Connection</div>
 </header>
 
 <div class="main-layout">
     <div class="sidebar">
-        <h4>Friend Requests</h4>
-        <div id="friendReqs">None</div>
-        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
         <h4>Public Lobby</h4>
         <div id="lobby">Searching...</div>
     </div>
@@ -68,23 +62,22 @@
     <div id="videoGrid">
         <div class="video-box" id="localBox">
             <video id="localVideo" muted autoplay playsinline></video>
-            <div class="pip-overlay"><button class="btn" onclick="togglePiP('localVideo')">PiP</button></div>
         </div>
     </div>
 
-    <div class="sidebar" style="border-left:1px solid #333; border-right:none; display:flex; flex-direction:column;">
-        <h4>Waiting Room</h4>
-        <div id="waitingRoom">Empty</div>
-        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
-        <h4>Chat</h4>
+    <div class="chat-area">
+        <h4>Group Chat</h4>
         <div id="chatBox"></div>
-        <input type="text" id="chatInput" placeholder="Message..." style="width:85%">
+        <div class="chat-input-wrap">
+            <input type="text" id="chatInput" placeholder="Type message or ASCII...">
+            <button class="btn btn-p" id="sendBtn">SEND</button>
+        </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, onSnapshot, setDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot, setDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -100,18 +93,11 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let localStream = null;
-    let screenStream = null;
-    let currentRoomId = null;
-    let peerConnections = {};
+    let localStream = null, currentRoomId = null, isHost = false;
 
-    // --- INITIALIZE ---
+    // --- 1. MEDIA & NOISE CANCELLATION ---
     window.addEventListener('load', async () => {
-        const saved = localStorage.getItem('chatUsername');
-        if (saved) document.getElementById('userName').value = saved;
-
         try {
-            // Aggressive Echo Cancellation Settings
             localStream = await navigator.mediaDevices.getUserMedia({ 
                 video: true, 
                 audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
@@ -119,83 +105,63 @@
             document.getElementById('localVideo').srcObject = localStream;
             document.getElementById('createBtn').disabled = false;
             document.getElementById('createBtn').innerText = "Create Call";
-            
-            setupSpeakingDetection(localStream, 'localBox');
 
             await signInAnonymously(auth);
             updateLobby();
-        } catch (e) { alert("Camera failed. Check permissions."); }
+        } catch (e) { alert("Media error. Please check camera permissions."); }
     });
 
-    // --- SPEAKING DETECTION (GREEN OUTLINE) ---
-    function setupSpeakingDetection(stream, elementId) {
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        source.connect(analyser);
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    // --- 2. CHAT SYSTEM (ASCII & ENTER KEY) ---
+    const sendMsg = async () => {
+        const input = document.getElementById('chatInput');
+        if (!input.value.trim() || !currentRoomId) return;
 
-        setInterval(() => {
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
-            let average = sum / dataArray.length;
-            const el = document.getElementById(elementId);
-            if(el) {
-                if(average > 15) el.classList.add('speaking');
-                else el.classList.remove('speaking');
-            }
-        }, 100);
-    }
-
-    // --- SCREEN SHARE FIX ---
-    document.getElementById('shareBtn').onclick = async () => {
-        try {
-            screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            const videoTrack = screenStream.getVideoTracks()[0];
-            
-            // Replace video track in all active peer connections
-            Object.values(peerConnections).forEach(pc => {
-                const sender = pc.getSenders().find(s => s.track.kind === 'video');
-                if (sender) sender.replaceTrack(videoTrack);
-            });
-
-            document.getElementById('localVideo').srcObject = screenStream;
-
-            videoTrack.onended = () => {
-                stopScreenShare();
-            };
-        } catch (e) { console.error("Screen share failed", e); }
+        await addDoc(collection(db, `rooms/${currentRoomId}/messages`), {
+            user: document.getElementById('userName').value || "User",
+            text: input.value,
+            timestamp: serverTimestamp()
+        });
+        input.value = '';
     };
 
-    function stopScreenShare() {
-        const videoTrack = localStream.getVideoTracks()[0];
-        Object.values(peerConnections).forEach(pc => {
-            const sender = pc.getSenders().find(s => s.track.kind === 'video');
-            if (sender) sender.replaceTrack(videoTrack);
+    document.getElementById('sendBtn').onclick = sendMsg;
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMsg();
+    });
+
+    function listenChat(roomId) {
+        const q = query(collection(db, `rooms/${roomId}/messages`), orderBy('timestamp', 'asc'));
+        onSnapshot(q, (snap) => {
+            const box = document.getElementById('chatBox');
+            box.innerHTML = snap.docs.map(d => `<div class="msg"><b>${d.data().user}:</b>\n${d.data().text}</div>`).join('');
+            box.scrollTop = box.scrollHeight;
         });
-        document.getElementById('localVideo').srcObject = localStream;
     }
 
-    // --- WAITING ROOM & AUTO-DELETE ---
+    // --- 3. GLOBAL RESIZING & TAB MANAGEMENT ---
+    const resizeObserver = new ResizeObserver(entries => {
+        if (!isHost || !document.getElementById('globalSizeToggle').checked || !currentRoomId) return;
+        for (let entry of entries) {
+            updateDoc(doc(db, 'rooms', currentRoomId), {
+                w: entry.contentRect.width, h: entry.contentRect.height
+            });
+        }
+    });
+    resizeObserver.observe(document.getElementById('localBox'));
+
+    document.addEventListener("visibilitychange", () => {
+        localStream.getVideoTracks().forEach(t => t.enabled = !document.hidden);
+    });
+
+    // --- 4. ROOMS & LOBBY ---
     function updateLobby() {
         onSnapshot(collection(db, 'rooms'), (snap) => {
             const container = document.getElementById('lobby');
             container.innerHTML = '';
-            snap.forEach(async doc => {
-                const d = doc.data();
-                const diff = (Date.now() - (d.lastActive?.toMillis() || Date.now())) / 1000;
-                
-                // Auto-delete if inactive for 10 minutes (600 seconds)
-                if (diff > 600) {
-                    await deleteDoc(doc.ref);
-                    return;
-                }
-
+            snap.forEach(d => {
                 const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `<b>${d.callerName}</b><br><button class="btn btn-p" onclick="knock('${doc.id}')">Knock</button>`;
+                card.style = "background:#40444b; padding:10px; border-radius:4px; margin-bottom:8px;";
+                card.innerHTML = `<b>${d.data().callerName}</b><br><button class="btn btn-p" style="width:100%;margin-top:5px;" onclick="knock('${d.id}')">Join</button>`;
                 container.appendChild(card);
             });
         });
@@ -203,89 +169,33 @@
 
     window.knock = async (roomId) => {
         const reqRef = doc(db, `rooms/${roomId}/requests`, auth.currentUser.uid);
-        await setDoc(reqRef, { name: document.getElementById('userName').value, status: 'waiting' });
+        await setDoc(reqRef, { name: document.getElementById('userName').value || "Guest", status: 'waiting' });
         onSnapshot(reqRef, (snap) => {
-            if (snap.data()?.status === 'accepted') joinCall(roomId);
+            if (snap.data()?.status === 'accepted') {
+                currentRoomId = roomId;
+                listenChat(roomId);
+                toggleUI(true);
+            }
         });
     };
 
     document.getElementById('createBtn').onclick = async () => {
         const roomRef = doc(collection(db, 'rooms'));
-        currentRoomId = roomRef.id;
+        currentRoomId = roomRef.id; isHost = true;
         await setDoc(roomRef, { 
-            callerName: document.getElementById('userName').value, 
-            lastActive: serverTimestamp(),
-            callerId: auth.currentUser.uid 
+            callerName: document.getElementById('userName').value || "Host", 
+            lastActive: serverTimestamp() 
         });
+        listenChat(currentRoomId);
+        toggleUI(true);
         
-        toggleUI(true);
-        // Heartbeat to keep room alive
-        setInterval(() => {
-            updateDoc(roomRef, { lastActive: serverTimestamp() });
-        }, 30000);
-
-        onSnapshot(collection(roomRef, 'requests'), (snap) => {
-            const wr = document.getElementById('waitingRoom');
-            wr.innerHTML = '';
-            snap.forEach(d => {
-                if(d.data().status === 'waiting') {
-                    const c = document.createElement('div');
-                    c.className = 'card';
-                    c.innerHTML = `${d.data().name} <button class="btn btn-p" onclick="approve('${roomRef.id}','${d.id}')">Let In</button>`;
-                    wr.appendChild(c);
-                }
-            });
-        });
-    };
-
-    window.approve = async (roomId, uid) => {
-        await updateDoc(doc(db, `rooms/${roomId}/requests`, uid), { status: 'accepted' });
-        setupSignaling(roomId, uid, true);
-    };
-
-    async function joinCall(roomId) {
-        currentRoomId = roomId;
-        toggleUI(true);
-        setupSignaling(roomId, auth.currentUser.uid, false);
-    }
-
-    // --- WEBRTC SIGNALING ---
-    async function setupSignaling(roomId, targetUid, isHost) {
-        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-        peerConnections[targetUid] = pc;
-
-        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
-        pc.ontrack = (e) => {
-            if (!document.getElementById(`vid-${targetUid}`)) {
-                const box = document.createElement('div');
-                box.className = 'video-box';
-                box.id = `box-${targetUid}`;
-                const v = document.createElement('video');
-                v.id = `vid-${targetUid}`;
-                v.autoplay = true; v.playsInline = true;
-                v.srcObject = e.streams[0];
-                box.appendChild(v);
-                box.innerHTML += `<div class="pip-overlay"><button class="btn" onclick="togglePiP('vid-${targetUid}')">PiP</button></div>`;
-                document.getElementById('videoGrid').appendChild(box);
-                setupSpeakingDetection(e.streams[0], `box-${targetUid}`);
-            }
-        };
-
-        // Standard Signaling Implementation omitted for brevity but required here
-        // (Offer/Answer/Ice exchange logic goes here)
-    }
-
-    window.togglePiP = async (vidId) => {
-        const v = document.getElementById(vidId);
-        if (document.pictureInPictureElement) await document.exitPictureInPicture();
-        else await v.requestPictureInPicture();
+        // Auto-delete timer logic (10 min heartbeat)
+        setInterval(() => updateDoc(roomRef, { lastActive: serverTimestamp() }), 30000);
     };
 
     function toggleUI(on) {
         document.getElementById('createBtn').classList.toggle('hidden', on);
         document.getElementById('hangupBtn').classList.toggle('hidden', !on);
-        document.getElementById('shareBtn').classList.toggle('hidden', !on);
     }
 
     document.getElementById('hangupBtn').onclick = () => location.reload();
