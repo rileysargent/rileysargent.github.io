@@ -3,53 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Pro - Room List & Participants</title>
-    <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <title>WebRTC Social Pro</title>
     <style>
-        body { font-family: 'Roboto', sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 900px; width: 100%; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
-        .videos { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        video { width: 100%; background: #1a1a1a; border-radius: 12px; transform: rotateY(180deg); }
-        #localVideo { border: 3px solid #6200ee; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
-        .room-card { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .participant-chip { display: inline-block; padding: 4px 10px; background: #e0e0e0; border-radius: 15px; font-size: 0.8em; margin: 2px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { padding: 10px 20px; background: #1a1a1a; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; gap: 15px; }
+        
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Layout Panels */
+        .left-panel { width: 280px; border-right: 1px solid #333; background: #141414; padding: 15px; overflow-y: auto; }
+        .video-center { flex: 1; display: grid; grid-template-rows: 1fr 1fr; gap: 10px; padding: 10px; background: #000; }
+        .right-panel { width: 320px; border-left: 1px solid #333; background: #141414; display: flex; flex-direction: column; }
+
+        /* Videos */
+        .video-wrap { position: relative; width: 100%; height: 100%; background: #1a1a1a; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Chat */
+        .chat-wrap { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
+        #chatMsgs { flex: 1; overflow-y: auto; font-size: 0.9em; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .msg-bubble { background: #262626; padding: 8px 12px; border-radius: 8px; border-left: 3px solid #6200ee; }
+
+        /* UI Elements */
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85em; transition: 0.2s; }
+        .btn-p { background: #6200ee; color: white; }
+        .btn-p:disabled { background: #444; cursor: wait; }
+        .btn-d { background: #cf6679; color: white; }
+        .room-card { background: #1f1f1f; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #333; }
+        
+        select, input { background: #262626; color: white; border: 1px solid #444; padding: 8px; border-radius: 6px; outline: none; }
         .hidden { display: none !important; }
-        .room-id-display { background: #eee; padding: 10px; border-radius: 5px; font-family: monospace; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 style="margin-top:0">Real-Time Video Lobby</h2>
-    
-    <div class="controls">
-        <input type="text" id="userName" class="mdc-text-field__input" style="border: 1px solid #ccc; padding: 10px; border-radius: 5px;" placeholder="Your Name...">
-        <button class="mdc-button mdc-button--raised" id="cameraBtn">1. Enable Camera</button>
-        <button class="mdc-button mdc-button--raised" id="createBtn" disabled>2. Start New Call</button>
-        <button class="mdc-button mdc-button--raised" style="background: #d32f2f" id="hangupBtn" class="hidden">End Call</button>
+<header>
+    <div style="display:flex; align-items:center; gap:10px;">
+        <input type="text" id="userName" placeholder="Username">
+        <select id="micSelect"><option>Loading Microphones...</option></select>
+        <button class="btn btn-p" id="createBtn" disabled>Loading Camera...</button>
+        <button class="btn btn-d hidden" id="hangupBtn">Hang Up</button>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <button class="btn" id="shareBtn" style="background:#03dac6; color:black;">Screen Share</button>
+        <button class="btn" id="pipBtn" style="background:#444; color:white;">PiP</button>
+    </div>
+</header>
+
+<div class="main-layout">
+    <div class="left-panel">
+        <h3>Lobby</h3>
+        <div id="roomsContainer">Waiting for permissions...</div>
+        <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
+        <h3>My Friends</h3>
+        <div id="friendsList">None yet. Add people in the lobby!</div>
     </div>
 
-    <div id="activeRoomInfo" class="hidden" style="margin-bottom: 20px; text-align: center;">
-        <p>You are in a call. Room ID: <span id="displayId" class="room-id-display"></span></p>
-        <div id="participantsList"></div>
+    <div class="video-center">
+        <div class="video-wrap"><video id="localVideo" muted autoplay playsinline></video></div>
+        <div class="video-wrap"><video id="remoteVideo" autoplay playsinline></video></div>
     </div>
 
-    <div class="videos">
-        <video id="localVideo" muted autoplay playsinline></video>
-        <video id="remoteVideo" autoplay playsinline></video>
-    </div>
-
-    <div id="lobbySection">
-        <h3>Active Calls (Click to Join)</h3>
-        <div id="roomsContainer">Looking for active calls...</div>
+    <div class="right-panel">
+        <div style="padding: 15px; border-bottom: 1px solid #333;">
+            <h3 style="margin:0">Call Members</h3>
+            <div id="participantsList" style="margin-top:10px;"></div>
+        </div>
+        <div class="chat-wrap">
+            <h3 style="margin:0 0 10px 0;">Live Chat</h3>
+            <div id="chatMsgs"></div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="chatInput" placeholder="Message..." style="flex:1">
+                <button class="btn btn-p" id="sendBtn">Send</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, onSnapshot, setDoc, deleteDoc, query, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, onSnapshot, setDoc, deleteDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -70,31 +103,96 @@
     let remoteStream = null;
     let currentRoomId = null;
 
-    // Login and Start Lobby
-    signInAnonymously(auth).then(() => {
-        console.log("Auth Active");
-        updateLobby();
+    // --- 1. SETUP USERNAME & HARDWARE ---
+    window.addEventListener('load', async () => {
+        // Load Username from LocalStorage
+        const savedName = localStorage.getItem('chatUsername');
+        if (savedName) document.getElementById('userName').value = savedName;
+
+        try {
+            // FIX: Initialize localStream FIRST before any signaling starts
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('localVideo').srcObject = localStream;
+            
+            remoteStream = new MediaStream();
+            document.getElementById('remoteVideo').srcObject = remoteStream;
+
+            const btn = document.getElementById('createBtn');
+            btn.disabled = false;
+            btn.innerText = "Create Call";
+
+            await getMics();
+            await signInAnonymously(auth);
+            updateLobby();
+            loadFriends();
+        } catch (e) { 
+            console.error("Camera error:", e);
+            document.getElementById('roomsContainer').innerText = "Camera needed!";
+        }
     });
 
-    // Step 1: Camera
-    document.getElementById('cameraBtn').onclick = async () => {
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            remoteStream = new MediaStream();
-            document.getElementById('localVideo').srcObject = localStream;
-            document.getElementById('remoteVideo').srcObject = remoteStream;
-            document.getElementById('createBtn').disabled = false;
-            document.getElementById('cameraBtn').disabled = true;
-        } catch (e) { alert("Camera access denied"); }
+    // Save username on change
+    document.getElementById('userName').onchange = (e) => {
+        localStorage.setItem('chatUsername', e.target.value);
     };
 
-    // Step 2: Create Call
+    async function getMics() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter(d => d.kind === 'audioinput');
+        const sel = document.getElementById('micSelect');
+        sel.innerHTML = mics.map(m => `<option value="${m.deviceId}">${m.label || 'Mic'}</option>`).join('');
+    }
+
+    // --- 2. FRIEND SYSTEM ---
+    window.addFriend = async (friendId, friendName) => {
+        const friendRef = doc(db, `users/${auth.currentUser.uid}/friends`, friendId);
+        await setDoc(friendRef, { name: friendName, addedAt: serverTimestamp() });
+        alert(`Added ${friendName} as a friend!`);
+    };
+
+    function loadFriends() {
+        const q = query(collection(db, `users/${auth.currentUser.uid}/friends`));
+        onSnapshot(q, (snap) => {
+            const list = document.getElementById('friendsList');
+            list.innerHTML = snap.docs.length ? '' : 'None yet.';
+            snap.forEach(d => {
+                const f = d.data();
+                list.innerHTML += `<div class="msg">👤 ${f.name}</div>`;
+            });
+        });
+    }
+
+    // --- 3. CORE WEB-RTC & CHAT ---
+    function setupSignaling(roomRef, isCallee) {
+        if (!localStream) return; // Prevent "localStream is null" crash
+
+        peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+        
+        localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+
+        peerConnection.onicecandidate = e => {
+            if (e.candidate) addDoc(collection(roomRef, isCallee ? 'calleeCandidates' : 'callerCandidates'), e.candidate.toJSON());
+        };
+
+        peerConnection.ontrack = e => e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
+
+        const remoteCol = isCallee ? 'callerCandidates' : 'calleeCandidates';
+        onSnapshot(collection(roomRef, remoteCol), snap => {
+            snap.docChanges().forEach(change => { if (change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data())); });
+        });
+
+        // Chat & Participants Listeners
+        listenChat(roomRef.id);
+        onSnapshot(collection(roomRef, 'participants'), snap => {
+            document.getElementById('participantsList').innerHTML = snap.docs.map(d => `<div class="msg">● ${d.data().name}</div>`).join('');
+        });
+    }
+
     document.getElementById('createBtn').onclick = async () => {
-        const name = document.getElementById('userName').value || "Anonymous";
+        const name = document.getElementById('userName').value || "User";
         const roomRef = doc(collection(db, 'rooms'));
         currentRoomId = roomRef.id;
 
-        peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
         setupSignaling(roomRef, false);
 
         const offer = await peerConnection.createOffer();
@@ -103,15 +201,14 @@
         await setDoc(roomRef, {
             offer: { type: offer.type, sdp: offer.sdp },
             callerName: name,
+            callerId: auth.currentUser.uid,
             status: 'waiting',
             createdAt: serverTimestamp()
         });
 
-        // Add to participants list
-        await setDoc(doc(db, `rooms/${currentRoomId}/participants`, auth.currentUser.uid), { name: name });
+        await setDoc(doc(db, `rooms/${currentRoomId}/participants`, auth.currentUser.uid), { name });
+        toggleUI(true);
 
-        showCallUI(currentRoomId);
-        
         onSnapshot(roomRef, async snap => {
             const data = snap.data();
             if (!peerConnection.currentRemoteDescription && data?.answer) {
@@ -120,121 +217,76 @@
         });
     };
 
-    // Step 3: Join Call (Global function for list)
     window.joinCall = async (roomId) => {
         const name = document.getElementById('userName').value || "Guest";
         const roomRef = doc(db, 'rooms', roomId);
-        const roomSnapshot = await getDoc(roomRef);
-
-        if (!roomSnapshot.exists()) return alert("Room closed");
-
+        const snap = await getDoc(roomRef);
+        
         currentRoomId = roomId;
-        peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
         setupSignaling(roomRef, true);
 
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(roomSnapshot.data().offer));
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(snap.data().offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
-        await updateDoc(roomRef, {
-            answer: { type: answer.type, sdp: answer.sdp },
-            status: 'active'
-        });
-
-        await setDoc(doc(db, `rooms/${currentRoomId}/participants`, auth.currentUser.uid), { name: name });
-        showCallUI(currentRoomId);
+        await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp }, status: 'active' });
+        await setDoc(doc(db, `rooms/${currentRoomId}/participants`, auth.currentUser.uid), { name });
+        toggleUI(true);
     };
 
-    // Lobby Listener (List of People/Rooms)
+    // --- 4. MESSAGING ---
+    function listenChat(roomId) {
+        const q = query(collection(db, `rooms/${roomId}/messages`), orderBy('timestamp', 'asc'));
+        onSnapshot(q, (snap) => {
+            const box = document.getElementById('chatMsgs');
+            box.innerHTML = '';
+            snap.forEach(d => {
+                const m = d.data();
+                box.innerHTML += `<div class="msg-bubble"><b>${m.sender}:</b> ${m.text}</div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+
+    document.getElementById('sendBtn').onclick = async () => {
+        const input = document.getElementById('chatInput');
+        if (!input.value.trim() || !currentRoomId) return;
+        await addDoc(collection(db, `rooms/${currentRoomId}/messages`), {
+            text: input.value,
+            sender: document.getElementById('userName').value || "User",
+            timestamp: serverTimestamp()
+        });
+        input.value = '';
+    };
+
     function updateLobby() {
-        const q = query(collection(db, 'rooms'), limit(20));
-        onSnapshot(q, (snapshot) => {
+        onSnapshot(collection(db, 'rooms'), (snap) => {
             const container = document.getElementById('roomsContainer');
             container.innerHTML = '';
-            
-            snapshot.forEach((roomDoc) => {
-                const data = roomDoc.data();
-                if (data.status === 'active' || data.status === 'waiting') {
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (d.status !== 'ended') {
                     const card = document.createElement('div');
                     card.className = 'room-card';
                     card.innerHTML = `
-                        <div>
-                            <strong>${data.callerName}'s Call</strong><br>
-                            <small>ID: ${roomDoc.id}</small>
+                        <div style="margin-bottom:8px"><b>${d.callerName}</b></div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-p" style="flex:1" onclick="joinCall('${doc.id}')">Join</button>
+                            <button class="btn" onclick="addFriend('${d.callerId}', '${d.callerName}')">＋ Friend</button>
                         </div>
-                        <button class="mdc-button mdc-button--outlined" onclick="joinCall('${roomDoc.id}')">JOIN</button>
                     `;
                     container.appendChild(card);
                 }
             });
-            if (container.innerHTML === '') container.innerHTML = "No active rooms. Be the first to start one!";
         });
     }
 
-    function setupSignaling(roomRef, isCallee) {
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-        
-        peerConnection.onicecandidate = e => {
-            if (e.candidate) {
-                const col = isCallee ? 'calleeCandidates' : 'callerCandidates';
-                addDoc(collection(roomRef, col), e.candidate.toJSON());
-            }
-        };
-
-        peerConnection.ontrack = e => {
-            e.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-        };
-
-        const remoteCol = isCallee ? 'callerCandidates' : 'calleeCandidates';
-        onSnapshot(collection(roomRef, remoteCol), snap => {
-            snap.docChanges().forEach(change => {
-                if (change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-            });
-        });
-
-        // Participant List Listener (Max 20)
-        onSnapshot(query(collection(roomRef, 'participants'), limit(20)), snap => {
-            const pList = document.getElementById('participantsList');
-            pList.innerHTML = 'Participants: ';
-            snap.forEach(pDoc => {
-                pList.innerHTML += `<span class="participant-chip">${pDoc.data().name}</span>`;
-            });
-        });
+    function toggleUI(on) {
+        document.getElementById('createBtn').classList.toggle('hidden', on);
+        document.getElementById('hangupBtn').classList.toggle('hidden', !on);
     }
 
-    function showCallUI(id) {
-        document.getElementById('displayId').innerText = id;
-        document.getElementById('activeRoomInfo').classList.remove('hidden');
-        document.getElementById('lobbySection').classList.add('hidden');
-        document.getElementById('createBtn').classList.add('hidden');
-        document.getElementById('hangupBtn').classList.remove('hidden');
-    }
-
-document.getElementById('hangupBtn').onclick = async () => {
-    if (currentRoomId) {
-        const roomRef = doc(db, 'rooms', currentRoomId);
-        
-        // 1. Update status to 'ended' so it disappears from lists immediately
-        try {
-            await updateDoc(roomRef, { status: 'ended' });
-            
-            // 2. Delete the document to keep the database clean
-            await deleteDoc(roomRef);
-            console.log("Room cleaned up successfully.");
-        } catch (error) {
-            console.error("Error cleaning up room:", error);
-        }
-    }
-    
-    // 3. Stop all camera/mic tracks
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-    }
-    
-    // 4. Refresh to reset the state
-    location.reload();
-};
-
+    document.getElementById('hangupBtn').onclick = () => location.reload();
 </script>
 </body>
 </html>
