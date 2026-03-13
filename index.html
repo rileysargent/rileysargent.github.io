@@ -3,61 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Pro - Names & Rooms</title>
+    <title>WebRTC Pro - Room List & Participants</title>
     <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
-        body { font-family: 'Roboto', sans-serif; background: #eceff1; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1000px; width: 100%; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body { font-family: 'Roboto', sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 900px; width: 100%; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
         .videos { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        video { width: 100%; background: #000; border-radius: 8px; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; align-items: center; flex-wrap: wrap; }
-        #roomList { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px; }
-        .room-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 8px; background: #fafafa; }
-        .name-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px; }
-        .hidden { display: none; }
-        .hangup { background-color: #d32f2f !important; color: white !important; }
-        .badge { background: #6200ee; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; margin-left: 5px; }
+        video { width: 100%; background: #1a1a1a; border-radius: 12px; transform: rotateY(180deg); }
+        #localVideo { border: 3px solid #6200ee; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .room-card { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .participant-chip { display: inline-block; padding: 4px 10px; background: #e0e0e0; border-radius: 15px; font-size: 0.8em; margin: 2px; }
+        .hidden { display: none !important; }
+        .room-id-display { background: #eee; padding: 10px; border-radius: 5px; font-family: monospace; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>WebRTC Workspace</h2>
+    <h2 style="margin-top:0">Real-Time Video Lobby</h2>
     
     <div class="controls">
-        <input type="text" id="userName" class="name-input" placeholder="Your Display Name" value="Guest">
-        <button class="mdc-button mdc-button--raised" id="cameraBtn">Start Media</button>
-        <button class="mdc-button mdc-button--raised" id="createBtn" disabled>Create Room</button>
-        <button class="mdc-button mdc-button--raised hangup hidden" id="hangupBtn">Hang Up</button>
-        <button class="mdc-button mdc-button--outlined" id="pipBtn" disabled><i class="material-icons">picture_in_picture_alt</i></button>
+        <input type="text" id="userName" class="mdc-text-field__input" style="border: 1px solid #ccc; padding: 10px; border-radius: 5px;" placeholder="Your Name...">
+        <button class="mdc-button mdc-button--raised" id="cameraBtn">1. Enable Camera</button>
+        <button class="mdc-button mdc-button--raised" id="createBtn" disabled>2. Start New Call</button>
+        <button class="mdc-button mdc-button--raised" style="background: #d32f2f" id="hangupBtn" class="hidden">End Call</button>
     </div>
 
-    <div id="callInfo" class="hidden" style="text-align: center; margin-bottom: 10px;">
-        <span id="remotePartnerName">Waiting for someone...</span>
+    <div id="activeRoomInfo" class="hidden" style="margin-bottom: 20px; text-align: center;">
+        <p>You are in a call. Room ID: <span id="displayId" class="room-id-display"></span></p>
+        <div id="participantsList"></div>
     </div>
 
     <div class="videos">
-        <div>
-            <video id="localVideo" muted autoplay playsinline></video>
-            <div style="text-align:center"><small>You</small></div>
-        </div>
-        <div>
-            <video id="remoteVideo" autoplay playsinline></video>
-            <div style="text-align:center"><small id="remoteLabel">Remote</small></div>
-        </div>
+        <video id="localVideo" muted autoplay playsinline></video>
+        <video id="remoteVideo" autoplay playsinline></video>
     </div>
 
-    <div id="roomList">
-        <h3>Active Calls</h3>
-        <div id="roomsContainer">Connecting to directory...</div>
+    <div id="lobbySection">
+        <h3>Active Calls (Click to Join)</h3>
+        <div id="roomsContainer">Looking for active calls...</div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, onSnapshot, setDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, onSnapshot, setDoc, deleteDoc, query, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -78,137 +70,148 @@
     let remoteStream = null;
     let currentRoomId = null;
 
+    // Login and Start Lobby
     signInAnonymously(auth).then(() => {
-        listenForRooms();
+        console.log("Auth Active");
+        updateLobby();
     });
 
+    // Step 1: Camera
     document.getElementById('cameraBtn').onclick = async () => {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        remoteStream = new MediaStream();
-        document.getElementById('localVideo').srcObject = localStream;
-        document.getElementById('remoteVideo').srcObject = remoteStream;
-        document.getElementById('createBtn').disabled = false;
-        document.getElementById('pipBtn').disabled = false;
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            remoteStream = new MediaStream();
+            document.getElementById('localVideo').srcObject = localStream;
+            document.getElementById('remoteVideo').srcObject = remoteStream;
+            document.getElementById('createBtn').disabled = false;
+            document.getElementById('cameraBtn').disabled = true;
+        } catch (e) { alert("Camera access denied"); }
     };
 
-    function listenForRooms() {
-        const q = query(collection(db, 'rooms'), where('status', 'in', ['waiting', 'active']));
-        onSnapshot(q, (snapshot) => {
-            const container = document.getElementById('roomsContainer');
-            container.innerHTML = '';
-            snapshot.forEach((roomDoc) => {
-                const data = roomDoc.data();
-                const div = document.createElement('div');
-                div.className = 'room-item';
-                div.innerHTML = `
-                    <span><strong>${data.callerName || 'Unknown'}</strong>'s Room ${data.password ? '<span class="badge">Password</span>' : ''}</span>
-                    <button class="mdc-button mdc-button--outlined" onclick="window.joinRoom('${roomDoc.id}', ${!!data.password})">Join Call</button>
-                `;
-                container.appendChild(div);
-            });
-            if (snapshot.empty) container.innerHTML = 'No active calls. Start one above!';
-        });
-    }
-
+    // Step 2: Create Call
     document.getElementById('createBtn').onclick = async () => {
         const name = document.getElementById('userName').value || "Anonymous";
-        const password = prompt("Set a password (optional):");
         const roomRef = doc(collection(db, 'rooms'));
         currentRoomId = roomRef.id;
 
         peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-        setupStreamListeners(roomRef, false);
+        setupSignaling(roomRef, false);
 
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
         await setDoc(roomRef, {
             offer: { type: offer.type, sdp: offer.sdp },
-            callerId: auth.currentUser.uid,
             callerName: name,
             status: 'waiting',
-            password: password || null,
             createdAt: serverTimestamp()
         });
 
-        toggleUI(true);
+        // Add to participants list
+        await setDoc(doc(db, `rooms/${currentRoomId}/participants`, auth.currentUser.uid), { name: name });
+
+        showCallUI(currentRoomId);
+        
         onSnapshot(roomRef, async snap => {
             const data = snap.data();
-            if (data?.calleeName) {
-                document.getElementById('remotePartnerName').innerText = `Talking to: ${data.calleeName}`;
-                document.getElementById('remoteLabel').innerText = data.calleeName;
-            }
             if (!peerConnection.currentRemoteDescription && data?.answer) {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
             }
         });
     };
 
-    window.joinRoom = async (roomId, hasPassword) => {
+    // Step 3: Join Call (Global function for list)
+    window.joinCall = async (roomId) => {
         const name = document.getElementById('userName').value || "Guest";
         const roomRef = doc(db, 'rooms', roomId);
         const roomSnapshot = await getDoc(roomRef);
-        const data = roomSnapshot.data();
 
-        if (hasPassword) {
-            const pass = prompt("Enter Password:");
-            if (pass !== data.password) return alert("Wrong password!");
-        }
+        if (!roomSnapshot.exists()) return alert("Room closed");
 
         currentRoomId = roomId;
         peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-        setupStreamListeners(roomRef, true);
+        setupSignaling(roomRef, true);
 
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(roomSnapshot.data().offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
         await updateDoc(roomRef, {
             answer: { type: answer.type, sdp: answer.sdp },
-            calleeId: auth.currentUser.uid,
-            calleeName: name,
             status: 'active'
         });
 
-        document.getElementById('remotePartnerName').innerText = `Talking to: ${data.callerName}`;
-        document.getElementById('remoteLabel').innerText = data.callerName;
-        toggleUI(true);
+        await setDoc(doc(db, `rooms/${currentRoomId}/participants`, auth.currentUser.uid), { name: name });
+        showCallUI(currentRoomId);
     };
 
-    document.getElementById('hangupBtn').onclick = async () => {
-        if (currentRoomId) {
-            await deleteDoc(doc(db, 'rooms', currentRoomId));
-            location.reload();
-        }
-    };
+    // Lobby Listener (List of People/Rooms)
+    function updateLobby() {
+        const q = query(collection(db, 'rooms'), limit(20));
+        onSnapshot(q, (snapshot) => {
+            const container = document.getElementById('roomsContainer');
+            container.innerHTML = '';
+            
+            snapshot.forEach((roomDoc) => {
+                const data = roomDoc.data();
+                if (data.status === 'active' || data.status === 'waiting') {
+                    const card = document.createElement('div');
+                    card.className = 'room-card';
+                    card.innerHTML = `
+                        <div>
+                            <strong>${data.callerName}'s Call</strong><br>
+                            <small>ID: ${roomDoc.id}</small>
+                        </div>
+                        <button class="mdc-button mdc-button--outlined" onclick="joinCall('${roomDoc.id}')">JOIN</button>
+                    `;
+                    container.appendChild(card);
+                }
+            });
+            if (container.innerHTML === '') container.innerHTML = "No active rooms. Be the first to start one!";
+        });
+    }
 
-    function setupStreamListeners(roomRef, isCallee) {
+    function setupSignaling(roomRef, isCallee) {
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-        const localColl = isCallee ? 'calleeCandidates' : 'callerCandidates';
-        const remoteColl = isCallee ? 'callerCandidates' : 'calleeCandidates';
-
+        
         peerConnection.onicecandidate = e => {
-            if (e.candidate) addDoc(collection(roomRef, localColl), e.candidate.toJSON());
+            if (e.candidate) {
+                const col = isCallee ? 'calleeCandidates' : 'callerCandidates';
+                addDoc(collection(roomRef, col), e.candidate.toJSON());
+            }
         };
+
         peerConnection.ontrack = e => {
             e.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
         };
-        onSnapshot(collection(roomRef, remoteColl), snap => {
+
+        const remoteCol = isCallee ? 'callerCandidates' : 'calleeCandidates';
+        onSnapshot(collection(roomRef, remoteCol), snap => {
             snap.docChanges().forEach(change => {
                 if (change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
             });
         });
+
+        // Participant List Listener (Max 20)
+        onSnapshot(query(collection(roomRef, 'participants'), limit(20)), snap => {
+            const pList = document.getElementById('participantsList');
+            pList.innerHTML = 'Participants: ';
+            snap.forEach(pDoc => {
+                pList.innerHTML += `<span class="participant-chip">${pDoc.data().name}</span>`;
+            });
+        });
     }
 
-    function toggleUI(inCall) {
-        document.getElementById('hangupBtn').classList.toggle('hidden', !inCall);
-        document.getElementById('callInfo').classList.toggle('hidden', !inCall);
-        document.getElementById('createBtn').classList.toggle('hidden', inCall);
-        document.getElementById('userName').classList.toggle('hidden', inCall);
-        document.getElementById('roomList').classList.toggle('hidden', inCall);
+    function showCallUI(id) {
+        document.getElementById('displayId').innerText = id;
+        document.getElementById('activeRoomInfo').classList.remove('hidden');
+        document.getElementById('lobbySection').classList.add('hidden');
+        document.getElementById('createBtn').classList.add('hidden');
+        document.getElementById('hangupBtn').classList.remove('hidden');
     }
 
-    document.getElementById('pipBtn').onclick = () => document.getElementById('remoteVideo').requestPictureInPicture();
+    document.getElementById('hangupBtn').onclick = () => location.reload();
+
 </script>
 </body>
 </html>
