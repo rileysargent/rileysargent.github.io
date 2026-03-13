@@ -1,176 +1,202 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC Firebase Call</title>
     <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
-        body { font-family: Roboto, sans-serif; padding: 20px; }
-        .videos { display: flex; gap: 10px; margin-top: 20px; }
-        video { width: 45%; background: #222; border-radius: 8px; }
-        #buttons { margin-bottom: 20px; }
+        body { font-family: 'Roboto', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { max-width: 1000px; width: 100%; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .videos { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        video { width: 100%; aspect-ratio: 16/9; background: #2c3e50; border-radius: 8px; object-fit: cover; }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+        #currentRoom { font-weight: bold; color: #6200ee; margin: 10px 0; display: block; }
+        .status-bar { font-size: 0.9em; color: #666; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <h2>WebRTC Video Call</h2>
-    <div id="buttons">
+
+<div class="container">
+    <h2>WebRTC Video & Voice</h2>
+    
+    <div class="status-bar" id="status">Status: Waiting for Camera...</div>
+
+    <div class="controls">
         <button class="mdc-button mdc-button--raised" id="cameraBtn">
-            <span class="mdc-button__label">Open Camera & Mic</span>
+            <span class="mdc-button__label">1. Start Camera</span>
         </button>
         <button class="mdc-button mdc-button--raised" id="createBtn" disabled>
-            <span class="mdc-button__label">Create Room</span>
+            <span class="mdc-button__label">2. Create Room</span>
         </button>
-        <button class="mdc-button mdc-button--raised" id="joinBtn" disabled>
-            <span class="mdc-button__label">Join Room</span>
+        <button class="mdc-button mdc-button--outline" id="joinBtn" disabled>
+            <span class="mdc-button__label">3. Join Room</span>
         </button>
-        <button class="mdc-button mdc-button--raised" id="pipBtn" disabled>
-            <span class="mdc-button__label">Window in Window</span>
+        <button class="mdc-button mdc-button--outlined" id="pipBtn" disabled title="Picture in Picture">
+            <i class="material-icons">picture_in_picture_alt</i>
         </button>
     </div>
-    <div>
-        <span id="currentRoom"></span>
-    </div>
+
+    <div id="currentRoom">No active room</div>
+
     <div class="videos">
-        <video id="localVideo" muted autoplay playsinline></video>
-        <video id="remoteVideo" autoplay playsinline></video>
+        <div>
+            <small>Local Stream</small>
+            <video id="localVideo" muted autoplay playsinline></video>
+        </div>
+        <div>
+            <small>Remote Stream</small>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
     </div>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, doc, addDoc, getDoc, updateDoc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-            authDomain: "hyperspace-r.firebaseapp.com",
-            projectId: "hyperspace-r",
-            storageBucket: "hyperspace-r.appspot.com",
-            messagingSenderId: "1050495683444",
-            appId: "1:1050495683444:web:4a3c2b294542cb8d313a21"
-        };
+    // --- PASTE YOUR CONFIG HERE ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+        authDomain: "hyperspace-r.firebaseapp.com",
+        projectId: "hyperspace-r",
+        storageBucket: "hyperspace-r.firebasestorage.app",
+        messagingSenderId: "1050495683444",
+        appId: "1:1050495683444:web:4a3c2b294542cb8d313a21"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-        // WebRTC Configuration (Google STUN servers)
-        const configuration = {
-            iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
-        };
+    const configuration = {
+        iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
+    };
 
-        let peerConnection = null;
-        let localStream = null;
-        let remoteStream = null;
-        let roomId = null;
+    let peerConnection = null;
+    let localStream = null;
+    let remoteStream = null;
 
-        // UI Elements
-        const cameraBtn = document.querySelector('#cameraBtn');
-        const createBtn = document.querySelector('#createBtn');
-        const joinBtn = document.querySelector('#joinBtn');
-        const pipBtn = document.querySelector('#pipBtn');
-        const localVideo = document.querySelector('#localVideo');
-        const remoteVideo = document.querySelector('#remoteVideo');
+    const statusEl = document.getElementById('status');
 
-        // 1. Open User Media
-        cameraBtn.addEventListener('click', async () => {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            remoteStream = new MediaStream();
-            localVideo.srcObject = localStream;
-            remoteVideo.srcObject = remoteStream;
+    // Sign in anonymously immediately
+    signInAnonymously(auth).then(() => {
+        statusEl.innerText = "Status: Authenticated (Ready)";
+    });
 
-            createBtn.disabled = false;
-            joinBtn.disabled = false;
-            pipBtn.disabled = false;
-            cameraBtn.disabled = true;
+    // Handle Camera
+    document.querySelector('#cameraBtn').onclick = async () => {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        remoteStream = new MediaStream();
+        document.querySelector('#localVideo').srcObject = localStream;
+        document.querySelector('#remoteVideo').srcObject = remoteStream;
+        
+        document.querySelector('#createBtn').disabled = false;
+        document.querySelector('#joinBtn').disabled = false;
+        document.querySelector('#pipBtn').disabled = false;
+        statusEl.innerText = "Status: Media Ready";
+    };
+
+    // Picture in Picture
+    document.querySelector('#pipBtn').onclick = async () => {
+        if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+        } else {
+            await document.querySelector('#remoteVideo').requestPictureInPicture();
+        }
+    };
+
+    // Create Room (Caller)
+    document.querySelector('#createBtn').onclick = async () => {
+        const roomRef = doc(collection(db, 'rooms'));
+        statusEl.innerText = "Status: Creating Room...";
+
+        peerConnection = new RTCPeerConnection(configuration);
+        setupStreamListeners(roomRef, false);
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        await setDoc(roomRef, {
+            offer: { type: offer.type, sdp: offer.sdp },
+            callerId: auth.currentUser.uid,
+            status: 'waiting',
+            createdAt: serverTimestamp()
         });
 
-        // 2. Window-in-Window (PiP)
-        pipBtn.addEventListener('click', async () => {
-            try {
-                if (document.pictureInPictureElement) {
-                    await document.exitPictureInPicture();
-                } else {
-                    await remoteVideo.requestPictureInPicture();
-                }
-            } catch (error) {
-                console.error("PiP failed", error);
+        document.querySelector('#currentRoom').innerText = `Room ID: ${roomRef.id}`;
+        
+        // Listen for the callee's answer
+        onSnapshot(roomRef, async snap => {
+            const data = snap.data();
+            if (!peerConnection.currentRemoteDescription && data?.answer) {
+                statusEl.innerText = "Status: Connected";
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
             }
         });
+    };
 
-        // 3. Create Room (Caller)
-        createBtn.addEventListener('click', async () => {
-            const roomRef = doc(collection(db, 'rooms'));
+    // Join Room (Callee)
+    document.querySelector('#joinBtn').onclick = async () => {
+        const roomId = prompt("Paste Room ID:");
+        if (!roomId) return;
+
+        const roomRef = doc(db, 'rooms', roomId);
+        const roomSnapshot = await getDoc(roomRef);
+
+        if (roomSnapshot.exists()) {
+            statusEl.innerText = "Status: Joining Room...";
             peerConnection = new RTCPeerConnection(configuration);
+            setupStreamListeners(roomRef, true);
+
+            const offer = roomSnapshot.data().offer;
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
             
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
 
-            // Collect ICE
-            const callerCandidatesCollection = collection(roomRef, 'callerCandidates');
-            peerConnection.addEventListener('icecandidate', event => {
-                if (event.candidate) addDoc(callerCandidatesCollection, event.candidate.toJSON());
+            await updateDoc(roomRef, {
+                answer: { type: answer.type, sdp: answer.sdp },
+                calleeId: auth.currentUser.uid,
+                status: 'active'
             });
+            statusEl.innerText = "Status: Connected";
+        } else {
+            alert("Room not found!");
+        }
+    };
 
-            // Create Offer
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            await setDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
-            
-            roomId = roomRef.id;
-            document.querySelector('#currentRoom').innerText = `Room ID: ${roomId} (Send this to your friend)`;
+    function setupStreamListeners(roomRef, isCallee) {
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-            // Listen for Remote Stream
-            peerConnection.addEventListener('track', event => {
-                event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-            });
+        const localColl = isCallee ? 'calleeCandidates' : 'callerCandidates';
+        const remoteColl = isCallee ? 'callerCandidates' : 'calleeCandidates';
 
-            // Listen for Answer
-            onSnapshot(roomRef, async snapshot => {
-                const data = snapshot.data();
-                if (!peerConnection.currentRemoteDescription && data?.answer) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        // Collect local ICE candidates
+        peerConnection.onicecandidate = e => {
+            if (e.candidate) {
+                addDoc(collection(roomRef, localColl), e.candidate.toJSON());
+            }
+        };
+
+        // Display remote stream
+        peerConnection.ontrack = e => {
+            e.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+        };
+
+        // Listen for remote ICE candidates
+        onSnapshot(collection(roomRef, remoteColl), snap => {
+            snap.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                 }
             });
-
-            // Listen for Remote ICE
-            onSnapshot(collection(roomRef, 'calleeCandidates'), snapshot => {
-                snapshot.docChanges().forEach(change => {
-                    if (change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                });
-            });
         });
+    }
+</script>
 
-        // 4. Join Room (Callee)
-        joinBtn.addEventListener('click', async () => {
-            roomId = prompt("Enter Room ID:");
-            const roomRef = doc(db, 'rooms', roomId);
-            const roomSnapshot = await getDoc(roomRef);
-
-            if (roomSnapshot.exists()) {
-                peerConnection = new RTCPeerConnection(configuration);
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-                const calleeCandidatesCollection = collection(roomRef, 'calleeCandidates');
-                peerConnection.addEventListener('icecandidate', event => {
-                    if (event.candidate) addDoc(calleeCandidatesCollection, event.candidate.toJSON());
-                });
-
-                peerConnection.addEventListener('track', event => {
-                    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-                });
-
-                const offer = roomSnapshot.data().offer;
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
-
-                onSnapshot(collection(roomRef, 'callerCandidates'), snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        if (change.type === 'added') peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                    });
-                });
-            }
-        });
-    </script>
 </body>
 </html>
