@@ -1,36 +1,19 @@
 const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
 const app = express();
-
-app.use(cors({ origin: 'https://rileysargent.github.io' })); // Important!
 app.use(express.json());
 
-// Auth for your school 440GB OneDrive
-async function getOneDriveToken() {
-    const res = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', 
-        new URLSearchParams({
-            client_id: process.env.CLIENT_ID,
-            grant_type: 'refresh_token',
-            refresh_token: process.env.REFRESH_TOKEN
-        }));
-    return res.data.access_token;
-}
+let playerPositions = {};
 
-app.post('/chat', async (req, res) => {
-    const { message } = req.body;
-    
-    // 1. Get reply from Gemini
-    const geminiRes = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${process.env.GEMINI_KEY}`, {
-        contents: [{ parts: [{ text: message }] }]
-    });
-    
-    const botReply = geminiRes.data.candidates[0].content.parts[0].text;
-    
-    // 2. (Optional) Log this interaction to your 440GB OneDrive
-    // You'd use the token from getOneDriveToken() here
-
-    res.json({ reply: botReply });
+// The endpoint Minecraft hits
+app.post('/api/update', (req, res) => {
+    const { username, x, y, z } = req.body;
+    playerPositions[username] = { x, y, z, lastUpdate: Date.now() };
+    res.status(200).send("OK");
 });
 
-app.listen(process.env.PORT || 10000);
+// The endpoint your Web Client hits to see where everyone is
+app.get('/api/positions', (req, res) => {
+    res.json(playerPositions);
+});
+
+app.listen(process.env.PORT || 3000);
