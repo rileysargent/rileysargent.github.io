@@ -1,21 +1,105 @@
-body { margin: 0; overflow: hidden; background: #000; }
-#canvas { width: 100vw; height: 100vh; display: block; }
-
-/* The Admin Panel - Hidden by default */
-#admin-panel { 
-    display: none; /* This hides it initially */
-    position: absolute; top: 50%; left: 50%; 
-    transform: translate(-50%, -50%); 
-    background: rgba(0, 20, 0, 0.95); 
-    border: 2px solid #0f0; padding: 20px; 
-    width: 400px; z-index: 1000; color: #0f0;
-    box-shadow: 0 0 20px #0f0;
+/* style.css */
+:root {
+    --mc-green: #38e038;
+    --mc-dark: #1e1e1e;
+    --mc-gray: #313131;
+    --accent: #55ff55;
 }
 
-/* Close Button (X) */
-.close-btn {
-    position: absolute; top: 5px; right: 10px;
-    cursor: pointer; font-weight: bold; color: #f00;
+body {
+    background-color: var(--mc-dark);
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
 }
 
-#cmd-input { width: 100%; background: #000; color: #0f0; border: 1px solid #0f0; padding: 10px; }
+/* The main container for the VC interface */
+#app-container {
+    background: rgba(49, 49, 49, 0.9);
+    border: 2px solid #000;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    width: 350px;
+    text-align: center;
+}
+
+h2 {
+    color: var(--mc-green);
+    text-shadow: 2px 2px #000;
+    margin-top: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Status Indicator */
+#status-bar {
+    background: #000;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+.connected { color: var(--mc-green); font-weight: bold; }
+.disconnected { color: #ff5555; font-weight: bold; }
+
+/* Player List Styling */
+#player-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border-top: 1px solid #444;
+    padding-top: 10px;
+}
+
+.player-card {
+    background: var(--mc-gray);
+    border: 1px solid #555;
+    margin: 8px 0;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+    transition: transform 0.1s;
+}
+
+.player-card:hover {
+    border-color: var(--mc-green);
+    transform: scale(1.02);
+}
+
+.voice-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #444;
+}
+
+/* Glow effect when someone is actually speaking */
+.is-speaking {
+    background: var(--mc-green);
+    box-shadow: 0 0 10px var(--mc-green);
+}
+
+/* Simple Button for Mic Toggle */
+#mic-toggle {
+    background: #555;
+    border: 2px solid #000;
+    color: white;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+#mic-toggle.active {
+    background: var(--mc-green);
+    color: #000;
+}
