@@ -3,202 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperchat Pro</title>
-    <style>
-        :root { --primary: #7289da; --speaking: #43b581; --bg: #0b0b0b; --panel: #18191c; }
-        body { font-family: 'Whitney', 'Helvetica Neue', sans-serif; background: var(--bg); color: #dcddde; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        header { padding: 12px 20px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #202225; }
-        
-        .main-layout { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 280px; background: #2f3136; padding: 15px; border-right: 1px solid #202225; overflow-y: auto; }
-
-        #videoGrid { 
-            flex: 1; display: flex; flex-wrap: wrap; gap: 10px; padding: 15px; background: #36393f; overflow-y: auto; align-content: flex-start;
-        }
-
-        .video-box { 
-            position: relative; background: #000; border-radius: 8px; overflow: hidden; border: 3px solid transparent; 
-            resize: both; min-width: 200px; min-height: 150px; width: 320px; height: 240px;
-        }
-        
-        .speaking { border-color: var(--speaking) !important; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Chat Styling */
-        .chat-area { width: 320px; background: #2f3136; display: flex; flex-direction: column; border-left: 1px solid #202225; }
-        #chatBox { flex: 1; overflow-y: auto; padding: 15px; font-family: 'Consolas', monospace; font-size: 0.9em; }
-        .msg { margin-bottom: 10px; padding: 8px; background: #36393f; border-radius: 4px; white-space: pre-wrap; }
-        .chat-input-wrap { padding: 15px; background: #40444b; display: flex; gap: 8px; }
-
-        .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85em; transition: 0.2s; }
-        .btn-p { background: var(--primary); color: white; }
-        .btn-d { background: #f04747; color: white; }
-        
-        input { background: #202225; color: white; border: 1px solid #202225; padding: 10px; border-radius: 4px; outline: none; flex: 1; }
-        h4 { margin: 0 0 10px 0; font-size: 0.75rem; color: #8e9297; text-transform: uppercase; }
-        .hidden { display: none !important; }
-    </style>
+    <title>SimpleVC | Bedrock Edition</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-<header>
-    <div style="display:flex; gap:12px; align-items:center;">
-        <b style="color:var(--primary); font-size:1.2em;">HYPERCHAT</b>
-        <input type="text" id="userName" placeholder="Username" style="width:140px; flex:none;">
-        <button class="btn btn-p" id="createBtn" disabled>Loading...</button>
-        <button class="btn btn-d hidden" id="hangupBtn">Leave</button>
-        <label style="font-size:0.8em;"><input type="checkbox" id="globalSizeToggle"> Global Sync (Host)</label>
-    </div>
-    <div id="statusInfo" style="font-size:0.8em; color:#43b581;">Encrypted Connection</div>
-</header>
+    <div id="app-container">
+        <h2>SimpleVC Bridge</h2>
+        
+        <div id="status-bar">
+            Status: <span id="status-text" class="disconnected">Connecting...</span>
+        </div>
 
-<div class="main-layout">
-    <div class="sidebar">
-        <h4>Public Lobby</h4>
-        <div id="lobby">Searching...</div>
-    </div>
+        <div id="setup">
+            <input type="text" id="username" placeholder="Minecraft Username" style="padding: 10px; width: 80%; margin-bottom: 10px; border-radius: 4px; border: none;">
+            <button id="start-btn" onclick="initVoice()">Connect to Voice</button>
+        </div>
 
-    <div id="videoGrid">
-        <div class="video-box" id="localBox">
-            <video id="localVideo" muted autoplay playsinline></video>
+        <div id="vc-controls" style="display: none;">
+            <div id="player-list">
+                </div>
+            
+            <button id="mic-toggle" onclick="toggleMic()">🎤 Mute Mic</button>
         </div>
     </div>
 
-    <div class="chat-area">
-        <h4>Group Chat</h4>
-        <div id="chatBox"></div>
-        <div class="chat-input-wrap">
-            <input type="text" id="chatInput" placeholder="Type message or ASCII...">
-            <button class="btn btn-p" id="sendBtn">SEND</button>
-        </div>
-    </div>
-</div>
+    <script>
+        const socket = io();
+        let myPeer;
+        let localStream;
+        let myUsername = "";
+        const activeCalls = {};
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot, setDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        async function initVoice() {
+            myUsername = document.getElementById('username').value;
+            if (!myUsername) return alert("Enter your Minecraft Name!");
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-        authDomain: "hyperspace-r.firebaseapp.com",
-        projectId: "hyperspace-r",
-        storageBucket: "hyperspace-r.firebasestorage.app",
-        messagingSenderId: "1050495683444",
-        appId: "1:1050495683444:web:4a3c2b294542cb8d313a21"
-    };
+            // 1. Get Microphone
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                document.getElementById('setup').style.display = 'none';
+                document.getElementById('vc-controls').style.display = 'block';
+                document.getElementById('status-text').innerText = "Voice Online";
+                document.getElementById('status-text').className = "connected";
+            } catch (err) {
+                alert("Microphone access denied!");
+                return;
+            }
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    let localStream = null, currentRoomId = null, isHost = false;
-
-    // --- 1. MEDIA & NOISE CANCELLATION ---
-    window.addEventListener('load', async () => {
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: true, 
-                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+            // 2. Initialize PeerJS with your Minecraft Name as ID
+            myPeer = new Peer(myUsername, {
+                host: 'simplevc.onrender.com', // Replace with your Render Peer server or use PeerJS cloud
+                secure: true,
+                port: 443
             });
-            document.getElementById('localVideo').srcObject = localStream;
-            document.getElementById('createBtn').disabled = false;
-            document.getElementById('createBtn').innerText = "Create Call";
 
-            await signInAnonymously(auth);
-            updateLobby();
-        } catch (e) { alert("Media error. Please check camera permissions."); }
-    });
+            // 3. Listen for incoming "calls" (other players nearby)
+            myPeer.on('call', call => {
+                call.answer(localStream);
+                setupRemoteAudio(call);
+            });
 
-    // --- 2. CHAT SYSTEM (ASCII & ENTER KEY) ---
-    const sendMsg = async () => {
-        const input = document.getElementById('chatInput');
-        if (!input.value.trim() || !currentRoomId) return;
+            // 4. Tell the server we are ready
+            socket.emit('player-ready', { username: myUsername });
+        }
 
-        await addDoc(collection(db, `rooms/${currentRoomId}/messages`), {
-            user: document.getElementById('userName').value || "User",
-            text: input.value,
-            timestamp: serverTimestamp()
-        });
-        input.value = '';
-    };
-
-    document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('chatInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMsg();
-    });
-
-    function listenChat(roomId) {
-        const q = query(collection(db, `rooms/${roomId}/messages`), orderBy('timestamp', 'asc'));
-        onSnapshot(q, (snap) => {
-            const box = document.getElementById('chatBox');
-            box.innerHTML = snap.docs.map(d => `<div class="msg"><b>${d.data().user}:</b>\n${d.data().text}</div>`).join('');
-            box.scrollTop = box.scrollHeight;
-        });
-    }
-
-    // --- 3. GLOBAL RESIZING & TAB MANAGEMENT ---
-    const resizeObserver = new ResizeObserver(entries => {
-        if (!isHost || !document.getElementById('globalSizeToggle').checked || !currentRoomId) return;
-        for (let entry of entries) {
-            updateDoc(doc(db, 'rooms', currentRoomId), {
-                w: entry.contentRect.width, h: entry.contentRect.height
+        function setupRemoteAudio(call) {
+            const audio = document.createElement('audio');
+            call.on('stream', remoteStream => {
+                audio.srcObject = remoteStream;
+                audio.play();
+                // This is where you'd link the PannerNode for 3D sound!
             });
         }
-    });
-    resizeObserver.observe(document.getElementById('localBox'));
 
-    document.addEventListener("visibilitychange", () => {
-        localStream.getVideoTracks().forEach(t => t.enabled = !document.hidden);
-    });
+        function toggleMic() {
+            const audioTrack = localStream.getAudioTracks()[0];
+            audioTrack.enabled = !audioTrack.enabled;
+            const btn = document.getElementById('mic-toggle');
+            btn.innerText = audioTrack.enabled ? "🎤 Mute Mic" : "🔇 Unmuted";
+            btn.classList.toggle('active', !audioTrack.enabled);
+        }
 
-    // --- 4. ROOMS & LOBBY ---
-    function updateLobby() {
-        onSnapshot(collection(db, 'rooms'), (snap) => {
-            const container = document.getElementById('lobby');
-            container.innerHTML = '';
-            snap.forEach(d => {
-                const card = document.createElement('div');
-                card.style = "background:#40444b; padding:10px; border-radius:4px; margin-bottom:8px;";
-                card.innerHTML = `<b>${d.data().callerName}</b><br><button class="btn btn-p" style="width:100%;margin-top:5px;" onclick="knock('${d.id}')">Join</button>`;
-                container.appendChild(card);
+        // Update the list of players based on Minecraft data
+        socket.on('positions-update', (data) => {
+            const list = document.getElementById('player-list');
+            list.innerHTML = "";
+            Object.keys(data).forEach(player => {
+                if(player === myUsername) return;
+                list.innerHTML += `
+                    <div class="player-card">
+                        <span>${player}</span>
+                        <div class="voice-indicator"></div>
+                    </div>
+                `;
             });
         });
-    }
-
-    window.knock = async (roomId) => {
-        const reqRef = doc(db, `rooms/${roomId}/requests`, auth.currentUser.uid);
-        await setDoc(reqRef, { name: document.getElementById('userName').value || "Guest", status: 'waiting' });
-        onSnapshot(reqRef, (snap) => {
-            if (snap.data()?.status === 'accepted') {
-                currentRoomId = roomId;
-                listenChat(roomId);
-                toggleUI(true);
-            }
-        });
-    };
-
-    document.getElementById('createBtn').onclick = async () => {
-        const roomRef = doc(collection(db, 'rooms'));
-        currentRoomId = roomRef.id; isHost = true;
-        await setDoc(roomRef, { 
-            callerName: document.getElementById('userName').value || "Host", 
-            lastActive: serverTimestamp() 
-        });
-        listenChat(currentRoomId);
-        toggleUI(true);
-        
-        // Auto-delete timer logic (10 min heartbeat)
-        setInterval(() => updateDoc(roomRef, { lastActive: serverTimestamp() }), 30000);
-    };
-
-    function toggleUI(on) {
-        document.getElementById('createBtn').classList.toggle('hidden', on);
-        document.getElementById('hangupBtn').classList.toggle('hidden', !on);
-    }
-
-    document.getElementById('hangupBtn').onclick = () => location.reload();
-</script>
+    </script>
 </body>
 </html>
