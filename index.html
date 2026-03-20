@@ -2,201 +2,208 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hyperspace Studio | Engine v2.5</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>Hyperspace | Home & Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         :root {
-            --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24;
-            --border: rgba(255, 255, 255, 0.07); --accent: #6c63ff;
-            --text: #f0f0ff; --muted: #6b6b8a; --success: #4ade80; --error: #f87171;
-            --font: 'Syne', sans-serif; --mono: 'JetBrains Mono', monospace;
+            --bg: #0b0b0e; --panel: #16161c; --border: rgba(255,255,255,0.06);
+            --accent: #ffffff; --text: #ffffff; --muted: #8e8e93;
+            --font: 'Inter', sans-serif;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
-        body, html { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; height: 100vh; }
 
-        /* --- UI OVERLAYS --- */
-        .ui-layer { position: fixed; inset: 0; z-index: 100; pointer-events: none; display: none; }
-        .ui-layer.active { display: flex; }
-        .pointer { pointer-events: all; }
-
-        /* --- STUDIO LAYOUT --- */
-        #studio-shell { flex-direction: row; height: 100%; }
-        .studio-nav { height: 42px; width: 100%; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; position: absolute; top: 0; }
-        .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); margin-top: 42px; display: flex; flex-direction: column; pointer-events: all; }
-        .viewport { flex: 1; margin-top: 42px; position: relative; pointer-events: all; }
+        /* --- HOME UI (IMAGE STYLE) --- */
+        #layer-home { display: none; flex-direction: column; padding: 40px 60px; overflow-y: auto; height: 100%; pointer-events: all; }
+        .home-nav { display: flex; gap: 30px; align-items: center; margin-bottom: 40px; }
+        .nav-pill { padding: 8px 20px; border-radius: 20px; background: rgba(255,255,255,0.1); font-weight: 600; cursor: pointer; }
+        .nav-pill.active { background: #fff; color: #000; }
         
-        /* --- PAUSE MENU --- */
-        #pause-menu { background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); align-items: center; justify-content: center; flex-direction: column; gap: 15px; }
+        .section-label { font-size: 18px; font-weight: 700; margin: 20px 0; }
+        .h-row { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
+        .h-row::-webkit-scrollbar { height: 4px; }
+        .h-row::-webkit-scrollbar-thumb { background: var(--border); }
 
-        /* --- BUTTONS --- */
-        .btn { padding: 10px 20px; border-radius: 6px; border: none; font-family: var(--font); font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-danger { background: rgba(248,113,113,0.1); border: 1px solid var(--error); color: var(--error); }
-        .btn:hover { transform: scale(1.05); }
+        .game-card { min-width: 160px; height: 160px; background: var(--panel); border-radius: 12px; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
+        .game-card:hover { transform: scale(1.05); border-color: var(--accent); }
+        .game-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
+        .game-card-label { position: absolute; bottom: 8px; left: 8px; font-size: 12px; font-weight: 600; }
 
-        /* --- HUD --- */
-        #xhair { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 4px; height: 4px; background: white; border-radius: 50%; display: none; }
-        
-        canvas { display: block; }
+        .friend-circle { min-width: 70px; height: 70px; border-radius: 50%; background: var(--panel); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+
+        /* --- STUDIO UI --- */
+        #layer-studio { display: none; height: 100%; flex-direction: row; }
+        .studio-sidebar { width: 280px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; pointer-events: all; }
+        .vp-container { flex: 1; position: relative; pointer-events: all; }
+        .toolbar { height: 45px; background: #111; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; gap: 10px; }
+
+        /* --- STATE OVERLAYS --- */
+        .layer.active { display: flex; }
+        canvas { display: block; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
 
-    <div id="layer-menu" class="ui-layer active pointer" style="background: radial-gradient(circle at center, #161625 0%, #0a0a0f 100%); align-items:center; justify-content:center; flex-direction:column;">
-        <h1 style="font-size: 3rem; margin-bottom: 20px;">Hyper<span>space</span></h1>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" onclick="setState('studio')">Open Studio</button>
-            <button class="btn btn-primary" onclick="setState('play')">Quick Play</button>
+    <div id="layer-home" class="layer active">
+        <div class="home-nav">
+            <div class="nav-pill active">🏠 Home</div>
+            <div class="nav-pill">👤 Avatar</div>
+            <div class="nav-pill">💬 Connect</div>
+        </div>
+
+        <div class="section-label">Friends (18)</div>
+        <div class="h-row">
+            <div class="friend-circle" onclick="alert('Viewing Friend Profile')">🙂</div>
+            <div class="friend-circle">😎</div>
+            <div class="friend-circle">🤖</div>
+            <div class="friend-circle">🐱</div>
+            <div class="friend-circle">🦊</div>
+        </div>
+
+        <div class="section-label">Continue</div>
+        <div class="h-row">
+            <div class="game-card" onclick="setState('play')">
+                <div class="game-card-label">The Hyperspace Proj...</div>
+            </div>
+            <div class="game-card" onclick="setState('studio')">
+                <div class="game-card-label" style="color: var(--accent)">Edit in Studio</div>
+            </div>
+            <div class="game-card"></div>
+            <div class="game-card"></div>
         </div>
     </div>
 
-    <div id="layer-studio" class="ui-layer">
-        <div id="studio-shell" style="display:flex; width:100%;">
-            <nav class="studio-nav">
-                <span style="font-weight:800; font-size:12px; opacity:0.6; margin-right:20px;">STUDIO v2.5</span>
-                <button class="btn-primary" style="padding:4px 12px; font-size:11px;" onclick="setState('play')">PLAY</button>
-            </nav>
-            <aside class="sidebar">
-                <div style="padding:10px; font-size:10px; font-weight:800; border-bottom:1px solid var(--border);">EXPLORER</div>
-                <div id="explorer-list" style="flex:1; padding:10px;"></div>
-            </aside>
-            <main class="viewport" id="v-port"></main>
-            <aside class="sidebar" style="border-left:1px solid var(--border); border-right:none; width:280px;">
-                <div style="padding:10px; font-size:10px; font-weight:800; border-bottom:1px solid var(--border);">PROPERTIES</div>
-                <div id="prop-list" style="padding:15px; font-size:12px; color:var(--muted);">Select a part to edit...</div>
-            </aside>
-        </div>
+    <div id="layer-studio" class="layer">
+        <aside class="studio-sidebar">
+            <div style="padding:15px; font-size:11px; font-weight:800; border-bottom:1px solid var(--border);">EXPLORER</div>
+            <div id="explorer-list" style="padding:10px; font-size:12px;"></div>
+        </aside>
+        
+        <main class="vp-container">
+            <div class="toolbar">
+                <button onclick="setState('play')" style="padding:4px 12px; background:#fff; color:#000; border:none; border-radius:4px; font-weight:800; font-size:11px; cursor:pointer;">PLAY</button>
+                <button onclick="setState('home')" style="background:none; color:#fff; border:1px solid #444; border-radius:4px; font-size:11px; padding:3px 10px; cursor:pointer;">HOME</button>
+            </div>
+            <div id="viewport" style="width:100%; height:calc(100% - 45px);"></div>
+        </main>
+
+        <aside class="studio-sidebar" style="border-right:none; border-left:1px solid var(--border); width:300px;">
+            <div style="padding:15px; font-size:11px; font-weight:800; border-bottom:1px solid var(--border);">PROPERTIES</div>
+            <div id="prop-box" style="padding:20px; color:var(--muted); font-size:12px;">No Selection</div>
+        </aside>
     </div>
 
-    <div id="layer-pause" class="ui-layer pointer">
-        <div id="pause-menu" style="display:flex; width:100%; height:100%;">
-            <h2 style="font-size:2rem; margin-bottom:10px;">Paused</h2>
-            <button class="btn btn-primary" onclick="resumePlay()">Resume</button>
-            <button class="btn btn-danger" onclick="setState('studio')">Back to Studio</button>
-        </div>
-    </div>
-
-    <div id="xhair"></div>
-
-    <script type="module">
-        // --- GLOBALS ---
+    <script>
+        // --- 3D ENGINE ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0f);
+        scene.background = new THREE.Color(0x050508);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        const orbit = new THREE.OrbitControls(camera, renderer.domElement);
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
+        
         // Lighting
         scene.add(new THREE.AmbientLight(0xffffff, 0.5));
         const sun = new THREE.DirectionalLight(0xffffff, 0.8);
         sun.position.set(10, 20, 10);
         scene.add(sun);
 
-        // --- GAME ENGINE LOGIC ---
-        let state = 'menu';
+        // Data
         let instances = [];
         let selected = null;
-        let player = { x: 0, y: 1, z: 10, vy: 0, yaw: 0, zoom: 5 };
+        let isRightMouseDown = false;
+        let state = 'home';
+        let camPhi = Math.PI/4, camTheta = Math.PI/4, camDist = 20;
 
-        function createPart(name, pos, size, color = 0x6c63ff) {
-            const mesh = new THREE.Mesh(
-                new THREE.BoxGeometry(size.x, size.y, size.z),
-                new THREE.MeshStandardMaterial({ color })
-            );
+        function createPart(name, pos, size, col=0x6c63ff) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z), new THREE.MeshStandardMaterial({color:col}));
             mesh.position.set(pos.x, pos.y, pos.z);
             scene.add(mesh);
-            const inst = { id: Math.random(), name, mesh };
-            instances.push(inst);
+            instances.push({name, mesh});
             updateExplorer();
-            return inst;
         }
 
-        // --- INPUTS ---
+        // --- CONTROLS ---
         window.addEventListener('mousedown', (e) => {
-            if (state !== 'studio') return;
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(instances.map(i => i.mesh));
+            if (e.button === 2) isRightMouseDown = true; // Right click
             
-            if (intersects.length > 0) {
-                selected = instances.find(i => i.mesh === intersects[0].object);
-                document.getElementById('prop-list').innerHTML = `<b>Name:</b> ${selected.name}<br><b>Pos:</b> ${selected.mesh.position.x.toFixed(1)}, ${selected.mesh.position.y.toFixed(1)}, ${selected.mesh.position.z.toFixed(1)}`;
-            } else {
-                selected = null;
-                document.getElementById('prop-list').innerText = "Select a part to edit...";
+            // Selection Logic
+            if (state === 'studio' && e.button === 0) {
+                const mouse = new THREE.Vector2(
+                    (e.clientX / window.innerWidth) * 2 - 1,
+                    -(e.clientY / window.innerHeight) * 2 + 1
+                );
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mouse, camera);
+                const hits = raycaster.intersectObjects(instances.map(i => i.mesh));
+                
+                if (hits.length > 0) {
+                    selected = instances.find(i => i.mesh === hits[0].object);
+                    document.getElementById('prop-box').innerHTML = `<b>Name:</b> ${selected.name}<br><b>Type:</b> Part`;
+                } else {
+                    selected = null;
+                    document.getElementById('prop-box').innerText = "No Selection";
+                }
             }
+        });
+
+        window.addEventListener('mouseup', (e) => { if(e.button === 2) isRightMouseDown = false; });
+        window.oncontextmenu = (e) => e.preventDefault(); // Disable context menu
+
+        window.addEventListener('mousemove', (e) => {
+            if (isRightMouseDown && state === 'studio') {
+                camTheta -= e.movementX * 0.005;
+                camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, camPhi - e.movementY * 0.005));
+            }
+        });
+
+        window.addEventListener('wheel', (e) => {
+            camDist = Math.max(5, Math.min(100, camDist + e.deltaY * 0.05));
         });
 
         // --- STATE MANAGER ---
         window.setState = (s) => {
             state = s;
-            document.querySelectorAll('.ui-layer').forEach(l => l.classList.remove('active'));
-            document.getElementById('xhair').style.display = 'none';
-            orbit.enabled = (s === 'studio');
-
-            if (s === 'menu') document.getElementById('layer-menu').classList.add('active');
+            document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
+            if (s === 'home') document.getElementById('layer-home').classList.add('active');
             if (s === 'studio') {
                 document.getElementById('layer-studio').classList.add('active');
-                camera.position.set(10, 10, 10);
-                camera.lookAt(0,0,0);
+                document.getElementById('viewport').appendChild(renderer.domElement);
+                updateLayout();
             }
             if (s === 'play') {
-                document.getElementById('xhair').style.display = 'block';
+                document.body.appendChild(renderer.domElement);
                 renderer.domElement.requestPointerLock();
             }
         };
 
-        window.resumePlay = () => {
-            state = 'play';
-            document.getElementById('layer-pause').classList.remove('active');
-            renderer.domElement.requestPointerLock();
-        };
-
-        document.addEventListener('pointerlockchange', () => {
-            if (!document.pointerLockElement && state === 'play') {
-                state = 'pause';
-                document.getElementById('layer-pause').classList.add('active');
-            }
-        });
-
         function updateExplorer() {
-            const list = document.getElementById('explorer-list');
-            list.innerHTML = instances.map(i => `<div style="font-size:11px; padding:2px;">📦 ${i.name}</div>`).join('');
+            document.getElementById('explorer-list').innerHTML = instances.map(i => `<div>📦 ${i.name}</div>`).join('');
         }
 
-        // --- CORE LOOP ---
+        function updateLayout() {
+            const vp = document.getElementById('viewport');
+            renderer.setSize(vp.clientWidth, vp.clientHeight);
+            camera.aspect = vp.clientWidth / vp.clientHeight;
+            camera.updateProjectionMatrix();
+        }
+
         function animate() {
             requestAnimationFrame(animate);
-
-            if (state === 'play') {
-                // Third Person Camera Logic
-                const offset = new THREE.Vector3(0, 2, player.zoom);
-                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
-                camera.position.set(player.x + offset.x, player.y + offset.y, player.z + offset.z);
-                camera.lookAt(player.x, player.y + 1, player.z);
-
-                // Simple Gravity/Collision
-                player.vy -= 0.01;
-                player.y += player.vy;
-                if (player.y < 0.5) { player.y = 0.5; player.vy = 0; }
-            }
+            
+            // Orbit Camera Math
+            camera.position.x = camDist * Math.sin(camPhi) * Math.cos(camTheta);
+            camera.position.y = camDist * Math.cos(camPhi);
+            camera.position.z = camDist * Math.sin(camPhi) * Math.sin(camTheta);
+            camera.lookAt(0, 0, 0);
 
             renderer.render(scene, camera);
         }
 
-        // Initial setup
-        createPart("Baseplate", {x:0, y:-0.5, z:0}, {x:100, y:1, z:100}, 0x111118);
-        createPart("SpawnBlock", {x:0, y:0.5, z:0}, {x:4, y:1, z:4}, 0x4ade80);
+        createPart("Baseplate", {x:0, y:-0.5, z:0}, {x:50, y:1, z:50}, 0x16161d);
+        createPart("Spawn", {x:0, y:0.5, z:0}, {x:4, y:1, z:4});
         
         animate();
+        window.addEventListener('resize', updateLayout);
     </script>
 </body>
 </html>
