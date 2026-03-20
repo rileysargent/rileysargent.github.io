@@ -2,230 +2,201 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace Studio | Engine</title>
+    <title>Hyperspace Studio | Engine v2.5</title>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         :root {
             --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24;
             --border: rgba(255, 255, 255, 0.07); --accent: #6c63ff;
-            --text: #f0f0ff; --muted: #6b6b8a; --success: #4ade80;
+            --text: #f0f0ff; --muted: #6b6b8a; --success: #4ade80; --error: #f87171;
             --font: 'Syne', sans-serif; --mono: 'JetBrains Mono', monospace;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         body, html { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
 
-        /* --- UI STATES --- */
-        .ui-screen { position: fixed; inset: 0; display: none; flex-direction: column; z-index: 100; }
-        .active-screen { display: flex; }
+        /* --- UI OVERLAYS --- */
+        .ui-layer { position: fixed; inset: 0; z-index: 100; pointer-events: none; display: none; }
+        .ui-layer.active { display: flex; }
+        .pointer { pointer-events: all; }
 
-        /* --- MAIN MENU --- */
-        #screen-menu { background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%); align-items: center; justify-content: center; }
-        .menu-card { text-align: center; animation: fadeIn 0.8s ease; }
-        .logo-large { font-size: 64px; font-weight: 800; margin-bottom: 10px; }
-        .logo-large span { color: var(--accent); text-shadow: 0 0 20px rgba(108,99,255,0.5); }
-        .menu-btns { display: flex; gap: 15px; margin-top: 30px; }
-
-        /* --- STUDIO UI --- */
-        #screen-studio { flex-direction: row; }
-        .studio-nav { height: 42px; position: fixed; top: 0; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; z-index: 200; }
-        .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); margin-top: 42px; display: flex; flex-direction: column; }
-        .prop-sidebar { width: 280px; border-right: none; border-left: 1px solid var(--border); }
-        .viewport { flex: 1; margin-top: 42px; background: #000; position: relative; }
-        .panel-h { padding: 10px; font-size: 11px; font-weight: 800; color: var(--muted); border-bottom: 1px solid var(--border); letter-spacing: 1px; }
-        .tree-item { padding: 6px 12px; font-family: var(--mono); font-size: 12px; cursor: pointer; transition: 0.2s; }
-        .tree-item:hover { background: var(--surface2); }
-        .tree-item.selected { background: var(--accent); color: white; }
+        /* --- STUDIO LAYOUT --- */
+        #studio-shell { flex-direction: row; height: 100%; }
+        .studio-nav { height: 42px; width: 100%; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; position: absolute; top: 0; }
+        .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); margin-top: 42px; display: flex; flex-direction: column; pointer-events: all; }
+        .viewport { flex: 1; margin-top: 42px; position: relative; pointer-events: all; }
+        
+        /* --- PAUSE MENU --- */
+        #pause-menu { background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); align-items: center; justify-content: center; flex-direction: column; gap: 15px; }
 
         /* --- BUTTONS --- */
-        .btn { padding: 12px 28px; border-radius: 8px; border: none; font-family: var(--font); font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; font-family: var(--font); font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--accent); color: white; }
-        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.2); }
+        .btn-danger { background: rgba(248,113,113,0.1); border: 1px solid var(--error); color: var(--error); }
+        .btn:hover { transform: scale(1.05); }
 
         /* --- HUD --- */
-        #play-hud { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: none; gap: 10px; pointer-events: none; }
-        #xhair { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; display: none; pointer-events: none; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #xhair { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 4px; height: 4px; background: white; border-radius: 50%; display: none; }
+        
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="screen-menu" class="ui-screen active-screen">
-        <div class="menu-card">
-            <div class="logo-large">Hyper<span>space</span></div>
-            <p style="color:var(--muted)">v2.0.4 — Build Logic Engine</p>
-            <div class="menu-btns">
-                <button class="btn btn-primary" onclick="switchState('studio')">Open Studio</button>
-                <button class="btn btn-ghost" onclick="switchState('play')">Quick Play</button>
-            </div>
+    <div id="layer-menu" class="ui-layer active pointer" style="background: radial-gradient(circle at center, #161625 0%, #0a0a0f 100%); align-items:center; justify-content:center; flex-direction:column;">
+        <h1 style="font-size: 3rem; margin-bottom: 20px;">Hyper<span>space</span></h1>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" onclick="setState('studio')">Open Studio</button>
+            <button class="btn btn-primary" onclick="setState('play')">Quick Play</button>
         </div>
     </div>
 
-    <div id="screen-studio" class="ui-screen">
-        <nav class="studio-nav">
-            <div style="font-weight:800; font-size:14px; margin-right:20px;">⬡ Studio</div>
-            <button class="btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="switchState('play')">▶ Run</button>
-            <div style="flex:1"></div>
-            <button class="btn-ghost" style="padding:5px 12px; font-size:12px; color:var(--error)" onclick="switchState('menu')">Exit</button>
-        </nav>
-        
-        <aside class="sidebar">
-            <div class="panel-h">EXPLORER</div>
-            <div id="explorer-tree"></div>
-        </aside>
-
-        <main class="viewport" id="studio-viewport"></main>
-
-        <aside class="sidebar prop-sidebar">
-            <div class="panel-h">PROPERTIES</div>
-            <div id="properties-content" style="padding:15px; font-size:12px; color:var(--muted)">Select an instance...</div>
-            <div style="margin-top:auto; padding:15px; border-top:1px solid var(--border)">
-                <button class="btn btn-primary" style="width:100%; font-size:12px;" onclick="document.getElementById('file-upload').click()">Upload Model</button>
-                <input type="file" id="file-upload" hidden onchange="handleUpload(this)">
-            </div>
-        </aside>
+    <div id="layer-studio" class="ui-layer">
+        <div id="studio-shell" style="display:flex; width:100%;">
+            <nav class="studio-nav">
+                <span style="font-weight:800; font-size:12px; opacity:0.6; margin-right:20px;">STUDIO v2.5</span>
+                <button class="btn-primary" style="padding:4px 12px; font-size:11px;" onclick="setState('play')">PLAY</button>
+            </nav>
+            <aside class="sidebar">
+                <div style="padding:10px; font-size:10px; font-weight:800; border-bottom:1px solid var(--border);">EXPLORER</div>
+                <div id="explorer-list" style="flex:1; padding:10px;"></div>
+            </aside>
+            <main class="viewport" id="v-port"></main>
+            <aside class="sidebar" style="border-left:1px solid var(--border); border-right:none; width:280px;">
+                <div style="padding:10px; font-size:10px; font-weight:800; border-bottom:1px solid var(--border);">PROPERTIES</div>
+                <div id="prop-list" style="padding:15px; font-size:12px; color:var(--muted);">Select a part to edit...</div>
+            </aside>
+        </div>
     </div>
 
-    <canvas id="mainCanvas" style="position:fixed; inset:0; z-index:1;"></canvas>
+    <div id="layer-pause" class="ui-layer pointer">
+        <div id="pause-menu" style="display:flex; width:100%; height:100%;">
+            <h2 style="font-size:2rem; margin-bottom:10px;">Paused</h2>
+            <button class="btn btn-primary" onclick="resumePlay()">Resume</button>
+            <button class="btn btn-danger" onclick="setState('studio')">Back to Studio</button>
+        </div>
+    </div>
+
     <div id="xhair"></div>
-    <div id="play-hud">
-        <div style="background:rgba(0,0,0,0.8); padding:10px 20px; border-radius:10px; border:1px solid var(--accent)">
-            Press <strong>ESC</strong> to return to Studio
-        </div>
-    </div>
 
     <script type="module">
-        // --- CONSTANTS & SETUP ---
-        const canvas = document.getElementById('mainCanvas');
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        // --- GLOBALS ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a0f);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const orbit = new THREE.OrbitControls(camera, renderer.domElement);
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
         // Lighting
-        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
         const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(5, 10, 7);
-        scene.add(ambient, sun);
+        sun.position.set(10, 20, 10);
+        scene.add(sun);
 
-        // Floor Grid
-        const grid = new THREE.GridHelper(100, 50, 0x6c63ff, 0x222222);
-        scene.add(grid);
-
-        // --- INSTANCE SYSTEM ---
+        // --- GAME ENGINE LOGIC ---
+        let state = 'menu';
         let instances = [];
-        let selectedId = null;
+        let selected = null;
+        let player = { x: 0, y: 1, z: 10, vy: 0, yaw: 0, zoom: 5 };
 
-        function createPart(name = "Part", pos = {x:0, y:0.5, z:0}) {
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = new THREE.MeshPhongMaterial({ color: 0x6c63ff });
-            const mesh = new THREE.Mesh(geometry, material);
+        function createPart(name, pos, size, color = 0x6c63ff) {
+            const mesh = new THREE.Mesh(
+                new THREE.BoxGeometry(size.x, size.y, size.z),
+                new THREE.MeshStandardMaterial({ color })
+            );
             mesh.position.set(pos.x, pos.y, pos.z);
             scene.add(mesh);
-
-            const inst = { id: Math.random().toString(36).substr(2,9), name, type: "Part", mesh };
+            const inst = { id: Math.random(), name, mesh };
             instances.push(inst);
             updateExplorer();
             return inst;
         }
 
-        function updateExplorer() {
-            const tree = document.getElementById('explorer-tree');
-            tree.innerHTML = '';
-            instances.forEach(inst => {
-                const div = document.createElement('div');
-                div.className = `tree-item ${selectedId === inst.id ? 'selected' : ''}`;
-                div.innerHTML = `📦 ${inst.name}`;
-                div.onclick = () => selectInstance(inst.id);
-                tree.appendChild(div);
-            });
-        }
-
-        function selectInstance(id) {
-            selectedId = id;
-            const inst = instances.find(i => i.id === id);
-            updateExplorer();
-            const props = document.getElementById('properties-content');
-            props.innerHTML = `
-                <div style="margin-bottom:10px"><strong>Data</strong></div>
-                Name: <input type="text" value="${inst.name}" style="background:#000; color:#fff; border:1px solid #333; padding:2px;"><br><br>
-                Type: ${inst.type}<br>
-                ID: ${inst.id}<br><br>
-                <div style="margin-bottom:10px"><strong>Transform</strong></div>
-                Pos: ${inst.mesh.position.x}, ${inst.mesh.position.y}, ${inst.mesh.position.z}
-            `;
-        }
+        // --- INPUTS ---
+        window.addEventListener('mousedown', (e) => {
+            if (state !== 'studio') return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(instances.map(i => i.mesh));
+            
+            if (intersects.length > 0) {
+                selected = instances.find(i => i.mesh === intersects[0].object);
+                document.getElementById('prop-list').innerHTML = `<b>Name:</b> ${selected.name}<br><b>Pos:</b> ${selected.mesh.position.x.toFixed(1)}, ${selected.mesh.position.y.toFixed(1)}, ${selected.mesh.position.z.toFixed(1)}`;
+            } else {
+                selected = null;
+                document.getElementById('prop-list').innerText = "Select a part to edit...";
+            }
+        });
 
         // --- STATE MANAGER ---
-        let currentState = 'menu';
-        window.switchState = function(state) {
-            currentState = state;
-            document.querySelectorAll('.ui-screen').forEach(s => s.classList.remove('active-screen'));
-            document.getElementById('play-hud').style.display = 'none';
+        window.setState = (s) => {
+            state = s;
+            document.querySelectorAll('.ui-layer').forEach(l => l.classList.remove('active'));
             document.getElementById('xhair').style.display = 'none';
+            orbit.enabled = (s === 'studio');
 
-            if(state === 'menu') {
-                document.getElementById('screen-menu').classList.add('active-screen');
-                camera.position.set(5, 5, 5);
-                camera.lookAt(0, 0, 0);
-            } 
-            else if(state === 'studio') {
-                document.getElementById('screen-studio').classList.add('active-screen');
-                camera.position.set(8, 8, 8);
-                camera.lookAt(0, 0, 0);
-            } 
-            else if(state === 'play') {
-                document.getElementById('play-hud').style.display = 'flex';
+            if (s === 'menu') document.getElementById('layer-menu').classList.add('active');
+            if (s === 'studio') {
+                document.getElementById('layer-studio').classList.add('active');
+                camera.position.set(10, 10, 10);
+                camera.lookAt(0,0,0);
+            }
+            if (s === 'play') {
                 document.getElementById('xhair').style.display = 'block';
-                canvas.requestPointerLock();
+                renderer.domElement.requestPointerLock();
             }
         };
 
-        // --- FILE UPLOADER ---
-        window.handleUpload = (input) => {
-            const file = input.files[0];
-            if(file) {
-                // Logic for GLTFLoader would go here
-                alert("Uploading: " + file.name + "\n(Integration with GLTFLoader active)");
-                createPart(file.name.split('.')[0]);
-            }
+        window.resumePlay = () => {
+            state = 'play';
+            document.getElementById('layer-pause').classList.remove('active');
+            renderer.domElement.requestPointerLock();
         };
+
+        document.addEventListener('pointerlockchange', () => {
+            if (!document.pointerLockElement && state === 'play') {
+                state = 'pause';
+                document.getElementById('layer-pause').classList.add('active');
+            }
+        });
+
+        function updateExplorer() {
+            const list = document.getElementById('explorer-list');
+            list.innerHTML = instances.map(i => `<div style="font-size:11px; padding:2px;">📦 ${i.name}</div>`).join('');
+        }
 
         // --- CORE LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Subtle rotation in Menu
-            if(currentState === 'menu') {
-                scene.rotation.y += 0.002;
+
+            if (state === 'play') {
+                // Third Person Camera Logic
+                const offset = new THREE.Vector3(0, 2, player.zoom);
+                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
+                camera.position.set(player.x + offset.x, player.y + offset.y, player.z + offset.z);
+                camera.lookAt(player.x, player.y + 1, player.z);
+
+                // Simple Gravity/Collision
+                player.vy -= 0.01;
+                player.y += player.vy;
+                if (player.y < 0.5) { player.y = 0.5; player.vy = 0; }
             }
 
             renderer.render(scene, camera);
         }
 
         // Initial setup
-        createPart("Baseplate", {x:0, y:-0.5, z:0});
-        instances[0].mesh.scale.set(100, 1, 100);
+        createPart("Baseplate", {x:0, y:-0.5, z:0}, {x:100, y:1, z:100}, 0x111118);
+        createPart("SpawnBlock", {x:0, y:0.5, z:0}, {x:4, y:1, z:4}, 0x4ade80);
         
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        renderer.setSize(window.innerWidth, window.innerHeight);
         animate();
-
-        // Escape Key to exit play mode
-        document.addEventListener('pointerlockchange', () => {
-            if (!document.pointerLockElement && currentState === 'play') {
-                switchState('studio');
-            }
-        });
-
     </script>
 </body>
 </html>
