@@ -1,236 +1,131 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BotForge</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BotForge</title>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-</head>
-<style>/* --- GENERAL RESET --- */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-}
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
 
-body {
-    background: #f7f7f7;
-    color: #222;
-    line-height: 1.5;
-    padding: 20px;
-}
+<style>
+/* --- GENERAL RESET --- */
+* { box-sizing: border-box; margin:0; padding:0; font-family: Arial, sans-serif; }
+body { background: #f7f7f7; color: #222; line-height: 1.5; padding: 20px; }
 
 /* --- HEADINGS --- */
-h1, h2 {
-    margin-bottom: 15px;
-    font-weight: bold;
-}
+h1 { font-size: 2.5rem; text-align: center; margin-bottom: 25px; }
+h2 { font-size: 1.8rem; margin: 30px 0 15px; border-bottom: 2px solid #ddd; padding-bottom:5px; }
 
-h1 {
-    font-size: 2.5rem;
-    margin-bottom: 25px;
-    text-align: center;
-}
+/* --- CONTAINER LAYOUT --- */
+.container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.section { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
 
-h2 {
-    font-size: 1.8rem;
-    border-bottom: 2px solid #ddd;
-    padding-bottom: 5px;
-    margin-top: 30px;
-}
+/* --- AUTH --- */
+.auth-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.auth-group input { flex: 1; min-width: 150px; }
+.auth-group button { flex: 1; min-width: 80px; }
 
 /* --- INPUTS & BUTTONS --- */
-input, textarea, button {
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-}
-
-input:focus, textarea:focus {
-    outline: none;
-    border-color: #007BFF;
-    box-shadow: 0 0 5px rgba(0,123,255,0.3);
-}
-
-button {
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-button:active {
-    transform: scale(0.98);
-}
-
-/* --- SECTIONS --- */
-section, .section {
-    background: #fff;
-    padding: 20px;
-    margin-bottom: 25px;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
+input, textarea, button { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
+input:focus, textarea:focus { outline: none; border-color: #007BFF; box-shadow: 0 0 5px rgba(0,123,255,0.3); }
+button { background-color: #007BFF; color: white; border: none; cursor: pointer; transition: 0.2s; }
+button:hover { background-color: #0056b3; }
+button:active { transform: scale(0.98); }
 
 /* --- CHAT --- */
-#chatBox {
-    height: 300px;
-    overflow-y: auto;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #fafafa;
-    margin-bottom: 10px;
-}
+#chatContainer { display: flex; flex-direction: column; height: 400px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+#chatBox { flex: 1; overflow-y: auto; padding: 10px; background: #fafafa; display: flex; flex-direction: column; gap: 5px; }
+.chat-message { padding: 10px 15px; border-radius: 15px; max-width: 70%; word-wrap: break-word; }
+.chat-message.user { background: #e1f0ff; align-self: flex-start; }
+.chat-message.bot { background: #d4ffd4; align-self: flex-end; }
 
-#chatBox div {
-    padding: 5px 10px;
-    margin-bottom: 5px;
-    border-radius: 10px;
-    max-width: 80%;
-    word-wrap: break-word;
-}
-
-#chatBox div:nth-child(odd) {
-    background-color: #e1f0ff;
-    align-self: flex-start;
-}
-
-#chatBox div:nth-child(even) {
-    background-color: #d4ffd4;
-    align-self: flex-end;
-}
-
-/* --- BOT CARDS / DISCOVER --- */
-#botList div {
-    background-color: #fefefe;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-#botList div b {
-    font-size: 1.2rem;
-}
-
-#botList button {
-    margin-left: 10px;
-}
+/* --- BOT CARDS --- */
+#botList { display: flex; flex-direction: column; gap: 10px; }
+.bot-card { display: flex; justify-content: space-between; align-items: center; background: #fefefe; padding: 15px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); flex-wrap: wrap; }
+.bot-card b { font-size: 1.2rem; }
+.bot-card p { flex: 1 1 100%; margin: 5px 0; }
+.bot-card button { margin-left: 10px; }
 
 /* --- FAVORITES --- */
-#favorites div {
-    background-color: #fff6f6;
-    padding: 10px;
-    margin-bottom: 5px;
-    border-radius: 6px;
-    border-left: 4px solid #ff4d4d;
-}
+#favorites { display: flex; flex-direction: column; gap: 5px; }
+.favorite-card { background-color: #fff6f6; padding: 10px; border-radius: 6px; border-left: 4px solid #ff4d4d; }
 
 /* --- FORMS --- */
-textarea {
-    width: 100%;
-    resize: vertical;
-}
-
-input[type="text"], input[type="email"], input[type="password"] {
-    width: 100%;
-}
-
-button {
-    width: auto;
-}
+textarea, input[type="text"], input[type="email"], input[type="password"] { width: 100%; resize: vertical; }
+.chat-input { display: flex; gap: 10px; margin-top: 10px; }
+.chat-input input { flex: 1; }
+.chat-input button { flex-shrink: 0; }
 
 /* --- RESPONSIVE --- */
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-
-    #chatBox {
-        height: 200px;
-    }
-
-    h1 {
-        font-size: 2rem;
-    }
-
-    h2 {
-        font-size: 1.5rem;
-    }
-
-    #botList div {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    #botList button {
-        margin-top: 5px;
-        margin-left: 0;
-    }
-}
-
-/* --- MISC --- */
-hr {
-    border: none;
-    border-bottom: 1px solid #ddd;
-    margin: 20px 0;
+@media(max-width:768px){
+    #chatContainer { height: 300px; }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.5rem; }
+    .bot-card { flex-direction: column; align-items: flex-start; }
+    .bot-card button { margin: 5px 0 0 0; }
+    .auth-group { flex-direction: column; }
 }
 </style>
+</head>
+
 <body>
+<div class="container">
 
 <h1>BotForge</h1>
 
 <!-- AUTH -->
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="signup()">Sign Up</button>
-<button onclick="login()">Login</button>
-<button onclick="logout()">Logout</button>
+<div class="section auth-group">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="signup()">Sign Up</button>
+    <button onclick="login()">Login</button>
+    <button onclick="logout()">Logout</button>
+</div>
 
-<hr>
-
+<!-- STATS -->
+<div class="section">
 <h2>Stats</h2>
 <div id="stats"></div>
+</div>
 
-<hr>
-
+<!-- CREATE BOT -->
+<div class="section">
 <h2>Create Bot</h2>
 <input id="botName" placeholder="Name">
 <input id="botImage" placeholder="Image URL">
 <textarea id="botDescription" placeholder="Description"></textarea>
 <textarea id="botLore" placeholder="Lore"></textarea>
 <textarea id="botPrompt" placeholder="Prompt"></textarea>
-<button onclick="createBot()">Create</button>
+<button onclick="createBot()">Create Bot</button>
+</div>
 
-<hr>
-
+<!-- DISCOVER -->
+<div class="section">
 <h2>Discover</h2>
 <div id="botList"></div>
+</div>
 
-<hr>
-
+<!-- CHAT -->
+<div class="section">
 <h2>Chat</h2>
-<div id="chatBox"></div>
-<input id="chatInput">
-<button onclick="sendMessage()">Send</button>
+<div id="chatContainer">
+    <div id="chatBox"></div>
+    <div class="chat-input">
+        <input id="chatInput" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+</div>
 
-<hr>
-
+<!-- FAVORITES -->
+<div class="section">
 <h2>Favorites</h2>
 <div id="favorites"></div>
+</div>
+
+</div>
 
 <script>
 const firebaseConfig = {
@@ -263,7 +158,6 @@ function initUser(uid){
 function createBot(){
     const user=auth.currentUser;
     if(!user) return;
-
     db.collection("bots").add({
         name: botName.value,
         image: botImage.value,
@@ -281,14 +175,17 @@ function loadBots(){
     db.collection("bots").get().then(snap=>{
         snap.forEach(doc=>{
             const b=doc.data();
-
             const div=document.createElement("div");
+            div.className="bot-card";
             div.innerHTML=`
-                <b>${b.name}</b>
-                <p>${b.description}</p>
-                <button onclick="selectBot('${doc.id}')">Chat</button>
-                <button onclick="favoriteBot('${doc.id}')">⭐</button>
-                <hr>
+                <div>
+                    <b>${b.name}</b>
+                    <p>${b.description}</p>
+                </div>
+                <div>
+                    <button onclick="selectBot('${doc.id}')">Chat</button>
+                    <button onclick="favoriteBot('${doc.id}')">⭐</button>
+                </div>
             `;
             botList.appendChild(div);
         });
@@ -310,7 +207,6 @@ async function callAI(message, bot){
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ message, bot })
     });
-
     const data = await res.json();
     return data.reply;
 }
@@ -320,26 +216,26 @@ async function sendMessage(){
     const user=auth.currentUser;
     if(!user || !currentBot) return;
 
-    chatBox.innerHTML += "<div>You: "+chatInput.value+"</div>";
-    chatBox.innerHTML += "<div>Waiting in queue...</div>";
+    chatBox.innerHTML += `<div class="chat-message user">You: ${chatInput.value}</div>`;
+    chatBox.innerHTML += `<div class="chat-message bot">Waiting in queue...</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
 
     const reply = await callAI(chatInput.value,currentBot);
 
-    chatBox.innerHTML += "<div>"+reply+"</div>";
+    // Remove waiting message
+    const wait = chatBox.querySelector(".chat-message.bot:last-child");
+    if(wait) wait.remove();
+
+    chatBox.innerHTML += `<div class="chat-message bot">${reply}</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
 
     chatInput.value="";
 
     const ref=db.collection("users").doc(user.uid);
     const doc=await ref.get();
-    const data=doc.data();
-
-    let bots=data.botsUsed||[];
+    let bots=doc.data().botsUsed||[];
     if(!bots.includes(currentBot.id)) bots.push(currentBot.id);
-
-    await ref.update({
-        messages:(data.messages||0)+1,
-        botsUsed:bots
-    });
+    await ref.update({ messages:(doc.data().messages||0)+1, botsUsed:bots });
 
     loadStats();
 }
@@ -348,13 +244,10 @@ async function sendMessage(){
 function favoriteBot(id){
     const user=auth.currentUser;
     if(!user) return;
-
     const ref=db.collection("users").doc(user.uid);
-
     ref.get().then(doc=>{
         let fav=doc.data().favorites||[];
         if(!fav.includes(id)) fav.push(id);
-
         ref.update({favorites:fav});
         loadFavorites();
     });
@@ -364,14 +257,13 @@ function favoriteBot(id){
 function loadFavorites(){
     const user=auth.currentUser;
     if(!user) return;
-
     db.collection("users").doc(user.uid).get().then(doc=>{
         favorites.innerHTML="";
         const favs=doc.data().favorites||[];
-
         favs.forEach(id=>{
             db.collection("bots").doc(id).get().then(b=>{
                 const div=document.createElement("div");
+                div.className="favorite-card";
                 div.textContent=b.data().name;
                 favorites.appendChild(div);
             });
@@ -383,13 +275,9 @@ function loadFavorites(){
 function loadStats(){
     const user=auth.currentUser;
     if(!user) return;
-
     db.collection("users").doc(user.uid).get().then(doc=>{
         const d=doc.data();
-        stats.innerHTML=`
-            Messages: ${d.messages||0}<br>
-            Bots Used: ${(d.botsUsed||[]).length}
-        `;
+        stats.innerHTML=`Messages: ${d.messages||0}<br>Bots Used: ${(d.botsUsed||[]).length}`;
     });
 }
 
@@ -403,6 +291,5 @@ auth.onAuthStateChanged(user=>{
     }
 });
 </script>
-
 </body>
 </html>
