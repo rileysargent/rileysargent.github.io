@@ -7,6 +7,188 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
 </head>
+<style>/* --- GENERAL RESET --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #f7f7f7;
+    color: #222;
+    line-height: 1.5;
+    padding: 20px;
+}
+
+/* --- HEADINGS --- */
+h1, h2 {
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+h2 {
+    font-size: 1.8rem;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+    margin-top: 30px;
+}
+
+/* --- INPUTS & BUTTONS --- */
+input, textarea, button {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 5px rgba(0,123,255,0.3);
+}
+
+button {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* --- SECTIONS --- */
+section, .section {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* --- CHAT --- */
+#chatBox {
+    height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fafafa;
+    margin-bottom: 10px;
+}
+
+#chatBox div {
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    border-radius: 10px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+#chatBox div:nth-child(odd) {
+    background-color: #e1f0ff;
+    align-self: flex-start;
+}
+
+#chatBox div:nth-child(even) {
+    background-color: #d4ffd4;
+    align-self: flex-end;
+}
+
+/* --- BOT CARDS / DISCOVER --- */
+#botList div {
+    background-color: #fefefe;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#botList div b {
+    font-size: 1.2rem;
+}
+
+#botList button {
+    margin-left: 10px;
+}
+
+/* --- FAVORITES --- */
+#favorites div {
+    background-color: #fff6f6;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    border-left: 4px solid #ff4d4d;
+}
+
+/* --- FORMS --- */
+textarea {
+    width: 100%;
+    resize: vertical;
+}
+
+input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+}
+
+button {
+    width: auto;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    #chatBox {
+        height: 200px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    #botList div {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #botList button {
+        margin-top: 5px;
+        margin-left: 0;
+    }
+}
+
+/* --- MISC --- */
+hr {
+    border: none;
+    border-bottom: 1px solid #ddd;
+    margin: 20px 0;
+}
+</style>
 <body>
 
 <h1>BotForge</h1>
