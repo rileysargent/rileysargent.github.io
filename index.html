@@ -1,451 +1,345 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BotForge</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-
-<style>
-/* ---------------- GENERAL ---------------- */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+'create': 'createTab',
+        'my-bots': 'myBotsTab'
+    };
+    
+    document.getElementById(tabMap[tabName]).classList.remove('hidden');
 }
 
-body {
-    background: #f5f5f5;
-    color: #1c1c1c;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
+/* ========== FIREBASE AUTH LISTENER ========== */
+auth.onAuthStateChanged(user => {
+    const authButtons = document.getElementById('authButtons');
+    const userInfo = document.getElementById('userInfo');
+    const userEmail = document.getElementById('userEmail');
+    const userAvatar = document.getElementById('userAvatar');
 
-/* ---------------- HEADER ---------------- */
-h1 {
-    text-align: center;
-    font-size: 2rem;
-    padding: 20px 0;
-    background-color: #ffffff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-/* ---------------- MAIN CONTAINER ---------------- */
-main {
-    display: flex;
-    flex-direction: row;
-    flex: 1;
-    gap: 20px;
-    padding: 20px;
-}
-
-/* ---------------- SIDEBAR ---------------- */
-aside {
-    width: 250px;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    height: calc(100vh - 80px);
-    overflow-y: auto;
-}
-
-/* Sidebar sections */
-aside h2 {
-    font-size: 1.2rem;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 5px;
-    margin-bottom: 10px;
-}
-
-/* ---------------- CONTENT AREA ---------------- */
-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* ---------------- INPUTS & BUTTONS ---------------- */
-input, textarea, button {
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    width: 100%;
-}
-
-input:focus, textarea:focus {
-    outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 5px rgba(74,144,226,0.3);
-}
-
-button {
-    background-color: #4a90e2;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-button:hover {
-    background-color: #357ABD;
-}
-
-button:active {
-    transform: scale(0.98);
-}
-
-/* ---------------- CREATE BOT & DISCOVER ---------------- */
-.bot-card, .favorite-card {
-    background-color: #fff;
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.bot-card b {
-    font-size: 1.1rem;
-}
-
-.bot-card button {
-    width: auto;
-    margin-right: 5px;
-}
-
-/* Discover grid */
-#botList {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 15px;
-}
-
-/* Favorites list */
-#favorites {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-/* ---------------- CHAT ---------------- */
-#chatBox {
-    flex: 1;
-    background: #fff;
-    border-radius: 12px;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    overflow-y: auto;
-    max-height: 400px;
-    border: 1px solid #ddd;
-}
-
-/* Chat bubbles */
-#chatBox div {
-    padding: 10px 15px;
-    border-radius: 20px;
-    max-width: 75%;
-    word-wrap: break-word;
-    position: relative;
-    display: inline-block;
-}
-
-#chatBox div.user {
-    background-color: #4a90e2;
-    color: #fff;
-    align-self: flex-end;
-    border-bottom-right-radius: 0;
-}
-
-#chatBox div.bot {
-    background-color: #f0f0f0;
-    align-self: flex-start;
-    border-bottom-left-radius: 0;
-}
-
-/* Chat timestamp */
-#chatBox div span.timestamp {
-    font-size: 0.7rem;
-    color: #666;
-    position: absolute;
-    bottom: -15px;
-    right: 10px;
-}
-
-/* Chat input area */
-#chatInput {
-    border-radius: 20px;
-    padding: 10px 15px;
-    margin-top: 10px;
-}
-
-#chatInput + button {
-    margin-top: 5px;
-    width: 100px;
-    align-self: flex-end;
-}
-
-/* ---------------- FORMS ---------------- */
-textarea {
-    resize: vertical;
-}
-
-/* ---------------- RESPONSIVE ---------------- */
-@media (max-width: 1024px) {
-    main {
-        flex-direction: column;
-    }
-
-    aside {
-        width: 100%;
-        height: auto;
-    }
-}
-
-@media (max-width: 600px) {
-    #chatBox {
-        max-height: 250px;
-    }
-}
-</style>
-</head>
-
-<body>
-<div class="container">
-
-<h1>BotForge</h1>
-
-<!-- AUTH -->
-<div class="section auth-group">
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-    <button onclick="signup()">Sign Up</button>
-    <button onclick="login()">Login</button>
-    <button onclick="logout()">Logout</button>
-</div>
-
-<!-- STATS -->
-<div class="section">
-<h2>Stats</h2>
-<div id="stats"></div>
-</div>
-
-<!-- CREATE BOT -->
-<div class="section">
-<h2>Create Bot</h2>
-<input id="botName" placeholder="Name">
-<input id="botImage" placeholder="Image URL">
-<textarea id="botDescription" placeholder="Description"></textarea>
-<textarea id="botLore" placeholder="Lore"></textarea>
-<textarea id="botPrompt" placeholder="Prompt"></textarea>
-<button onclick="createBot()">Create Bot</button>
-</div>
-
-<!-- DISCOVER -->
-<div class="section">
-<h2>Discover</h2>
-<div id="botList"></div>
-</div>
-
-<!-- CHAT -->
-<div class="section">
-<h2>Chat</h2>
-<div id="chatContainer">
-    <div id="chatBox"></div>
-    <div class="chat-input">
-        <input id="chatInput" placeholder="Type your message...">
-        <button onclick="sendMessage()">Send</button>
-    </div>
-</div>
-</div>
-
-<!-- FAVORITES -->
-<div class="section">
-<h2>Favorites</h2>
-<div id="favorites"></div>
-</div>
-
-</div>
-
-<script>
-const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_KEY",
-    authDomain: "YOUR_DOMAIN",
-    projectId: "YOUR_PROJECT"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let currentBot = null;
-
-/* AUTH */
-function signup(){ auth.createUserWithEmailAndPassword(email.value,password.value); }
-function login(){ auth.signInWithEmailAndPassword(email.value,password.value); }
-function logout(){ auth.signOut(); }
-
-/* USER INIT */
-function initUser(uid){
-    db.collection("users").doc(uid).set({
-        messages: 0,
-        botsUsed: [],
-        favorites: []
-    },{merge:true});
-}
-
-/* CREATE BOT */
-function createBot(){
-    const user=auth.currentUser;
-    if(!user) return;
-    db.collection("bots").add({
-        name: botName.value,
-        image: botImage.value,
-        description: botDescription.value,
-        lore: botLore.value,
-        prompt: botPrompt.value,
-        creator: user.uid,
-        createdAt: Date.now()
-    });
-}
-
-/* LOAD BOTS */
-function loadBots(){
-    botList.innerHTML="";
-    db.collection("bots").get().then(snap=>{
-        snap.forEach(doc=>{
-            const b=doc.data();
-            const div=document.createElement("div");
-            div.className="bot-card";
-            div.innerHTML=`
-                <div>
-                    <b>${b.name}</b>
-                    <p>${b.description}</p>
-                </div>
-                <div>
-                    <button onclick="selectBot('${doc.id}')">Chat</button>
-                    <button onclick="favoriteBot('${doc.id}')">⭐</button>
-                </div>
-            `;
-            botList.appendChild(div);
-        });
-    });
-}
-
-/* SELECT BOT */
-function selectBot(id){
-    db.collection("bots").doc(id).get().then(doc=>{
-        currentBot = {id, ...doc.data()};
-        chatBox.innerHTML="";
-    });
-}
-
-/* CALL BACKEND */
-async function callAI(message, bot){
-    const res = await fetch("https://YOUR-RENDER-URL/chat",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ message, bot })
-    });
-    const data = await res.json();
-    return data.reply;
-}
-
-/* SEND MESSAGE */
-async function sendMessage(){
-    const user=auth.currentUser;
-    if(!user || !currentBot) return;
-
-    chatBox.innerHTML += `<div class="chat-message user">You: ${chatInput.value}</div>`;
-    chatBox.innerHTML += `<div class="chat-message bot">Waiting in queue...</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    const reply = await callAI(chatInput.value,currentBot);
-
-    // Remove waiting message
-    const wait = chatBox.querySelector(".chat-message.bot:last-child");
-    if(wait) wait.remove();
-
-    chatBox.innerHTML += `<div class="chat-message bot">${reply}</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    chatInput.value="";
-
-    const ref=db.collection("users").doc(user.uid);
-    const doc=await ref.get();
-    let bots=doc.data().botsUsed||[];
-    if(!bots.includes(currentBot.id)) bots.push(currentBot.id);
-    await ref.update({ messages:(doc.data().messages||0)+1, botsUsed:bots });
-
-    loadStats();
-}
-
-/* FAVORITES */
-function favoriteBot(id){
-    const user=auth.currentUser;
-    if(!user) return;
-    const ref=db.collection("users").doc(user.uid);
-    ref.get().then(doc=>{
-        let fav=doc.data().favorites||[];
-        if(!fav.includes(id)) fav.push(id);
-        ref.update({favorites:fav});
-        loadFavorites();
-    });
-}
-
-/* LOAD FAVORITES */
-function loadFavorites(){
-    const user=auth.currentUser;
-    if(!user) return;
-    db.collection("users").doc(user.uid).get().then(doc=>{
-        favorites.innerHTML="";
-        const favs=doc.data().favorites||[];
-        favs.forEach(id=>{
-            db.collection("bots").doc(id).get().then(b=>{
-                const div=document.createElement("div");
-                div.className="favorite-card";
-                div.textContent=b.data().name;
-                favorites.appendChild(div);
-            });
-        });
-    });
-}
-
-/* STATS */
-function loadStats(){
-    const user=auth.currentUser;
-    if(!user) return;
-    db.collection("users").doc(user.uid).get().then(doc=>{
-        const d=doc.data();
-        stats.innerHTML=`Messages: ${d.messages||0}<br>Bots Used: ${(d.botsUsed||[]).length}`;
-    });
-}
-
-/* INIT */
-auth.onAuthStateChanged(user=>{
-    if(user){
+    if (user) {
+        authButtons.style.display = 'none';
+        userInfo.style.display = 'flex';
+        userEmail.textContent = user.email;
+        userAvatar.textContent = user.email.charAt(0).toUpperCase();
+        
         initUser(user.uid);
-        loadBots();
-        loadStats();
-        loadFavorites();
+        loadAllBots();
+        loadMyBots();
+    } else {
+        authButtons.style.display = 'flex';
+        userInfo.style.display = 'none';
+        
+        // Clear user-specific data from UI
+        document.getElementById('myBotsGrid').innerHTML = '';
+        document.getElementById('favoritesGrid').innerHTML = '';
+        document.getElementById('emptyMyBots').classList.remove('hidden');
+        document.getElementById('emptyFavorites').classList.remove('hidden');
+        
+        loadAllBots(); // Still load public bots for discover
     }
+});
+
+/* ========== BOT CREATION & LOADING ========== */
+function updateImagePreview() {
+    const url = document.getElementById('botImage').value;
+    const preview = document.getElementById('imagePreview');
+    
+    if (url) {
+        preview.classList.remove('empty');
+        preview.innerHTML = `<img src="${url}" alt="Character Preview" onerror="this.src=''; this.parentElement.classList.add('empty'); this.parentElement.innerHTML='Invalid Image URL'">`;
+    } else {
+        preview.classList.add('empty');
+        preview.innerHTML = '';
+    }
+}
+
+async function createBot() {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Please login to create a character.");
+        showAuthModal('login');
+        return;
+    }
+
+    const name = document.getElementById('botName').value;
+    const image = document.getElementById('botImage').value;
+    const category = document.getElementById('botCategory').value;
+    const description = document.getElementById('botDescription').value;
+    const lore = document.getElementById('botLore').value;
+    const prompt = document.getElementById('botPrompt').value;
+
+    if (!name || !image || !description || !prompt) {
+        alert("Please fill in all required fields (*).");
+        return;
+    }
+
+    const botData = {
+        name,
+        image,
+        category,
+        description,
+        lore,
+        prompt,
+        creatorId: user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        interactions: 0
+    };
+
+    try {
+        await db.collection("bots").add(botData);
+        alert("Character created successfully!");
+        
+        // Clear form
+        document.getElementById('botName').value = '';
+        document.getElementById('botImage').value = '';
+        document.getElementById('botCategory').value = 'anime';
+        document.getElementById('botDescription').value = '';
+        document.getElementById('botLore').value = '';
+        document.getElementById('botPrompt').value = '';
+        updateImagePreview();
+        
+        switchTab('my-bots');
+        loadMyBots();
+        loadAllBots();
+    } catch (error) {
+        alert("Error creating character: " + error.message);
+    }
+}
+
+async function loadAllBots() {
+    try {
+        const snapshot = await db.collection("bots").orderBy("createdAt", "desc").get();
+        allBots = [];
+        snapshot.forEach(doc => {
+            allBots.push({ id: doc.id, ...doc.data() });
+        });
+        
+        document.querySelector('#totalBots strong').textContent = allBots.length;
+        renderBots(allBots, 'characterGrid', 'emptyState');
+    } catch (error) {
+        console.error("Error loading bots:", error);
+    }
+}
+
+async function loadMyBots() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+        const snapshot = await db.collection("bots").where("creatorId", "==", user.uid).get();
+        const myBots = [];
+        snapshot.forEach(doc => {
+            myBots.push({ id: doc.id, ...doc.data() });
+        });
+        
+        renderBots(myBots, 'myBotsGrid', 'emptyMyBots');
+    } catch (error) {
+        console.error("Error loading my bots:", error);
+    }
+}
+
+/* ========== RENDERING ========== */
+function renderBots(bots, containerId, emptyStateId) {
+    const container = document.getElementById(containerId);
+    const emptyState = document.getElementById(emptyStateId);
+    
+    container.innerHTML = '';
+    
+    if (bots.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    emptyState.classList.add('hidden');
+    
+    bots.forEach(bot => {
+        const card = document.createElement('div');
+        card.className = 'character-card';
+        card.onclick = () => openCharacterModal(bot);
+        
+        card.innerHTML = `
+            <div class="character-image">
+                <img src="${bot.image}" alt="${bot.name}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'%23202029\\'/></svg>'">
+            </div>
+            <div class="character-content">
+                <div class="character-name">${bot.name}</div>
+                <div class="character-description">${bot.description}</div>
+                <div class="character-footer">
+                    <div class="character-stats">
+                        <span>💬 ${bot.interactions || 0}</span>
+                    </div>
+                    <div class="character-actions">
+                        <button class="icon-btn" onclick="event.stopPropagation(); startChat('${bot.id}')">💬</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+/* ========== MODAL LOGIC ========== */
+function openCharacterModal(bot) {
+    selectedCharacterForModal = bot;
+    document.getElementById('characterModalName').textContent = bot.name;
+    document.getElementById('characterModalDescription').textContent = bot.description;
+    document.getElementById('characterModalLore').textContent = bot.lore || 'No lore provided.';
+    document.getElementById('characterModalCategory').textContent = bot.category.charAt(0).toUpperCase() + bot.category.slice(1);
+    
+    const preview = document.getElementById('characterModalImage');
+    preview.classList.remove('empty');
+    preview.innerHTML = `<img src="${bot.image}" alt="${bot.name}">`;
+    
+    document.getElementById('characterModal').classList.add('active');
+}
+
+function closeCharacterModal() {
+    document.getElementById('characterModal').classList.remove('active');
+    selectedCharacterForModal = null;
+}
+
+function chatWithCharacterFromModal() {
+    if (selectedCharacterForModal) {
+        closeCharacterModal();
+        startChat(selectedCharacterForModal.id);
+    }
+}
+
+/* ========== CHAT LOGIC ========== */
+function startChat(botId) {
+    const user = auth.currentUser;
+    if (!user) {
+        showAuthModal('login');
+        return;
+    }
+
+    currentBot = allBots.find(b => b.id === botId);
+    if (!currentBot) return;
+
+    switchTab('chat');
+    
+    document.getElementById('noChatSelected').classList.add('hidden');
+    document.getElementById('chatContainer').classList.remove('hidden');
+    
+    document.getElementById('chatName').textContent = currentBot.name;
+    document.getElementById('chatAvatar').innerHTML = `<img src="${currentBot.image}" alt="${currentBot.name}">`;
+    
+    // Increment interaction count
+    db.collection("bots").doc(botId).update({
+        interactions: firebase.firestore.FieldValue.increment(1)
+    });
+
+    clearChat();
+    appendMessage('bot', `Hello! I am ${currentBot.name}. ${currentBot.description} How can I help you today?`);
+}
+
+function clearChat() {
+    document.getElementById('chatMessages').innerHTML = '';
+}
+
+function appendMessage(sender, text) {
+    const messagesDiv = document.getElementById('chatMessages');
+    const msgGroup = document.createElement('div');
+    msgGroup.className = `message-group ${sender}`;
+    
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    let avatarContent = '';
+    if (sender === 'bot') {
+        avatarContent = `<img src="${currentBot.image}" alt="${currentBot.name}">`;
+    } else {
+        const initial = auth.currentUser ? auth.currentUser.email.charAt(0).toUpperCase() : 'U';
+        avatarContent = initial;
+    }
+
+    msgGroup.innerHTML = `
+        <div class="message-avatar">${avatarContent}</div>
+        <div class="message-content">
+            <div class="message-bubble">${text}</div>
+            <div class="message-time">${time}</div>
+        </div>
+    `;
+    
+    messagesDiv.appendChild(msgGroup);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    
+    if (!text || !currentBot) return;
+    
+    appendMessage('user', text);
+    input.value = '';
+    
+    // Simulate typing indicator
+    const messagesDiv = document.getElementById('chatMessages');
+    const typingGroup = document.createElement('div');
+    typingGroup.className = 'message-group bot typing-indicator-group';
+    typingGroup.innerHTML = `
+        <div class="message-avatar"><img src="${currentBot.image}"></div>
+        <div class="message-content">
+            <div class="message-bubble">
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    messagesDiv.appendChild(typingGroup);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Simulate bot response (Replace this with actual AI API call)
+    setTimeout(() => {
+        messagesDiv.removeChild(typingGroup);
+        appendMessage('bot', `This is a simulated response from ${currentBot.name}. Connect an AI API in the sendMessage function to generate real responses based on the system prompt: "${currentBot.prompt}"`);
+    }, 1500);
+}
+
+// Handle Enter key in chat
+document.getElementById('chatInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+/* ========== SEARCH & FILTERS ========== */
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    filterBots(term, currentCategory);
+});
+
+document.getElementById('categoryPills').addEventListener('click', (e) => {
+    if (e.target.classList.contains('category-pill')) {
+        document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+        e.target.classList.add('active');
+        
+        currentCategory = e.target.dataset.category;
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        filterBots(term, currentCategory);
+    }
+});
+
+function filterBots(searchTerm, category) {
+    let filtered = allBots;
+    
+    if (category !== 'all') {
+        filtered = filtered.filter(bot => bot.category === category);
+    }
+    
+    if (searchTerm) {
+        filtered = filtered.filter(bot => 
+            bot.name.toLowerCase().includes(searchTerm) || 
+            bot.description.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    renderBots(filtered, 'characterGrid', 'emptyState');
+}
+
+// Initialize empty state handling on load
+document.addEventListener('DOMContentLoaded', () => {
+    loadAllBots();
 });
 </script>
 </body>
