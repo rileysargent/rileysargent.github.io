@@ -2,7 +2,7 @@
 <html lang="en-us">
 <head>
     <meta charset="utf-8">
-    <title>Snow Rider 3D - Advanced Audit Mode</title>
+    <title>Snow Rider 3D</title>
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
 
@@ -27,107 +27,99 @@
         let gameInstance = null;
         let currentUser = null;
 
-        // --- DEEP AUDIT LOGGING ---
-        function addToLog(action, detail) {
-            let logs = JSON.parse(localStorage.getItem('game_logs') || "[]");
-            const entry = `[${new Date().toLocaleTimeString()}] ${action} >> ${detail}`;
-            logs.push(entry);
-            localStorage.setItem('game_logs', JSON.stringify(logs));
-        }
-
-        window.exportLogs = function() {
-            const logs = JSON.parse(localStorage.getItem('game_logs') || "[]");
-            const blob = new Blob([logs.join('\n')], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'log.txt';
-            link.click();
+        // --- 1. RAW DATA INTERCEPTOR (LOGS EVERYTHING TO CONSOLE) ---
+        const originalSetItem = localStorage.setItem;
+        localStorage.setItem = function(key, value) {
+            console.log(`%c[STORAGE_WRITE] Key: ${key} | Data: ${value}`, "color: #00ff00; font-weight: bold;");
+            originalSetItem.apply(this, arguments);
         };
 
-        // --- THE "CHEAT ANALYZER" OVERRIDE ---
-        window.updateHighScore = function(newVal) {
-            if (currentUser === "rileysargent2@gmail.com" && gameInstance) {
-                const targetKey = "HighScore"; // Unity's standard save key
-                const oldData = localStorage.getItem(targetKey) || "UNDEFINED/NULL";
-                
-                // 1. Log where and what we are hitting
-                addToLog("STORAGE_INSPECT", `Target: LocalStorage['${targetKey}']`);
-                addToLog("OVERRIDE_DATA", `Replacing Old Content: "${oldData}" with New Content: "${newVal}"`);
-
-                // 2. Inject into Engine and Storage
-                gameInstance.SendMessage('GameManager', 'SetScore', parseInt(newVal));
-                localStorage.setItem(targetKey, newVal);
-                
-                // 3. Confirm Save
-                const currentData = localStorage.getItem(targetKey);
-                addToLog("SAVE_VERIFIED", `Current Key Value is now: "${currentData}"`);
-            }
+        const originalIDB = window.indexedDB.open;
+        window.indexedDB.open = function() {
+            console.log(`%c[INDEXED_DB_ACCESS] Opening DB: ${arguments[0]}`, "color: #ff00ff;");
+            return originalIDB.apply(this, arguments);
         };
 
-        window.addEventListener('keydown', (e) => {
-            if (e.key === '`' && currentUser === "rileysargent2@gmail.com") window.exportLogs();
-        });
-
-        const launchGame = () => {
-            setTimeout(() => {
-                if (!gameInstance) {
-                    gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
-                        onProgress: UnityProgress,
-                        Module: { onRuntimeInitialized: () => {
-                            UnityProgress(gameInstance, "complete");
-                            addToLog("ENGINE_LOAD", "Unity WebGL instance attached to DOM");
-                        }}
+        // --- 2. THE ADMIN DATA DUMP (& KEY) ---
+        window.inspectApplicationData = async function() {
+            if (currentUser !== "rileysargent2@gmail.com") return;
+            console.clear();
+            console.log("%c--- FULL APPLICATION DATA DUMP ---", "color: #00ffff; font-size: 14px;");
+            console.log("LOCAL_STORAGE:", {...localStorage});
+            
+            const dbs = await window.indexedDB.databases();
+            dbs.forEach(dbInfo => {
+                const req = window.indexedDB.open(dbInfo.name);
+                req.onsuccess = (e) => {
+                    const db = e.target.result;
+                    Array.from(db.objectStoreNames).forEach(s => {
+                        db.transaction(s, "readonly").objectStore(s).getAll().onsuccess = (ev) => {
+                            console.log(`INDEXED_DB [${db.name}] -> Store [${s}]:`, ev.target.result);
+                        };
                     });
-                }
-            }, 400); 
-        };
-
-        // --- NON-PERSISTENT AUTH ---
-        document.getElementById('login-btn').onclick = () => {
-            // Forces session-only memory; login clears when tab closes
-            setPersistence(auth, browserSessionPersistence).then(() => {
-                return signInWithPopup(auth, provider);
+                };
             });
         };
 
+        // --- 3. AUTH & STRICT SECURITY ---
         onAuthStateChanged(auth, (user) => {
+            const adminPanel = document.getElementById('admin-panel');
+            const authOverlay = document.getElementById('auth-overlay');
+            const gameWrapper = document.getElementById('game-wrapper');
+
             if (user && user.email === "rileysargent2@gmail.com") {
                 currentUser = user.email;
-                document.getElementById('auth-overlay').style.display = 'none';
-                document.getElementById('game-wrapper').style.display = 'block';
-                document.getElementById('admin-panel').style.display = 'block';
-                addToLog("AUTH_GRANTED", `Admin session initialized for ${user.email}`);
-                launchGame();
+                console.log("%cAUTH_SUCCESS: Admin privileges granted.", "color: #00ff00");
+                
+                authOverlay.style.display = 'none';
+                gameWrapper.style.display = 'block';
+                adminPanel.style.display = 'block'; // Only shows for Riley
+
+                if (!gameInstance) {
+                    gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
+                        onProgress: UnityProgress,
+                        Module: { onRuntimeInitialized: () => console.log("Unity Runtime Ready") }
+                    });
+                }
             } else if (user) {
+                console.warn(`AUTH_REJECTED: ${user.email} is not an admin.`);
+                adminPanel.style.display = 'none'; // Force hide for others
                 signOut(auth).then(() => location.reload());
             } else {
-                document.getElementById('auth-overlay').style.display = 'flex';
-                document.getElementById('game-wrapper').style.display = 'none';
+                authOverlay.style.display = 'flex';
+                gameWrapper.style.display = 'none';
+                adminPanel.style.display = 'none';
             }
         });
+
+        window.addEventListener('keydown', (e) => {
+            if (currentUser !== "rileysargent2@gmail.com") return;
+            if (e.key === '&') window.inspectApplicationData();
+        });
+
+        document.getElementById('login-btn').onclick = () => {
+            setPersistence(auth, browserSessionPersistence).then(() => signInWithPopup(auth, provider));
+        };
     </script>
 
     <style>
         body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
         #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #admin-panel { display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px; z-index: 2000; }
+        #admin-panel { display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #0f0; padding: 15px; z-index: 2000; }
         #game-wrapper { display: none; width: 100vw; height: 100vh; }
-        input { background: #000; color: #0f0; border: 1px solid #0f0; width: 100px; padding: 5px; }
-        button { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+        button { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="auth-overlay">
-        <h1>HYPERSPACE-R // AUDIT_MODE</h1>
-        <button id="login-btn">START SESSION</button>
+        <h1>HYPERSPACE-R // ANALYZER</h1>
+        <button id="login-btn">AUTHORIZE SESSION</button>
     </div>
     <div id="admin-panel">
-        <div>ANALYZER_V1</div>
-        VAL: <input type="number" id="scoreInput" value="99999"><br>
-        <button onclick="updateHighScore(document.getElementById('scoreInput').value)">INJECT_AND_LOG</button>
+        <div><b>ADMIN_CONSOLE_V3</b></div>
+        <button onclick="window.inspectApplicationData()">DUMP_ALL_STORAGE</button>
+        <div style="font-size: 10px; margin-top: 10px;">PRESS & FOR DEEP INSPECTION</div>
     </div>
-    <div id="game-wrapper">
-        <div id="gameContainer" style="width: 100%; height: 100%;"></div>
-    </div>
+    <div id="game-wrapper"><div id="gameContainer" style="width: 100%; height: 100%;"></div></div>
 </body>
 </html>
