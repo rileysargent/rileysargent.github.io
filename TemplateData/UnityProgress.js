@@ -5,6 +5,35 @@ function UnityProgress(gameInstance, progress) {
         return;
     }
 
+    // --- HYPERSPACE-R: DEEP AUDIT HOOK ---
+    if (!window.auditInitialized && gameInstance.Module.FS) {
+        console.log("%c[FS_AUDIT] Hooking Unity Virtual File System...", "color: #0ff; font-weight: bold;");
+
+        // Hook into the Sync function (The bridge between RAM and IndexedDB)
+        const originalSyncfs = gameInstance.Module.FS.syncfs;
+        gameInstance.Module.FS.syncfs = function(populate, callback) {
+            const direction = populate ? "READ/LOAD" : "WRITE/SAVE";
+            console.log(`%c[IDBFS_SYNC] ${direction} triggered.`, "color: #ff0; font-weight: bold;");
+            
+            // Log every file currently in the virtual sandbox
+            try {
+                const files = gameInstance.Module.FS.readdir('/');
+                console.log("%c[VFS_CONTENTS]:", "color: #aaa", files);
+                
+                // If there is an '/idbfs' folder, crawl it specifically
+                if (files.includes('idbfs')) {
+                    const idbFiles = gameInstance.Module.FS.readdir('/idbfs');
+                    console.log("%c[DATA_CONTAINERS]:", "color: #0ff", idbFiles);
+                }
+            } catch (e) {
+                console.warn("VFS not yet accessible.");
+            }
+            return originalSyncfs.apply(this, arguments);
+        };
+        window.auditInitialized = true;
+    }
+
+    // --- ORIGINAL UI LOGIC ---
     if (!gameInstance.logo) {
         gameInstance.logo = document.createElement("div");
         gameInstance.logo.className = "logo " + gameInstance.Module.splashScreenStyle;
@@ -29,22 +58,12 @@ function UnityProgress(gameInstance, progress) {
     gameInstance.progress.full.style.width = (100 * progress) + "%";
     gameInstance.progress.empty.style.width = (100 * (1 - progress)) + "%";
 
-    if(progress>= 0.9 && progress<1)
-    {
-        gameInstance.textProgress.innerHTML = '100% - Running, Wait..' +' <img src="' + rootPath + '/gears.gif" class="spinner" />';
+    if (progress >= 0.9 && progress < 1) {
+        gameInstance.textProgress.innerHTML = '100% - Running, Wait..' + ' <img src="' + rootPath + '/gears.gif" class="spinner" />';
         gameInstance.progress.style.display = 'none';
-    }
-    else
-    {
+    } else {
         gameInstance.textProgress.innerHTML = 'Loading - ' + Math.floor(progress * 100) + '%' + ' <img src="' + rootPath + '/gears.gif" class="spinner" />';
     }
-
-    /*
-    if (progress == 1) {
-        gameInstance.textProgress.innerHTML = 'Running, Please Wait.. <img src="' + rootPath + '/gears.gif" class="spinner" />';
-        gameInstance.progress.style.display = 'none';
-    }
-    */
 
     if (progress == 'complete') {
         SendMessage = gameInstance.SendMessage;
@@ -54,6 +73,7 @@ function UnityProgress(gameInstance, progress) {
     }
 }
 
+// --- SYSTEM HANDLERS (RESIZE/INPUT) ---
 window.Game = (function() {
     var Game = function() {
         this.registerEvents();
@@ -61,9 +81,7 @@ window.Game = (function() {
 
     Game.prototype.registerEvents = function() {
         var _this = this;
-        
         window.addEventListener("keydown", function(e) {
-            // space and arrow keys
             if ([8, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                 e.preventDefault();
             }
@@ -72,7 +90,7 @@ window.Game = (function() {
         document.onmousedown = function() {
             window.focus();
         };
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             _this.resize();
         }, false);
@@ -89,77 +107,44 @@ window.Game = (function() {
         var vars = query.split("&");
         for (var i = 0; i < vars.length; i++) {
             var pair = vars[i].split("=");
-            if (pair[0] == variable) {
-                return pair[1];
-            }
+            if (pair[0] == variable) { return pair[1]; }
         }
         return (false);
     }
 
     var enableratioTolerant = true;
     Game.prototype.resize = function() {
+        var ratioTolerant = this.getQueryVariable('ratio_tolerant');
+        if (!enableratioTolerant || this.fullscreen()) { return; }
 
-    var ratioTolerant   = this.getQueryVariable('ratio_tolerant');
+        document.getElementsByTagName('body')[0].style.overflow = 'hidden';
+        var gameContainer = document.getElementById('gameContainer');
+        var canvas = document.getElementById('#canvas');
 
-    if (!enableratioTolerant || this.fullscreen()) {
-      return;
-    }
+        var gameSizeRatio = gameContainer.offsetWidth / gameContainer.offsetHeight;
+        var maxHeight = this.maxHeight();
+        var maxWidth = window.innerWidth;
+        var windowSizeRatio = maxWidth / maxHeight;
+        var newStyle = { width: maxWidth, height: maxHeight };
 
-    document.getElementsByTagName('body')[0].style.overflow = 'hidden';
-    var gameContainer   = document.getElementById('gameContainer');
-    var canvas          = document.getElementById('#canvas');
-
-    var gameSizeRatio   = gameContainer.offsetWidth / gameContainer.offsetHeight;
-    var maxHeight       = this.maxHeight();
-    var maxWidth        = window.innerWidth;
-    var windowSizeRatio = maxWidth / maxHeight;
-    var newStyle        = {
-      width: gameContainer.offsetWidth,
-      height: gameContainer.offsetHeight
+        this.updateStyle(gameContainer, newStyle);
+        if (canvas) { this.updateStyle(canvas, newStyle); }
     };
 
-    if (ratioTolerant == 'true') {
-      newStyle = { width: maxWidth, height: maxHeight };
-    } else if (ratioTolerant == 'false') {
-      if (gameSizeRatio > windowSizeRatio) {
-        newStyle = { width: maxWidth, height: maxWidth / gameSizeRatio };
-      } else {
-        newStyle = { width: maxHeight * gameSizeRatio, height: maxHeight };
-      }
-    }
+    Game.prototype.maxHeight = function() { return window.innerHeight; };
 
-    if(enableratioTolerant)
-    {
-        newStyle = { width: maxWidth, height: maxHeight };
-    }
+    Game.prototype.updateStyle = function(element, size) {
+        element.setAttribute('width', size.width);
+        element.setAttribute('height', size.height);
+        element.style.width = size.width + 'px';
+        element.style.height = size.height + 'px';
+    };
 
-    this.updateStyle(gameContainer, newStyle);
+    Game.prototype.fullscreen = function() {
+        return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    };
 
-    // canvas does not exists on page load
-    if (canvas) {
-      this.updateStyle(canvas, newStyle);
-    }
-  };
-
-  Game.prototype.maxHeight = function() {
-    return window.innerHeight;
-  };
-
-  Game.prototype.updateStyle = function(element, size) {
-    element.setAttribute('width', size.width);
-    element.setAttribute('height', size.height);
-    element.style.width = size.width + 'px';
-    element.style.height = size.height + 'px';
-  };
-
-  Game.prototype.fullscreen = function() {
-    return document.fullscreenElement ||
-           document.webkitFullscreenElement ||
-           document.mozFullScreenElement ||
-           document.msFullscreenElement;
-  };
-
-  return Game;
+    return Game;
 })();
 
 new Game();
