@@ -2,7 +2,11 @@
 <html lang="en-us">
 <head>
     <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Snow Rider 3D - Hyperspace-R Secure</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
 
@@ -27,10 +31,10 @@
         let gameInstance = null;
         let currentUser = null;
 
-        // --- Logging & Export ---
-        function addToLog(action) {
+        // --- FULL AUDIT LOGGING ---
+        function addToLog(action, detail = "N/A", target = "System") {
             let logs = JSON.parse(localStorage.getItem('game_logs') || "[]");
-            const entry = `[${new Date().toLocaleString()}] User: ${currentUser || 'Guest'} - Action: ${action}`;
+            const entry = `[${new Date().toLocaleString()}] USER: ${currentUser || 'Guest'} | ACTION: ${action} | DATA: ${detail} | TARGET: ${target}`;
             logs.push(entry);
             localStorage.setItem('game_logs', JSON.stringify(logs));
         }
@@ -42,90 +46,110 @@
             link.href = URL.createObjectURL(blob);
             link.download = 'log.txt';
             link.click();
-            addToLog("Logs exported to log.txt");
+            addToLog("LOG_EXPORT", "log.txt downloaded via command", "Client_FS");
         };
 
-        // --- Keyboard Shortcut (`) ---
+        // --- KEYBOARD SHORTCUT (`) ---
         window.addEventListener('keydown', (e) => {
             if (e.key === '`') {
                 if (currentUser === "rileysargent2@gmail.com") {
                     window.exportLogs();
                 } else {
-                    addToLog("Unauthorized backtick hotkey attempt");
+                    addToLog("UNAUTHORIZED_HOTKEY", "Backtick pressed by unverified user", "Security_Guard");
                 }
             }
         });
 
-        // --- Game Actions ---
-        window.updateHighScore = function(val) {
+        // --- SECURE SCORE OVERRIDE ---
+        window.updateHighScore = function(newVal) {
             if (currentUser === "rileysargent2@gmail.com" && gameInstance) {
-                gameInstance.SendMessage('GameManager', 'SetScore', parseInt(val));
-                localStorage.setItem('HighScore', val); // Persistent High Score for the browser
-                addToLog(`High Score Updated to: ${val}`);
+                const oldScore = localStorage.getItem('HighScore') || "0";
+                
+                // Log the override specifics
+                addToLog("OVERRIDE_START", `Replacing ${oldScore} with ${newVal}`, "Engine+LocalStorage");
+
+                // Execute
+                gameInstance.SendMessage('GameManager', 'SetScore', parseInt(newVal));
+                localStorage.setItem('HighScore', newVal);
+                
+                // Verify and Log result
+                const verify = localStorage.getItem('HighScore');
+                addToLog("OVERRIDE_COMPLETE", `Verified Saved Content: ${verify}`, "LocalStorage");
             }
         };
 
         const launchGame = () => {
-            if (!gameInstance) {
-                gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
-                    onProgress: UnityProgress,
-                    Module: { onRuntimeInitialized: () => {
-                        UnityProgress(gameInstance, "complete");
-                        addToLog("Unity Engine Started");
-                    }}
-                });
-            }
+            // Delay to ensure container is rendered and visible to prevent Assertion Error
+            setTimeout(() => {
+                if (!gameInstance) {
+                    gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
+                        onProgress: UnityProgress,
+                        Module: { 
+                            onRuntimeInitialized: () => {
+                                UnityProgress(gameInstance, "complete");
+                                addToLog("ENGINE_BOOT", "Unity assertion passed and initialized", "WebGL_Runtime");
+                            }
+                        }
+                    });
+                }
+            }, 400); 
         };
 
-        // --- Auth Logic ---
+        // --- AUTHENTICATION FLOW ---
         document.getElementById('login-btn').onclick = () => {
             setPersistence(auth, browserSessionPersistence).then(() => {
                 return signInWithPopup(auth, provider);
+            }).catch(e => {
+                addToLog("AUTH_ERROR", e.message, "Firebase_Auth");
+                alert("Auth Error: " + e.message);
             });
         };
 
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === "rileysargent2@gmail.com") {
                 currentUser = user.email;
+                addToLog("SESSION_START", "Strict admin login verified", "Firebase_Auth");
+                
                 document.getElementById('auth-overlay').style.display = 'none';
-                document.getElementById('game-wrapper').style.visibility = 'visible';
+                document.getElementById('game-wrapper').style.display = 'block';
                 document.getElementById('admin-panel').style.display = 'block';
-                addToLog("Session Started: Admin Verified");
+                
                 launchGame();
             } else if (user) {
-                addToLog(`Blocked Access: ${user.email}`);
-                signOut(auth).then(() => { alert("Unauthorized Account"); location.reload(); });
+                addToLog("ACCESS_DENIED", `Unauthorized user: ${user.email}`, "Security_Guard");
+                signOut(auth).then(() => location.reload());
             } else {
                 document.getElementById('auth-overlay').style.display = 'flex';
+                document.getElementById('game-wrapper').style.display = 'none';
             }
         });
     </script>
 
     <style>
         body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
-        #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         #admin-panel { display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px; z-index: 2000; }
-        #game-wrapper { visibility: hidden; }
-        input { background: #000; color: #0f0; border: 1px solid #0f0; width: 80px; padding: 5px; }
-        button { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; margin-top: 5px; }
-        button:hover { background: #0a0; }
+        #game-wrapper { display: none; width: 100vw; height: 100vh; }
+        input { background: #000; color: #0f0; border: 1px solid #0f0; width: 80px; padding: 5px; margin-bottom: 5px; }
+        button { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; }
+        .hint { font-size: 10px; margin-top: 8px; color: #0a0; }
     </style>
 </head>
 <body>
     <div id="auth-overlay">
-        <h1 style="letter-spacing: 5px;">HYPERSPACE-R // ACCESS</h1>
-        <button id="login-btn">AUTHORIZE SESSION</button>
+        <h1 style="letter-spacing: 10px;">HYPERSPACE-R</h1>
+        <button id="login-btn">EXECUTE LOGIN</button>
     </div>
 
     <div id="admin-panel">
-        <div>ADMIN_CONSOLE</div>
-        <input type="number" id="scoreInput" value="1000">
-        <button onclick="updateHighScore(document.getElementById('scoreInput').value)">SET_SCORE</button>
-        <div style="font-size: 10px; margin-top: 5px;">PRESS ` TO EXPORT LOGS</div>
+        <div>SYSTEM_ADMIN</div>
+        <input type="number" id="scoreInput" value="1000"><br>
+        <button onclick="updateHighScore(document.getElementById('scoreInput').value)">OVERRIDE_SCORE</button>
+        <div class="hint">PRESS ` TO EXPORT AUDIT LOG</div>
     </div>
 
     <div id="game-wrapper">
-        <div id="gameContainer" style="width: 100vw; height: 100vh;"></div>
+        <div id="gameContainer" style="width: 100%; height: 100%;"></div>
     </div>
 </body>
 </html>
