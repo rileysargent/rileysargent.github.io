@@ -3,9 +3,9 @@
 <head>
     <meta charset="utf-8">
     <title>Snow Rider 3D</title>
-    <script src="TemplateData/UnityProgress.js"></script>
-    <script src="Build/UnityLoader.js"></script>
-
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, setPersistence, browserSessionPersistence, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -27,41 +27,60 @@
         let gameInstance = null;
         let currentUser = null;
 
-        // --- 1. RAW DATA INTERCEPTOR (LOGS EVERYTHING TO CONSOLE) ---
+        // --- 1. RAW DATA INTERCEPTOR ---
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = function(key, value) {
             console.log(`%c[STORAGE_WRITE] Key: ${key} | Data: ${value}`, "color: #00ff00; font-weight: bold;");
             originalSetItem.apply(this, arguments);
         };
 
-        const originalIDB = window.indexedDB.open;
-        window.indexedDB.open = function() {
-            console.log(`%c[INDEXED_DB_ACCESS] Opening DB: ${arguments[0]}`, "color: #ff00ff;");
-            return originalIDB.apply(this, arguments);
-        };
-
-        // --- 2. THE ADMIN DATA DUMP (& KEY) ---
+        // --- 2. INDEXED_DB CRAWLER ---
         window.inspectApplicationData = async function() {
             if (currentUser !== "rileysargent2@gmail.com") return;
             console.clear();
-            console.log("%c--- FULL APPLICATION DATA DUMP ---", "color: #00ffff; font-size: 14px;");
+            console.log("%c--- DEEP STORAGE DUMP ---", "color: #00ffff; font-size: 14px; font-weight: bold;");
             console.log("LOCAL_STORAGE:", {...localStorage});
-            
+
             const dbs = await window.indexedDB.databases();
             dbs.forEach(dbInfo => {
                 const req = window.indexedDB.open(dbInfo.name);
                 req.onsuccess = (e) => {
                     const db = e.target.result;
+                    console.log(`%cDB: ${db.name}`, "color: yellow; font-weight: bold;");
                     Array.from(db.objectStoreNames).forEach(s => {
                         db.transaction(s, "readonly").objectStore(s).getAll().onsuccess = (ev) => {
-                            console.log(`INDEXED_DB [${db.name}] -> Store [${s}]:`, ev.target.result);
+                            console.log(`  -> Store [${s}]:`, ev.target.result);
                         };
                     });
                 };
             });
         };
 
-        // --- 3. AUTH & STRICT SECURITY ---
+        // --- 3. DYNAMIC UNITY LOADER ---
+        function loadUnityScripts() {
+            return new Promise((resolve) => {
+                const progressScript = document.createElement('script');
+                progressScript.src = "TemplateData/UnityProgress.js";
+                document.head.appendChild(progressScript);
+
+                const loaderScript = document.createElement('script');
+                loaderScript.src = "Build/UnityLoader.js";
+                loaderScript.onload = () => resolve();
+                document.head.appendChild(loaderScript);
+            });
+        }
+
+        async function launchGame() {
+            if (!gameInstance) {
+                await loadUnityScripts(); // Only loads files AFTER login
+                gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
+                    onProgress: UnityProgress,
+                    Module: { onRuntimeInitialized: () => console.log("%cUnity Instance Ready", "color: #00ff00") }
+                });
+            }
+        }
+
+        // --- 4. AUTH & IDENTITY LOCK ---
         onAuthStateChanged(auth, (user) => {
             const adminPanel = document.getElementById('admin-panel');
             const authOverlay = document.getElementById('auth-overlay');
@@ -69,21 +88,10 @@
 
             if (user && user.email === "rileysargent2@gmail.com") {
                 currentUser = user.email;
-                console.log("%cAUTH_SUCCESS: Admin privileges granted.", "color: #00ff00");
-                
                 authOverlay.style.display = 'none';
                 gameWrapper.style.display = 'block';
-                adminPanel.style.display = 'block'; // Only shows for Riley
-
-                if (!gameInstance) {
-                    gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
-                        onProgress: UnityProgress,
-                        Module: { onRuntimeInitialized: () => console.log("Unity Runtime Ready") }
-                    });
-                }
+                launchGame();
             } else if (user) {
-                console.warn(`AUTH_REJECTED: ${user.email} is not an admin.`);
-                adminPanel.style.display = 'none'; // Force hide for others
                 signOut(auth).then(() => location.reload());
             } else {
                 authOverlay.style.display = 'flex';
@@ -92,13 +100,33 @@
             }
         });
 
+        // --- 5. HOTKEYS ---
         window.addEventListener('keydown', (e) => {
             if (currentUser !== "rileysargent2@gmail.com") return;
-            if (e.key === '&') window.inspectApplicationData();
+            if (e.key === '&') {
+                const panel = document.getElementById('admin-panel');
+                panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+                window.inspectApplicationData();
+            }
+            if (e.key === '`') {
+                const logs = localStorage.getItem('game_logs') || "No logs captured.";
+                const blob = new Blob([logs], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'log.txt';
+                a.click();
+            }
         });
 
         document.getElementById('login-btn').onclick = () => {
             setPersistence(auth, browserSessionPersistence).then(() => signInWithPopup(auth, provider));
+        };
+
+        window.updateHighScore = (val) => {
+            if (currentUser === "rileysargent2@gmail.com") {
+                gameInstance.SendMessage('GameManager', 'SetScore', parseInt(val));
+                localStorage.setItem('HighScore', val);
+            }
         };
     </script>
 
@@ -107,19 +135,24 @@
         #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         #admin-panel { display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #0f0; padding: 15px; z-index: 2000; }
         #game-wrapper { display: none; width: 100vw; height: 100vh; }
-        button { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; }
+        button { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; }
+        input { background: #000; color: #0f0; border: 1px solid #0f0; padding: 5px; width: 80px; }
     </style>
 </head>
 <body>
     <div id="auth-overlay">
-        <h1>HYPERSPACE-R // ANALYZER</h1>
-        <button id="login-btn">AUTHORIZE SESSION</button>
+        <h1>HYPERSPACE-R // ACCESS_LOCK</h1>
+        <button id="login-btn" style="width: auto; padding: 10px 30px;">AUTHORIZE</button>
     </div>
+
     <div id="admin-panel">
-        <div><b>ADMIN_CONSOLE_V3</b></div>
-        <button onclick="window.inspectApplicationData()">DUMP_ALL_STORAGE</button>
-        <div style="font-size: 10px; margin-top: 10px;">PRESS & FOR DEEP INSPECTION</div>
+        <div><b>ADMIN_CLI_V4</b></div>
+        VAL: <input type="number" id="scoreInput" value="99999"><br>
+        <button onclick="updateHighScore(document.getElementById('scoreInput').value)">INJECT_SCORE</button>
+        <button onclick="window.inspectApplicationData()">DUMP_DATA</button>
+        <div style="font-size: 9px; margin-top: 10px;">& TOGGLE | ` EXPORT</div>
     </div>
+
     <div id="game-wrapper"><div id="gameContainer" style="width: 100%; height: 100%;"></div></div>
 </body>
 </html>
