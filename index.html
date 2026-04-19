@@ -4,10 +4,11 @@
     <meta charset="utf-8">
     <title>Hyperspace-R // Deep Audit</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
-        #auth-overlay { position: fixed; inset: 0; background: #0a0a0a; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 4px solid #333; }
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; width: 100vw; height: 100vh; }
+        #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid #333; }
         #admin-panel { display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.95); border: 1px solid #0f0; padding: 15px; z-index: 5000; box-shadow: 0 0 20px #0f0; width: 260px; }
-        #game-wrapper { display: none; width: 100vw; height: 100vh; }
+        #game-wrapper { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        #gameContainer { width: 100%; height: 100%; }
         button { background: #0f0; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: bold; width: 100%; margin: 5px 0; font-family: inherit; }
         input { background: #000; color: #0f0; border: 1px solid #0f0; padding: 8px; width: calc(100% - 20px); margin-bottom: 10px; }
     </style>
@@ -33,53 +34,96 @@
         let gameInstance = null;
         let currentUser = null;
 
-        // --- DEEP STORAGE CRAWLER ---
-        window.dumpRawIDB = async function() {
-            if (currentUser !== "rileysargent2@gmail.com") return;
-            const dbs = await window.indexedDB.databases();
-            for (const dbInfo of dbs) {
-                const req = window.indexedDB.open(dbInfo.name);
-                req.onsuccess = (e) => {
-                    const db = e.target.result;
-                    Array.from(db.objectStoreNames).forEach(s => {
-                        db.transaction(s, "readonly").objectStore(s).getAll().onsuccess = (ev) => {
-                            console.log(`%cIDB [${db.name} -> ${s}]:`, "color: #0ff", ev.target.result);
-                        };
-                    });
-                };
-            }
-        };
-
+        // --- DYNAMIC LOADER ---
         async function bootEngine() {
-            const inject = (src) => new Promise(res => {
-                const s = document.createElement('script'); s.src = src; s.onload = res; document.head.appendChild(s);
+            console.log("Injected: Verified Riley. Booting Pipeline...");
+            
+            const inject = (src) => new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = () => reject(`Failed to load: ${src}`);
+                document.head.appendChild(s);
             });
-            await inject("TemplateData/UnityProgress.js");
-            await inject("Build/UnityLoader.js");
-            gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
-                onProgress: UnityProgress,
-                Module: { onRuntimeInitialized: () => console.log("%c[SYSTEM] Engine Online", "color: #0f0") }
-            });
+
+            try {
+                // UnityProgress must load before UnityLoader
+                await inject("TemplateData/UnityProgress.js");
+                await inject("Build/UnityLoader.js");
+
+                // Check if UnityLoader is actually available in the global scope
+                if (typeof UnityLoader !== 'undefined') {
+                    gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
+                        onProgress: typeof UnityProgress !== 'undefined' ? UnityProgress : null,
+                        Module: { 
+                            onRuntimeInitialized: () => console.log("%c[SYSTEM] Engine Online", "color: #0f0") 
+                        }
+                    });
+                    window.gameInstance = gameInstance; // Make globally accessible for the button
+                } else {
+                    console.error("UnityLoader not found after injection.");
+                }
+            } catch (err) {
+                console.error("Boot Error:", err);
+            }
         }
 
+        // --- AUTH LOCK ---
         onAuthStateChanged(auth, (user) => {
+            const overlay = document.getElementById('auth-overlay');
+            const wrapper = document.getElementById('game-wrapper');
+
             if (user && user.email === "rileysargent2@gmail.com") {
                 currentUser = user.email;
-                document.getElementById('auth-overlay').style.display = 'none';
-                document.getElementById('game-wrapper').style.display = 'block';
+                overlay.style.display = 'none';
+                wrapper.style.display = 'block';
                 bootEngine();
             } else if (user) {
                 signOut(auth).then(() => location.reload());
+            } else {
+                overlay.style.display = 'flex';
+                wrapper.style.display = 'none';
             }
         });
+
+        // --- UI ACTIONS ---
+        window.injectCheat = () => {
+            const val = document.getElementById('cheatScore').value;
+            if (window.gameInstance) {
+                window.gameInstance.SendMessage('GameManager', 'SetScore', parseInt(val));
+                localStorage.setItem('HighScore', val);
+                console.log(`Injected: ${val}`);
+            }
+        };
 
         window.addEventListener('keydown', (e) => {
             if (currentUser !== "rileysargent2@gmail.com") return;
             if (e.key === '&') {
                 const p = document.getElementById('admin-panel');
                 p.style.display = p.style.display === 'none' ? 'block' : 'none';
-                window.dumpRawIDB();
             }
         });
 
-        document.getElementById('login-btn').onclick = ()
+        document.getElementById('login-btn').onclick = () => {
+            setPersistence(auth, browserSessionPersistence).then(() => signInWithPopup(auth, provider));
+        };
+    </script>
+</head>
+<body>
+    <div id="auth-overlay">
+        <h1 style="letter-spacing: 5px;">HYPERSPACE-R</h1>
+        <button id="login-btn">AUTHORIZE SESSION</button>
+    </div>
+
+    <div id="admin-panel">
+        <b>IDB_AUDIT_READY</b>
+        <input type="number" id="cheatScore" value="99999">
+        <button onclick="window.injectCheat()">OVERRIDE_SCORE</button>
+        <div style="font-size: 9px; color: #0a0; margin-top: 10px;">HOTKEY: (&) PANEL</div>
+    </div>
+
+    <div id="game-wrapper">
+        <div id="gameContainer"></div>
+    </div>
+</body>
+</html>
