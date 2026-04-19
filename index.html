@@ -10,7 +10,6 @@
         #game-wrapper { display: none; width: 100vw; height: 100vh; }
         button { background: #0f0; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: bold; width: 100%; margin: 5px 0; font-family: inherit; }
         input { background: #000; color: #0f0; border: 1px solid #0f0; padding: 8px; width: calc(100% - 20px); margin-bottom: 10px; }
-        .status-text { font-size: 10px; color: #0a0; margin-top: 15px; text-transform: uppercase; letter-spacing: 2px; }
     </style>
 
     <script type="module">
@@ -34,129 +33,53 @@
         let gameInstance = null;
         let currentUser = null;
 
-        // --- 1. GLOBAL DATA INTERCEPTOR (RAW STORAGE HOOKS) ---
-        const originalSet = localStorage.setItem;
-        localStorage.setItem = function(key, value) {
-            console.log(`%c[STORAGE_WRITE] Key: ${key} | Raw:`, "color: #0f0; font-weight: bold;", value);
-            originalSet.apply(this, arguments);
-        };
-
-        // --- 2. INDEXED_DB RAW DATA CRAWLER ---
+        // --- DEEP STORAGE CRAWLER ---
         window.dumpRawIDB = async function() {
             if (currentUser !== "rileysargent2@gmail.com") return;
-            console.log("%c[IDB_AUDIT] Initializing Deep Crawl...", "color: #f0f; font-weight: bold;");
-            
             const dbs = await window.indexedDB.databases();
             for (const dbInfo of dbs) {
                 const req = window.indexedDB.open(dbInfo.name);
                 req.onsuccess = (e) => {
                     const db = e.target.result;
-                    Array.from(db.objectStoreNames).forEach(storeName => {
-                        const transaction = db.transaction(storeName, "readonly");
-                        const store = transaction.objectStore(storeName);
-                        store.openCursor().onsuccess = (ev) => {
-                            const cursor = ev.target.result;
-                            if (cursor) {
-                                console.log(`%cDB: ${db.name} | Store: ${storeName}`, "color: #0ff; font-weight: bold;");
-                                console.log(` %cKey:`, "color: #aaa", cursor.key);
-                                console.log(` %cValue:`, "color: #fff", cursor.value);
-                                cursor.continue();
-                            }
+                    Array.from(db.objectStoreNames).forEach(s => {
+                        db.transaction(s, "readonly").objectStore(s).getAll().onsuccess = (ev) => {
+                            console.log(`%cIDB [${db.name} -> ${s}]:`, "color: #0ff", ev.target.result);
                         };
                     });
                 };
             }
         };
 
-        // --- 3. DYNAMIC UNITY BOOT (IDENTITY SECURE) ---
         async function bootEngine() {
-            console.log("%c[SECURITY] User Verified. Injecting Unity Pipeline...", "color: #0f0");
-            
-            const injectScript = (src) => new Promise((resolve) => {
-                const s = document.createElement('script');
-                s.src = src;
-                s.onload = resolve;
-                document.head.appendChild(s);
+            const inject = (src) => new Promise(res => {
+                const s = document.createElement('script'); s.src = src; s.onload = res; document.head.appendChild(s);
             });
-
-            // Dynamically load game scripts only after login
-            await injectScript("TemplateData/UnityProgress.js");
-            await injectScript("Build/UnityLoader.js");
-
+            await inject("TemplateData/UnityProgress.js");
+            await inject("Build/UnityLoader.js");
             gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
                 onProgress: UnityProgress,
-                Module: { onRuntimeInitialized: () => console.log("%c[SYSTEM] Engine Runtime Ready.", "color: #0f0") }
+                Module: { onRuntimeInitialized: () => console.log("%c[SYSTEM] Engine Online", "color: #0f0") }
             });
         }
 
-        // --- 4. AUTHENTICATION & ACCESS LOCK ---
         onAuthStateChanged(auth, (user) => {
-            const overlay = document.getElementById('auth-overlay');
-            const wrapper = document.getElementById('game-wrapper');
-
             if (user && user.email === "rileysargent2@gmail.com") {
                 currentUser = user.email;
-                overlay.style.display = 'none';
-                wrapper.style.display = 'block';
-                bootEngine(); 
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('game-wrapper').style.display = 'block';
+                bootEngine();
             } else if (user) {
-                signOut(auth).then(() => { alert("UNAUTHORIZED ACCOUNT"); location.reload(); });
-            } else {
-                overlay.style.display = 'flex';
-                wrapper.style.display = 'none';
+                signOut(auth).then(() => location.reload());
             }
         });
 
-        // --- 5. HOTKEYS & CHEATS ---
         window.addEventListener('keydown', (e) => {
             if (currentUser !== "rileysargent2@gmail.com") return;
-            
-            // Toggle Admin Panel with &
             if (e.key === '&') {
-                const panel = document.getElementById('admin-panel');
-                panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
-                window.dumpRawIDB(); // Auto-crawl on open
-            }
-            
-            // Export Audit Logs with `
-            if (e.key === '`') {
-                const logs = localStorage.getItem('game_logs') || "[]";
-                const blob = new Blob([logs], { type: 'text/plain' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = 'audit_log.txt';
-                a.click();
+                const p = document.getElementById('admin-panel');
+                p.style.display = p.style.display === 'none' ? 'block' : 'none';
+                window.dumpRawIDB();
             }
         });
 
-        window.injectCheat = () => {
-            const score = document.getElementById('cheatScore').value;
-            console.log(`%c[MANUAL_INJECTION] Setting HighScore to ${score}`, "color: red; font-weight: bold;");
-            gameInstance.SendMessage('GameManager', 'SetScore', parseInt(score));
-            localStorage.setItem('HighScore', score);
-        };
-
-        document.getElementById('login-btn').onclick = () => {
-            setPersistence(auth, browserSessionPersistence).then(() => signInWithPopup(auth, provider));
-        };
-    </script>
-</head>
-<body>
-    <div id="auth-overlay">
-        <div style="font-weight: bold; letter-spacing: 5px;">HYPERSPACE-R // ANALYZER</div>
-        <div class="status-text">Encrypted Access Required</div>
-        <button id="login-btn" style="width: auto; padding: 10px 40px; margin-top: 20px;">AUTHORIZE</button>
-    </div>
-
-    <div id="admin-panel">
-        <div style="font-size: 12px; margin-bottom: 10px;"><b>IDB_RAW_DATA_ROOT</b></div>
-        <hr border="1" color="#0f0">
-        SCORE_OVERRIDE: <input type="number" id="cheatScore" value="99999"><br>
-        <button onclick="injectCheat()">INJECT_DATA</button>
-        <button onclick="window.dumpRawIDB()">REFRESH_IDB_CRAWL</button>
-        <div style="font-size: 9px; color: #0a0; margin-top: 10px;">HOTKEYS: (&) TOGGLE PANEL | (`) AUDIT LOG</div>
-    </div>
-
-    <div id="game-wrapper"><div id="gameContainer" style="width: 100%; height: 100%;"></div></div>
-</body>
-</html>
+        document.getElementById('login-btn').onclick = ()
