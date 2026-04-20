@@ -18,7 +18,9 @@
         .log-message { font-weight: bold; color: #0f0; }
         .log-data { white-space: pre-wrap; word-wrap: break-word; color: #ccc; }
         #close-log { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 24px; color: #0f0; }
+        #joystick-container { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; z-index: 10002; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
     <script src="logger.js"></script>
     <script src="cheats.js"></script>
     <script type="module">
@@ -162,6 +164,28 @@
             logOverlay.style.display = 'none';
             window.log("Log overlay closed.");
         };
+
+        // --- JOYSTICK ---
+        const joystick = nipplejs.create({
+            zone: document.getElementById('joystick-container'),
+            mode: 'static',
+            position: { left: '50%', top: '50%' },
+            color: 'white'
+        });
+
+        joystick.on('move', function (evt, data) {
+            if (window.gameInstance) {
+                const x = data.vector.x;
+                const y = data.vector.y;
+                window.gameInstance.SendMessage('Player', 'Move', `${x},${y}`);
+            }
+        });
+
+        joystick.on('end', function () {
+            if (window.gameInstance) {
+                window.gameInstance.SendMessage('Player', 'Move', '0,0');
+            }
+        });
     </script>
 </head>
 <body>
@@ -185,5 +209,6 @@
     <div id="game-wrapper">
         <div id="gameContainer"></div>
     </div>
+    <div id="joystick-container"></div>
 </body>
 </html>
