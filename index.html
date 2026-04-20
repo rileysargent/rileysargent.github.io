@@ -52,16 +52,12 @@
                 window.log("Boot Error:", err);
             }
         }
-        
-document.addEventListener('DOMContentLoaded', () => {
-    const overlay = document.getElementById('auth-overlay');
-    if(overlay) {
-        overlay.style.display = 'none';
-    }
-    const wrapper = document.getElementById('game-wrapper');
-    wrapper.style.display = 'block';
-    bootEngine();
-});
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const wrapper = document.getElementById('game-wrapper');
+            wrapper.style.display = 'block';
+            bootEngine();
+        });
 
         window.injectCheat = async () => {
             const score = parseInt(document.getElementById('cheatScore').value);
@@ -105,11 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </script>
 </head>
 <body>
-    <div id="auth-overlay" style="display: none;">
-        <h1>Hyperspace-R</h1>
-        <button id="login-btn">Authorize Session</button>
-    </div>
-
     <div id="game-wrapper" style="display: none;">
         <div id="gameContainer"></div>
     </div>
