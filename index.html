@@ -11,7 +11,6 @@
     <script src="cheats.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
@@ -25,8 +24,6 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
         let gameInstance = null;
 
         async function bootEngine() {
@@ -55,21 +52,16 @@
                 window.log("Boot Error:", err);
             }
         }
-
-        onAuthStateChanged(auth, (user) => {
-            const overlay = document.getElementById('auth-overlay');
-            const wrapper = document.getElementById('game-wrapper');
-            if (user) {
-                window.log("Authenticated", { email: user.email });
-                overlay.style.display = 'none';
-                wrapper.style.display = 'block';
-                bootEngine();
-            } else {
-                window.log("No user detected, showing auth overlay.");
-                overlay.style.display = 'flex';
-                wrapper.style.display = 'none';
-            }
-        });
+        
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('auth-overlay');
+    if(overlay) {
+        overlay.style.display = 'none';
+    }
+    const wrapper = document.getElementById('game-wrapper');
+    wrapper.style.display = 'block';
+    bootEngine();
+});
 
         window.injectCheat = async () => {
             const score = parseInt(document.getElementById('cheatScore').value);
@@ -80,11 +72,6 @@
             } else {
                 window.log("Game instance not found.");
             }
-        };
-
-        document.getElementById('login-btn').onclick = () => {
-            window.log("Login button clicked.");
-            setPersistence(auth, browserSessionPersistence).then(() => signInWithPopup(auth, provider));
         };
 
         window.addEventListener('keydown', (e) => {
@@ -118,12 +105,12 @@
     </script>
 </head>
 <body>
-    <div id="auth-overlay">
+    <div id="auth-overlay" style="display: none;">
         <h1>Hyperspace-R</h1>
         <button id="login-btn">Authorize Session</button>
     </div>
 
-    <div id="game-wrapper">
+    <div id="game-wrapper" style="display: none;">
         <div id="gameContainer"></div>
     </div>
 
