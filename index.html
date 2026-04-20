@@ -88,12 +88,30 @@
         });
 
         // --- UI ACTIONS ---
-        window.injectCheat = () => {
+        window.injectCheat = async () => {
             const val = document.getElementById('cheatScore').value;
+            const score = parseInt(val);
+
             if (window.gameInstance) {
-                window.gameInstance.SendMessage('GameManager', 'SetScore', parseInt(val));
-                window.setHighScore(parseInt(val));
-                console.log(`Injected: ${val}`);
+                if (score >= 300 && score <= 400) {
+                    const highScore = await window.getHighScore();
+                    const bonus = Math.floor((score * highScore) / 2);
+                    const continueRun = confirm(`Do you want to continue this run or stop here and get a ${bonus} gift bonus?`);
+
+                    if (continueRun) {
+                        window.gameInstance.SendMessage('GameManager', 'SetScore', score);
+                        console.log(`Injected: ${score}`);
+                    } else {
+                        const newHighScore = highScore + bonus;
+                        await window.setHighScore(newHighScore);
+                        window.gameInstance.SendMessage('GameManager', 'SetScore', newHighScore);
+                        console.log(`Bonus calculated and high score updated to: ${newHighScore}`);
+                    }
+                } else {
+                    window.gameInstance.SendMessage('GameManager', 'SetScore', score);
+                    window.setHighScore(score);
+                    console.log(`Injected: ${score}`);
+                }
             }
         };
 
