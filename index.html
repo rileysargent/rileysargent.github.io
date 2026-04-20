@@ -3,29 +3,15 @@
 <html lang="en-us">
 <head>
     <meta charset="utf-8">
-    <title>t</title>
-    <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; width: 100vw; height: 100vh; }
-        #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid #333; }
-        #admin-panel { display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.95); border: 1px solid #0f0; padding: 15px; z-index: 5000; box-shadow: 0 0 20px #0f0; width: 260px; }
-        #game-wrapper { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-        #gameContainer { width: 100%; height: 100%; }
-        button { background: #0f0; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: bold; width: 100%; margin: 5px 0; font-family: inherit; }
-        input { background: #000; color: #0f0; border: 1px solid #0f0; padding: 8px; width: calc(100% - 20px); margin-bottom: 10px; }
-        #log-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9); z-index: 10001; display: none; }
-        #log-container { position: fixed; top: 20px; left: 20px; right: 20px; bottom: 20px; background: #111; border: 1px solid #0f0; padding: 15px; overflow-y: scroll; font-size: 14px; }
-        .log-entry { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .log-message { font-weight: bold; color: #0f0; }
-        .log-data { white-space: pre-wrap; word-wrap: break-word; color: #ccc; }
-        #close-log { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 24px; color: #0f0; }
-        #joystick-container { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; z-index: 10002; }
-    </style>
+    <title>Hyperspace-R // Deep Audit</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
     <script src="logger.js"></script>
     <script src="cheats.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, setPersistence, browserSessionPersistence, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
@@ -42,38 +28,24 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
         let gameInstance = null;
-        let currentUser = null;
 
-        // --- DYNAMIC LOADER ---
         async function bootEngine() {
             window.log("Booting game engine...");
-            
             const inject = (src) => new Promise((resolve, reject) => {
                 const s = document.createElement('script');
                 s.src = src;
-                s.onload = () => {
-                    window.log(`Successfully loaded: ${src}`);
-                    resolve();
-                };
-                s.onerror = () => {
-                    const errorMsg = `Failed to load: ${src}`;
-                    window.log(errorMsg);
-                    reject(errorMsg);
-                };
+                s.onload = () => { window.log(`Successfully loaded: ${src}`); resolve(); };
+                s.onerror = () => { const msg = `Failed to load: ${src}`; window.log(msg); reject(msg); };
                 document.head.appendChild(s);
             });
 
             try {
-                // UnityProgress must load before UnityLoader
                 await inject("TemplateData/UnityProgress.js");
                 await inject("Build/UnityLoader.js");
-
                 if (typeof UnityLoader !== 'undefined') {
                     gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
                         onProgress: typeof UnityProgress !== 'undefined' ? UnityProgress : null,
-                        Module: { 
-                            onRuntimeInitialized: () => window.log("Game engine online.")
-                        }
+                        Module: { onRuntimeInitialized: () => window.log("Game engine online.") }
                     });
                     window.gameInstance = gameInstance;
                 } else {
@@ -84,20 +56,14 @@
             }
         }
 
-        // --- AUTH LOCK ---
         onAuthStateChanged(auth, (user) => {
             const overlay = document.getElementById('auth-overlay');
             const wrapper = document.getElementById('game-wrapper');
-
-            if (user && user.email === "rileysargent2@gmail.com") {
-                currentUser = user.email;
-                window.log("Authenticated as admin", { email: user.email });
+            if (user) {
+                window.log("Authenticated", { email: user.email });
                 overlay.style.display = 'none';
                 wrapper.style.display = 'block';
                 bootEngine();
-            } else if (user) {
-                window.log("Unauthorized user detected, signing out.", { email: user.email });
-                signOut(auth).then(() => location.reload());
             } else {
                 window.log("No user detected, showing auth overlay.");
                 overlay.style.display = 'flex';
@@ -105,67 +71,29 @@
             }
         });
 
-        // --- UI ACTIONS ---
         window.injectCheat = async () => {
-            const val = document.getElementById('cheatScore').value;
-            const score = parseInt(val);
+            const score = parseInt(document.getElementById('cheatScore').value);
             window.log("Attempting to inject cheat", { score });
-
             if (window.gameInstance) {
-                if (score >= 300 && score <= 400) {
-                    window.log("Score is within bonus range.");
-                    const highScore = await window.getHighScore();
-                    const bonus = Math.floor((score * highScore) / 2);
-                    window.log("Bonus calculated", { highScore, bonus });
-
-                    const continueRun = confirm(`Do you want to continue this run or stop here and get a ${bonus} gift bonus?`);
-
-                    if (continueRun) {
-                        window.log("User chose to continue run.");
-                        window.gameInstance.SendMessage('GameManager', 'SetScore', score);
-                    } else {
-                        window.log("User chose to accept bonus.");
-                        const newHighScore = highScore + bonus;
-                        await window.setHighScore(newHighScore);
-                        window.gameInstance.SendMessage('GameManager', 'SetScore', newHighScore);
-                        window.log("New high score set", { newHighScore });
-                    }
-                } else {
-                    window.log("Score is outside bonus range, setting score directly.");
-                    window.gameInstance.SendMessage('GameManager', 'SetScore', score);
-                    await window.setHighScore(score);
-                }
+                window.gameInstance.SendMessage('GameManager', 'SetScore', score);
+                await window.setHighScore(score);
             } else {
                 window.log("Game instance not found.");
             }
         };
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === '&') {
-                const p = document.getElementById('admin-panel');
-                p.style.display = p.style.display === 'none' ? 'block' : 'none';
-                window.log(`Admin panel toggled ${p.style.display === 'none' ? 'off' : 'on'}`);
-            }
-
-            if (e.key === '`') {
-                const logOverlay = document.getElementById('log-overlay');
-                logOverlay.style.display = logOverlay.style.display === 'none' ? 'block' : 'none';
-                window.log(`Log overlay toggled ${logOverlay.style.display === 'none' ? 'off' : 'on'}`);
-            }
-        });
 
         document.getElementById('login-btn').onclick = () => {
             window.log("Login button clicked.");
             setPersistence(auth, browserSessionPersistence).then(() => signInWithPopup(auth, provider));
         };
 
-        document.getElementById('close-log').onclick = () => {
-            const logOverlay = document.getElementById('log-overlay');
-            logOverlay.style.display = 'none';
-            window.log("Log overlay closed.");
-        };
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '&') {
+                const p = document.getElementById('admin-panel');
+                p.style.display = p.style.display === 'none' ? 'block' : 'none';
+            }
+        });
 
-        // --- JOYSTICK ---
         const joystick = nipplejs.create({
             zone: document.getElementById('joystick-container'),
             mode: 'static',
@@ -173,7 +101,7 @@
             color: 'white'
         });
 
-        joystick.on('move', function (evt, data) {
+        joystick.on('move', (evt, data) => {
             if (window.gameInstance) {
                 const x = data.vector.x;
                 const y = data.vector.y;
@@ -181,34 +109,35 @@
             }
         });
 
-        joystick.on('end', function () {
+        joystick.on('end', () => {
             if (window.gameInstance) {
                 window.gameInstance.SendMessage('Player', 'Move', '0,0');
             }
         });
+
     </script>
 </head>
 <body>
     <div id="auth-overlay">
-        <h1 style="letter-spacing: 5px;">HYPERSPACE-R</h1>
-        <button id="login-btn">AUTHORIZE SESSION</button>
-    </div>
-
-    <div id="admin-panel">
-        <b>IDB_AUDIT_READY</b>
-        <input type="number" id="cheatScore" value="99999">
-        <button onclick="window.injectCheat()">OVERRIDE_SCORE</button>
-        <div style="font-size: 9px; color: #0a0; margin-top: 10px;">HOTKEY: (&) PANEL</div>
-    </div>
-
-    <div id="log-overlay">
-        <div id="log-container"></div>
-        <div id="close-log">&times;</div>
+        <h1>Hyperspace-R</h1>
+        <button id="login-btn">Authorize Session</button>
     </div>
 
     <div id="game-wrapper">
         <div id="gameContainer"></div>
     </div>
+
+    <div id="admin-panel">
+        <h2>Admin Controls</h2>
+        <input type="number" id="cheatScore" value="99999">
+        <button onclick="window.injectCheat()">Override Score</button>
+    </div>
+
     <div id="joystick-container"></div>
+
+    <div id="log-overlay">
+        <div id="log-container"></div>
+        <div id="close-log">&times;</div>
+    </div>
 </body>
 </html>

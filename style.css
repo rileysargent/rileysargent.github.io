@@ -1,105 +1,152 @@
-/* style.css */
+
 :root {
-    --mc-green: #38e038;
-    --mc-dark: #1e1e1e;
-    --mc-gray: #313131;
-    --accent: #55ff55;
+    --primary-color: #0A0A0A;
+    --secondary-color: #1A1A1A;
+    --accent-color: #00FF00;
+    --text-color: #E0E0E0;
+    --font-family: 'Roboto Mono', monospace;
+    --border-radius: 8px;
+    --transition-speed: 0.3s;
 }
 
 body {
-    background-color: var(--mc-dark);
-    color: #ffffff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
     margin: 0;
+    padding: 0;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     height: 100vh;
     overflow: hidden;
 }
 
-/* The main container for the VC interface */
-#app-container {
-    background: rgba(49, 49, 49, 0.9);
-    border: 2px solid #000;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    width: 350px;
-    text-align: center;
+#auth-overlay, #game-wrapper, #admin-panel, #log-overlay {
+    backdrop-filter: blur(10px);
 }
 
-h2 {
-    color: var(--mc-green);
-    text-shadow: 2px 2px #000;
-    margin-top: 0;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
-/* Status Indicator */
-#status-bar {
-    background: #000;
-    padding: 8px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-}
-
-.connected { color: var(--mc-green); font-weight: bold; }
-.disconnected { color: #ff5555; font-weight: bold; }
-
-/* Player List Styling */
-#player-list {
-    max-height: 300px;
-    overflow-y: auto;
-    border-top: 1px solid #444;
-    padding-top: 10px;
-}
-
-.player-card {
-    background: var(--mc-gray);
-    border: 1px solid #555;
-    margin: 8px 0;
-    padding: 10px;
+#auth-overlay {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    border-radius: 4px;
-    transition: transform 0.1s;
+    text-align: center;
+    background: rgba(10, 10, 10, 0.8);
+    border-radius: var(--border-radius);
+    padding: 40px;
+    border: 1px solid var(--accent-color);
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.2);
 }
 
-.player-card:hover {
-    border-color: var(--mc-green);
-    transform: scale(1.02);
+#auth-overlay h1 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: var(--accent-color);
 }
 
-.voice-indicator {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #444;
-}
-
-/* Glow effect when someone is actually speaking */
-.is-speaking {
-    background: var(--mc-green);
-    box-shadow: 0 0 10px var(--mc-green);
-}
-
-/* Simple Button for Mic Toggle */
-#mic-toggle {
-    background: #555;
-    border: 2px solid #000;
-    color: white;
-    padding: 10px 20px;
-    cursor: pointer;
+button {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    border: none;
+    padding: 15px 30px;
+    font-size: 1em;
     font-weight: bold;
-    margin-top: 15px;
+    font-family: var(--font-family);
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+    text-transform: uppercase;
 }
 
-#mic-toggle.active {
-    background: var(--mc-green);
-    color: #000;
+button:hover {
+    background-color: var(--text-color);
+    color: var(--primary-color);
+}
+
+#admin-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(26, 26, 26, 0.9);
+    border: 1px solid var(--accent-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    z-index: 5000;
+    width: 300px;
+    display: none;
+}
+
+#admin-panel h2 {
+    color: var(--accent-color);
+    font-size: 1.2em;
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background: var(--primary-color);
+    border: 1px solid var(--accent-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    border-radius: var(--border-radius);
+    box-sizing: border-box; /* Important for width calculation */
+}
+
+#game-wrapper {
+    width: 100vw;
+    height: 100vh;
+    display: none; /* Initially hidden */
+}
+
+#gameContainer {
+    width: 100%;
+    height: 100%;
+}
+
+#joystick-container {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    width: 150px;
+    height: 150px;
+    z-index: 10002;
+}
+
+#log-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 10001;
+    display: none;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#log-container {
+    width: 100%;
+    height: calc(100% - 60px);
+    background: var(--secondary-color);
+    border: 1px solid var(--accent-color);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    overflow-y: scroll;
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+#close-log {
+    position: absolute;
+    top: 25px;
+    right: 35px;
+    cursor: pointer;
+    font-size: 30px;
+    color: var(--accent-color);
+    font-weight: bold;
 }
