@@ -52,7 +52,7 @@
         <input type="number" id="cheatScore" value="99999" style="background:#000;color:#0f0;border:1px solid #0f0;padding:8px;width:calc(100% - 20px);margin-bottom:10px;">
         <button id="inject-btn" style="background:#0f0;color:#000;border:none;padding:12px;cursor:pointer;font-weight:bold;width:100%;margin:5px 0;">OVERRIDE_SCORE</button>
         <button id="storage-btn" style="background:#0f0;color:#000;border:none;padding:12px;cursor:pointer;font-weight:bold;width:100%;margin:5px 0;">DUMP_STORAGE</button>
-        <div style="font-size:9px;color:#0a0;margin-top:10px;">HOTKEY: (&) PANEL, (\`\`) LOG</div>`;
+        <div style="font-size:9px;color:#0a0;margin-top:10px;">HOTKEY: (&) PANEL, (Backtick) LOG</div>`;
     document.body.appendChild(adminPanel);
 
     // --- CHEAT FUNCTIONS --- //
@@ -156,6 +156,7 @@
     };
 
     window.addEventListener('keydown', (e) => {
+        originalConsoleLog('Key pressed:', e.key);
         if (e.key === '&') adminPanel.style.display = adminPanel.style.display === 'none' ? 'block' : 'none';
         if (e.key === '`') logContainer.style.display = logContainer.style.display === 'none' ? 'flex' : 'none';
     });
