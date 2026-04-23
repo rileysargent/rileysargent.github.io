@@ -10,36 +10,11 @@
     <script src="logger.js"></script>
     <script src="cheats.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-            authDomain: "hyperspace-r.firebaseapp.com",
-            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "hyperspace-r",
-            storageBucket: "hyperspace-r.firebasestorage.app",
-            messagingSenderId: "1050495683444",
-            appId: "1:1050495683444:web:846c42d274197b20313a21",
-            measurementId: "G-8RC2TB95T7"
-        };
-
         const app = initializeApp(firebaseConfig);
         let gameInstance = null;
-
-        async function bootEngine() {
-            window.log("Booting game engine...");
-            const inject = (src) => new Promise((resolve, reject) => {
-                const s = document.createElement('script');
-                s.src = src;
-                s.onload = () => { window.log(`Successfully loaded: ${src}`); resolve(); };
-                s.onerror = () => { const msg = `Failed to load: ${src}`; window.log(msg); reject(msg); };
-                document.head.appendChild(s);
-            });
-
             try {
                 await inject("TemplateData/UnityProgress.js");
                 await inject("Build/UnityLoader.js");
-                if (typeof UnityLoader !== 'undefined') {
                     gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
                         onProgress: typeof UnityProgress !== 'undefined' ? UnityProgress : null,
                         Module: { onRuntimeInitialized: () => window.log("Game engine online.") }
