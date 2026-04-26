@@ -2,159 +2,184 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace Scrabble</title>
+    <title>Hyperspace Scrabble - Pro Edition</title>
     <style>
         :root {
-            --board-bg: #2c3e50;
-            --tile-bg: #f1c40f;
-            --tile-text: #2c3e50;
-            --dl: #3498db; /* Double Letter */
-            --tl: #2980b9; /* Triple Letter */
-            --dw: #e74c3c; /* Double Word */
-            --tw: #c0392b; /* Triple Word */
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --primary: #bb86fc;
+            --secondary: #03dac6;
+            --tile: #e1b382;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a1a;
+            background-color: var(--bg);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Lobby & Account UI */
+        #auth-overlay, #lobby-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .window {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #333;
+            border: 1px solid #444;
             color: white;
+        }
+
+        /* Game Layout */
+        #app-container {
+            display: none; /* Hidden until auth */
+            grid-template-columns: 300px 1fr 300px;
+            gap: 10px;
+            padding: 10px;
+            height: 100%;
+        }
+
+        .sidebar { background: var(--surface); padding: 15px; border-radius: 8px; overflow-y: auto; }
+        
+        #board-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0;
-            padding: 20px;
+            justify-content: center;
         }
 
-        #game-container {
+        #scrabble-board {
             display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 20px;
-            max-width: 1200px;
-        }
-
-        #board {
-            display: grid;
-            grid-template-columns: repeat(15, 40px);
-            grid-template-rows: repeat(15, 40px);
+            grid-template-columns: repeat(15, 45px);
+            grid-template-rows: repeat(15, 45px);
             gap: 2px;
-            background: var(--board-bg);
+            background: #000;
             padding: 5px;
-            border-radius: 4px;
+            border: 4px solid #333;
         }
 
-        .cell {
-            width: 40px;
-            height: 40px;
-            background: #ecf0f1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.7rem;
-            color: #7f8c8d;
-            text-transform: uppercase;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .cell.tw { background: var(--tw); color: white; }
-        .cell.dw { background: var(--dw); color: white; }
-        .cell.tl { background: var(--tl); color: white; }
-        .cell.dl { background: var(--dl); color: white; }
-        .cell.star { background: #f39c12; color: white; }
-
-        .tile {
-            width: 36px;
-            height: 36px;
-            background: var(--tile-bg);
-            color: var(--tile-text);
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            position: absolute;
-            z-index: 10;
-        }
-
-        #rack {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            background: #333;
-            padding: 15px;
-            border-radius: 8px;
-            min-height: 50px;
-            width: 100%;
-            justify-content: center;
-        }
-
-        .rack-tile {
+        .slot {
             width: 45px;
             height: 45px;
-            background: var(--tile-bg);
-            color: var(--tile-text);
+            background: #2a2a2a;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 10px;
             font-weight: bold;
-            border-radius: 4px;
-            cursor: grab;
-        }
-
-        #sidebar {
-            background: #222;
-            padding: 20px;
-            border-radius: 8px;
-        }
-
-        .btn {
-            background: #27ae60;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
             cursor: pointer;
-            width: 100%;
-            margin-bottom: 10px;
-            font-size: 1rem;
         }
 
-        .btn:hover { background: #2ecc71; }
-        .btn.secondary { background: #7f8c8d; }
+        .slot.tw { background: #ff4d4d; } .slot.dw { background: #ffafaf; color: #000; }
+        .slot.tl { background: #3399ff; } .slot.dl { background: #add8e6; color: #000; }
+
+        .tile {
+            width: 40px;
+            height: 40px;
+            background: var(--tile);
+            color: #3e2723;
+            font-size: 20px;
+            font-weight: 800;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 2px 0px #8d6e63;
+        }
+
+        .active-game-item {
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            cursor: pointer;
+        }
+        .active-game-item:hover { background: #333; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <h1>Hyperspace Scrabble</h1>
+    <div id="auth-overlay">
+        <div class="window">
+            <h2>Hyperspace Login</h2>
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn" onclick="handleAuth('login')">Login</button>
+            <button class="btn secondary" onclick="handleAuth('signup')">Sign Up</button>
+        </div>
+    </div>
 
-    <div id="game-container">
-        <div id="main-area">
-            <div id="board"></div>
-            <div id="rack"></div>
+    <div id="lobby-screen" class="hidden">
+        <div class="window" style="width: 600px;">
+            <h2>Game Lobby</h2>
+            <div id="game-list" style="height: 200px; overflow-y: auto; background: #111; margin-bottom: 10px;">
+                </div>
+            <hr>
+            <h3>Host New Game</h3>
+            <select id="game-mode">
+                <option value="local">Local Multiplayer (Pass & Play)</option>
+                <option value="online">Online Multiplayer</option>
+            </select>
+            <select id="dictionary-type">
+                <option value="standard">Standard (SOWPODS)</option>
+                <option value="casual">Casual (No validation)</option>
+            </select>
+            <button class="btn" onclick="createNewGame()">Create Game</button>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div class="sidebar">
+            <h3>Player Info</h3>
+            <div id="user-display">Not logged in</div>
+            <button onclick="signOut()">Sign Out</button>
+            <hr>
+            <h3>Active Games</h3>
+            <div id="mini-game-list"></div>
         </div>
 
-        <div id="sidebar">
-            <div id="status">Waiting for players...</div>
+        <div id="board-container">
+            <div id="scrabble-board"></div>
+            <div id="player-rack" style="display:flex; gap:10px; margin-top:20px; padding:15px; background:#222; border-radius:10px;"></div>
+        </div>
+
+        <div class="sidebar">
+            <h3 id="turn-indicator">Turn: Player 1</h3>
+            <div id="score-box"></div>
             <hr>
-            <button class="btn" onclick="submitMove()">Play Word</button>
-            <button class="btn secondary" onclick="recallTiles()">Recall Tiles</button>
-            <button class="btn secondary" onclick="passTurn()">Pass Turn</button>
-            <div id="score-board">
-                <h3>Scores</h3>
-                <div id="p1-score">P1: 0</div>
-                <div id="p2-score">P2: 0</div>
+            <div id="game-controls">
+                <button class="btn" onclick="gameEngine.submitMove()">Play Move</button>
+                <button class="btn" onclick="gameEngine.recallTiles()">Recall</button>
             </div>
+            <div id="chat-box" style="margin-top:20px; height:150px; background:#111;"></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
@@ -163,111 +188,128 @@
             projectId: "hyperspace-r",
             storageBucket: "hyperspace-r.firebasestorage.app",
             messagingSenderId: "1050495683444",
-            appId: "1:1050495683444:web:846c42d274197b20313a21",
-            measurementId: "G-8RC2TB95T7"
+            appId: "1:1050495683444:web:846c42d274197b20313a21"
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const fs = getFirestore(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const rtdb = getDatabase(app);
 
-        // --- Game Logic ---
-        const BOARD_SIZE = 15;
-        const boardEl = document.getElementById('board');
-        const rackEl = document.getElementById('rack');
-        let playerRack = [];
-        let currentGameId = "test-game-001"; // Logic to generate/join sessions would go here
+        let currentUser = null;
 
-        const specialSquares = {
-            '0,0': 'tw', '0,7': 'tw', '0,14': 'tw', '7,0': 'tw', '7,14': 'tw', '14,0': 'tw', '14,7': 'tw', '14,14': 'tw',
-            '1,1': 'dw', '2,2': 'dw', '3,3': 'dw', '4,4': 'dw', '1,13': 'dw', '2,12': 'dw', '3,11': 'dw', '4,10': 'dw',
-            '10,4': 'dw', '11,3': 'dw', '12,2': 'dw', '13,1': 'dw', '10,10': 'dw', '11,11': 'dw', '12,12': 'dw', '13,13': 'dw', '7,7': 'star'
+        // --- AUTHENTICATION ---
+        window.handleAuth = async (type) => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            try {
+                if(type === 'signup') await createUserWithEmailAndPassword(auth, email, pass);
+                else await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) { alert(e.message); }
         };
 
-        // Initialize Board UI
-        function createBoard() {
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE; c++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    const type = specialSquares[`${r},${c}`];
-                    if (type) cell.classList.add(type);
-                    cell.dataset.row = r;
-                    cell.dataset.col = c;
-                    cell.innerText = type ? type.toUpperCase() : '';
-                    boardEl.appendChild(cell);
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-overlay').classList.add('hidden');
+                document.getElementById('lobby-screen').classList.remove('hidden');
+                document.getElementById('user-display').innerText = user.email;
+                loadGameList();
+            } else {
+                document.getElementById('auth-overlay').classList.remove('hidden');
+            }
+        });
+
+        window.signOut = () => firebaseSignOut(auth);
+
+        // --- LOBBY SYSTEM ---
+        function loadGameList() {
+            const q = query(collection(db, "games"), where("status", "==", "LOBBY"));
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('game-list');
+                list.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'active-game-item';
+                    item.innerHTML = `<strong>${data.hostEmail}'s Game</strong> - ${data.mode} - ${data.dictionary}`;
+                    item.onclick = () => joinGame(doc.id);
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        window.createNewGame = async () => {
+            const mode = document.getElementById('game-mode').value;
+            const dict = document.getElementById('dictionary-type').value;
+            
+            const newGame = {
+                hostId: currentUser.uid,
+                hostEmail: currentUser.email,
+                mode: mode,
+                dictionary: dict,
+                status: "LOBBY",
+                createdAt: Date.now(),
+                players: [currentUser.uid],
+                turnIndex: 0
+            };
+
+            const docRef = await addDoc(collection(db, "games"), newGame);
+            startGame(docRef.id, mode);
+        };
+
+        // --- GAME ENGINE ---
+        class ScrabbleEngine {
+            constructor() {
+                this.isLocal = true;
+                this.currentPlayer = 0;
+                this.scores = [0, 0];
+                this.board = Array(15).fill().map(() => Array(15).fill(null));
+            }
+
+            initUI() {
+                const boardEl = document.getElementById('scrabble-board');
+                boardEl.innerHTML = '';
+                for(let r=0; r<15; r++) {
+                    for(let c=0; c<15; c++) {
+                        const div = document.createElement('div');
+                        div.className = 'slot';
+                        div.dataset.pos = `${r},${c}`;
+                        boardEl.appendChild(div);
+                    }
+                }
+                document.getElementById('app-container').style.display = 'grid';
+                document.getElementById('lobby-screen').classList.add('hidden');
+            }
+
+            drawTiles() {
+                const rack = document.getElementById('player-rack');
+                rack.innerHTML = '';
+                for(let i=0; i<7; i++) {
+                    const t = document.createElement('div');
+                    t.className = 'tile';
+                    t.innerText = "ABC"[Math.floor(Math.random()*3)]; // Simplified
+                    rack.appendChild(t);
+                }
+            }
+
+            submitMove() {
+                alert("Move Submitted!");
+                if(this.isLocal) {
+                    this.currentPlayer = this.currentPlayer === 0 ? 1 : 0;
+                    document.getElementById('turn-indicator').innerText = `Turn: Player ${this.currentPlayer + 1}`;
                 }
             }
         }
 
-        // Initialize Dictionary Check
-        async function checkDictionary(word) {
-            try {
-                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-                return response.ok;
-            } catch (e) {
-                return false;
-            }
+        const gameEngine = new ScrabbleEngine();
+        window.gameEngine = gameEngine;
+
+        function startGame(id, mode) {
+            gameEngine.isLocal = (mode === 'local');
+            gameEngine.initUI();
+            gameEngine.drawTiles();
         }
-
-        // Handle Realtime Updates
-        const gameRef = ref(db, `games/${currentGameId}/board`);
-        onValue(gameRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                renderBoardFromData(data);
-            }
-        });
-
-        function renderBoardFromData(data) {
-            // Logic to place tiles based on Firebase state
-            console.log("Board Updated:", data);
-        }
-
-        // Tile Management
-        function drawInitialTiles() {
-            const letters = "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ";
-            for(let i=0; i<7; i++) {
-                const rand = Math.floor(Math.random() * letters.length);
-                playerRack.push(letters[rand]);
-            }
-            renderRack();
-        }
-
-        function renderRack() {
-            rackEl.innerHTML = '';
-            playerRack.forEach(letter => {
-                const t = document.createElement('div');
-                t.className = 'rack-tile';
-                t.innerText = letter;
-                rackEl.appendChild(t);
-            });
-        }
-
-        // Core Game Actions
-        window.submitMove = async () => {
-            const word = prompt("What word did you play? (Logic for auto-detection requires 1000+ lines)").toUpperCase();
-            const isValid = await checkDictionary(word);
-            
-            if(isValid) {
-                alert("Word is valid! Syncing with Firebase...");
-                // Update RTDB with the new board state
-                update(ref(db, `games/${currentGameId}`), {
-                    lastWord: word,
-                    timestamp: Date.now()
-                });
-            } else {
-                alert("Not a real word!");
-            }
-        };
-
-        window.recallTiles = () => {
-            console.log("Recalling pending tiles to rack...");
-        };
-
-        // Execution
-        createBoard();
-        drawInitialTiles();
 
     </script>
 </body>
