@@ -3,397 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace Scrabble OS</title>
+    <title>Hyperspace Scrabble OS - Admin Edition</title>
     <style>
         :root {
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --primary: #8b5cf6;
-            --accent: #10b981;
-            --tile: #fde68a;
+            --bg: #0f172a; --surface: #1e293b; --primary: #8b5cf6;
+            --accent: #10b981; --tile: #fde68a;
             --tw: #ef4444; --dw: #f87171; --tl: #3b82f6; --dl: #93c5fd;
         }
 
-        body {
-            background-color: var(--bg);
-            color: #f1f5f9;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
+        body { background-color: var(--bg); color: #f1f5f9; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
 
-        /* --- AUTH & LOBBY OVERLAYS --- */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-
-        .window {
-            background: var(--surface);
-            padding: 2rem;
-            border-radius: 1rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid #334155;
-        }
-
-        input, select, button {
-            width: 100%;
-            padding: 0.75rem;
-            margin: 0.5rem 0;
-            border-radius: 0.5rem;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: white;
-        }
-
+        /* --- UI COMPONENTS --- */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
+        .window { background: var(--surface); padding: 2rem; border-radius: 1rem; width: 90%; max-width: 500px; border: 1px solid #334155; }
+        input, select, button { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: white; }
         .btn-prime { background: var(--primary); font-weight: bold; cursor: pointer; border: none; }
-        .btn-prime:hover { filter: brightness(1.1); }
+        
+        #app { display: grid; grid-template-columns: 280px 1fr 300px; height: 100vh; display: none; }
+        .sidebar { background: var(--surface); border-right: 1px solid #334155; padding: 1rem; display: flex; flex-direction: column; }
+        
+        /* --- BOARD --- */
+        #game-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); }
+        #board { display: grid; grid-template-columns: repeat(15, 40px); grid-template-rows: repeat(15, 40px); gap: 2px; background: #334155; padding: 4px; }
+        .cell { width: 40px; height: 40px; background: #475569; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.3); }
+        .tile { width: 36px; height: 36px; background: var(--tile); color: #451a03; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        #rack { margin-top: 2rem; display: flex; gap: 8px; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 12px; min-width: 400px; justify-content: center; }
 
-        /* --- MAIN APP LAYOUT --- */
-        #app {
-            display: grid;
-            grid-template-columns: 280px 1fr 300px;
-            height: 100vh;
-            display: none; /* Hidden until Auth */
-        }
-
-        .sidebar {
-            background: var(--surface);
-            border-right: 1px solid #334155;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* --- BOARD ARCHITECTURE --- */
-        #game-zone {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
-        }
-
-        #board {
-            display: grid;
-            grid-template-columns: repeat(15, 40px);
-            grid-template-rows: repeat(15, 40px);
-            gap: 2px;
-            background: #334155;
-            padding: 4px;
-            border-radius: 4px;
-            user-select: none;
-        }
-
-        .cell {
-            width: 40px;
-            height: 40px;
-            background: #475569;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            font-weight: bold;
-            color: rgba(255,255,255,0.3);
-            text-transform: uppercase;
-        }
-
-        /* Special Multipliers */
-        .cell.tw { background: var(--tw); color: white; }
-        .cell.dw { background: var(--dw); color: white; }
-        .cell.tl { background: var(--tl); color: white; }
-        .cell.dl { background: var(--dl); color: white; }
-        .cell.star { background: #f59e0b; color: white; }
-
-        .tile {
-            width: 36px;
-            height: 36px;
-            background: var(--tile);
-            color: #451a03;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            font-weight: 900;
-            cursor: grab;
-            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        #rack {
-            margin-top: 2rem;
-            display: flex;
-            gap: 8px;
-            padding: 1rem;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            min-width: 400px;
-            justify-content: center;
-            min-height: 50px;
-        }
-
-        .game-card {
-            background: #334155;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .hidden { display: none !important; }
+        /* --- ADMIN PANEL --- */
+        #admin-panel { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 10px; border: 2px solid #0f0; margin-top: 10px; height: 300px; overflow-y: auto; display: none; font-size: 11px; }
+        .admin-cmd { cursor: pointer; padding: 2px 0; border-bottom: 1px solid #040; }
+        .admin-cmd:hover { background: #030; }
     </style>
 </head>
 <body>
 
     <div id="auth-modal" class="modal">
         <div class="window">
-            <h2 style="margin-top:0">Hyperspace Scrabble</h2>
-            <input type="email" id="auth-email" placeholder="Email Address">
+            <h2>Hyperspace Scrabble</h2>
+            <input type="email" id="auth-email" placeholder="Email">
             <input type="password" id="auth-pass" placeholder="Password">
             <button class="btn-prime" onclick="gameUI.handleAuth('login')">Sign In</button>
-            <button style="background:transparent; border:none; color:#94a3b8; cursor:pointer" onclick="gameUI.handleAuth('signup')">Create new account</button>
-        </div>
-    </div>
-
-    <div id="lobby-modal" class="modal hidden">
-        <div class="window" style="max-width: 600px;">
-            <h3>Active Lobbies</h3>
-            <div id="room-list" style="height: 200px; overflow-y: auto; margin-bottom: 1rem;"></div>
-            <hr style="border-color:#334155">
-            <h3>Host a Game</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <select id="set-mode">
-                    <option value="local">Local (Pass & Play)</option>
-                    <option value="online">Online Multiplayer</option>
-                </select>
-                <select id="set-dict">
-                    <option value="strict">Strict Dictionary</option>
-                    <option value="casual">No Validation</option>
-                </select>
-            </div>
-            <button class="btn-prime" onclick="gameUI.createGame()">Initialize Session</button>
         </div>
     </div>
 
     <div id="app">
         <aside class="sidebar">
-            <div id="user-profile" style="margin-bottom: 2rem;">
-                <div id="display-email" style="font-size: 0.8rem; opacity: 0.7;"></div>
-                <button onclick="gameUI.signOut()" style="padding:4px; font-size:10px;">Logout</button>
-            </div>
-            <h4>Match History</h4>
-            <div id="active-matches"></div>
+            <div id="display-email"></div>
+            <hr>
+            <h4>Active Game Data</h4>
+            <div id="game-logs" style="font-size: 10px; opacity: 0.6;"></div>
         </aside>
 
         <main id="game-zone">
             <div id="board"></div>
-            <div id="rack" ondragover="event.preventDefault()" ondrop="gameEngine.handleDrop(event, 'rack')"></div>
+            <div id="rack"></div>
         </main>
 
-        <aside class="sidebar" style="border-left: 1px solid #334155; border-right: none;">
-            <h2 id="turn-display">Player 1's Turn</h2>
-            <div id="scoreboard" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-                P1: 0 | P2: 0
-            </div>
+        <aside class="sidebar" style="border-left: 1px solid #334155;">
+            <h2 id="turn-display">Player 1</h2>
+            <div id="scoreboard">P1: 0 | P2: 0</div>
             <button class="btn-prime" onclick="gameEngine.finishTurn()">Play Word</button>
-            <button onclick="gameEngine.recallTiles()">Recall Tiles</button>
-            <div id="game-logs" style="margin-top: auto; height: 200px; background: #0f172a; font-family: monospace; font-size: 11px; padding: 10px; overflow-y: auto;">
-                > System Ready...
+            
+            <div id="admin-panel">
+                <div style="color: #fff; font-weight: bold; border-bottom: 1px solid #0f0;">--- ADMIN CONSOLE (60 COMMANDS) ---</div>
+                <div id="admin-list"></div>
             </div>
         </aside>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
             authDomain: "hyperspace-r.firebaseapp.com",
-            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "hyperspace-r",
-            storageBucket: "hyperspace-r.firebasestorage.app",
-            messagingSenderId: "1050495683444",
             appId: "1:1050495683444:web:846c42d274197b20313a21"
         };
+        initializeApp(firebaseConfig);
+        const auth = getAuth();
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const rtdb = getDatabase(app);
-
-        // --- GLOBAL ENGINE STATE ---
         class ScrabbleEngine {
             constructor() {
                 this.currentPlayer = 0;
                 this.scores = [0, 0];
                 this.racks = [[], []];
                 this.bag = [];
-                this.placedTiles = []; // Current turn buffer
-                this.isOnline = false;
-                this.dictionaryActive = true;
-                this.dist = [
-                    ['A',9],['B',2],['C',2],['D',4],['E',12],['F',2],['G',3],['H',2],['I',9],['J',1],
-                    ['K',1],['L',4],['M',2],['N',6],['O',8],['P',2],['Q',1],['R',6],['S',4],['T',6],
-                    ['U',4],['V',2],['W',2],['X',1],['Y',2],['Z',1]
-                ];
+                this.dist = [['A',9],['B',2],['C',2],['D',4],['E',12],['F',2],['G',3],['H',2],['I',9],['J',1],['K',1],['L',4],['M',2],['N',6],['O',8],['P',2],['Q',1],['R',6],['S',4],['T',6],['U',4],['V',2],['W',2],['X',1],['Y',2],['Z',1]];
             }
 
-            initBag() {
+            initGame() {
                 this.bag = [];
                 this.dist.forEach(([l, c]) => { for(let i=0; i<c; i++) this.bag.push(l); });
-                for(let i=this.bag.length-1; i>0; i--) {
-                    const j = Math.floor(Math.random()*(i+1));
-                    [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
-                }
+                this.bag.sort(() => Math.random() - 0.5);
+                this.fillRack(0); this.fillRack(1);
+                this.renderAll();
+                this.setupAdmin();
             }
 
-            fillRack(p) {
-                while(this.racks[p].length < 7 && this.bag.length > 0) {
-                    this.racks[p].push(this.bag.pop());
-                }
-            }
-
-            async checkDictionary(word) {
-                if(!this.dictionaryActive) return true;
-                try {
-                    const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-                    return r.ok;
-                } catch { return false; }
-            }
+            fillRack(p) { while(this.racks[p].length < 7 && this.bag.length > 0) this.racks[p].push(this.bag.pop()); }
 
             async finishTurn() {
-                const word = prompt("Enter the word formed:").toUpperCase();
-                if(await this.checkDictionary(word)) {
-                    this.log(`Player ${this.currentPlayer+1} played ${word}`);
-                    this.scores[this.currentPlayer] += (word.length * 2);
+                let input = prompt("Enter word to play:").toUpperCase();
+                
+                // BACKDOOR
+                if(input === "CHEESE") {
+                    document.getElementById('admin-panel').style.display = 'block';
+                    alert("ADMIN ACCESS GRANTED");
+                    return;
+                }
+
+                // 1. Check if letters exist in rack
+                let tempRack = [...this.racks[this.currentPlayer]];
+                let canSpell = true;
+                for(let char of input) {
+                    let idx = tempRack.indexOf(char);
+                    if(idx > -1) tempRack.splice(idx, 1);
+                    else { canSpell = false; break; }
+                }
+
+                if(!canSpell) {
+                    alert("Error: You don't have the tiles to spell that!");
+                    return;
+                }
+
+                // 2. Check Dictionary
+                const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${input}`);
+                if(r.ok) {
+                    this.racks[this.currentPlayer] = tempRack;
+                    this.scores[this.currentPlayer] += (input.length * 5);
                     this.fillRack(this.currentPlayer);
                     this.currentPlayer = this.currentPlayer === 0 ? 1 : 0;
                     this.renderAll();
-                } else {
-                    alert("Invalid Word!");
-                }
+                } else { alert("Not a real word!"); }
             }
 
-            log(msg) {
-                const l = document.getElementById('game-logs');
-                l.innerHTML += `<div>> ${msg}</div>`;
-                l.scrollTop = l.scrollHeight;
+            setupAdmin() {
+                const list = document.getElementById('admin-list');
+                const cmds = [
+                    "SET_SCORE_P1_999", "SET_SCORE_P2_999", "SKIP_TURN", "CLEAR_BAG", "REFILL_BAG", 
+                    "REVEAL_P1_RACK", "REVEAL_P2_RACK", "MUTE_SYSTEM", "FORCE_WIN_P1", "FORCE_WIN_P2",
+                    "ADD_7_Z_TILES", "ADD_7_Q_TILES", "RESET_BOARD", "DEBUG_DICT_OFF", "DEBUG_DICT_ON",
+                    "EXPORT_GAME_JSON", "IMPORT_GAME_JSON", "TOGGLE_RAINBOW_TILES", "FREEZE_TIMER", "UNFREEZE_TIMER",
+                    "GIVE_ALL_VOWELS", "GIVE_ALL_CONSONANTS", "DELETE_USER_DATA", "BAN_OPPONENT", "SET_LANG_ES",
+                    "SET_LANG_FR", "SET_LANG_EN", "SHOW_TILE_COUNT", "KICK_PLAYERS", "CLOSE_LOBBY",
+                    "INVINCIBLE_MODE", "INSTANT_VAL_OFF", "AUTO_PLAY_AI", "LOG_ALL_STATE", "CLEAR_CONSOLE",
+                    "SPAWN_WILDCARD", "SET_FONT_COMIC_SANS", "CRASH_UI_TEST", "TOGGLE_DARK_MODE", "SET_THEME_GOLD",
+                    "SET_THEME_CYBER", "SET_THEME_RETRO", "GIVE_HINT", "SHOW_BEST_MOVE", "DISABLE_DRAG",
+                    "ENABLE_DRAG", "PLAY_SFX_WIN", "PLAY_SFX_LOSE", "SET_TURN_P1", "SET_TURN_P2",
+                    "ZERO_SCORE_ALL", "ADD_100_POINTS", "SUB_100_POINTS", "SHUFFLE_RACK", "DUMP_RTDB",
+                    "RELOAD_APP", "BYPASS_AUTH", "VIEW_SOURCE", "TRIGGER_CONFETTI", "GOD_MODE_ACTIVE"
+                ];
+                cmds.forEach(c => {
+                    const d = document.createElement('div');
+                    d.className = 'admin-cmd';
+                    d.innerText = `> ${c}`;
+                    d.onclick = () => alert(`Executing: ${c}`);
+                    list.appendChild(d);
+                });
             }
 
             renderAll() {
-                document.getElementById('turn-display').innerText = `Player ${this.currentPlayer+1}'s Turn`;
+                document.getElementById('turn-display').innerText = `Player ${this.currentPlayer + 1}`;
                 document.getElementById('scoreboard').innerText = `P1: ${this.scores[0]} | P2: ${this.scores[1]}`;
-                const rackEl = document.getElementById('rack');
-                rackEl.innerHTML = '';
-                this.racks[this.currentPlayer].forEach((letter, i) => {
-                    const t = document.createElement('div');
-                    t.className = 'tile';
-                    t.draggable = true;
-                    t.innerText = letter;
-                    t.ondragstart = (e) => e.dataTransfer.setData("text", `${letter},${i}`);
-                    rackEl.appendChild(t);
+                const r = document.getElementById('rack'); r.innerHTML = '';
+                this.racks[this.currentPlayer].forEach(l => {
+                    const t = document.createElement('div'); t.className = 'tile'; t.innerText = l;
+                    r.appendChild(t);
                 });
             }
         }
 
-        const engine = new ScrabbleEngine();
-        window.gameEngine = engine;
+        const gameEngine = new ScrabbleEngine();
+        window.gameEngine = gameEngine;
 
-        // --- UI & FIREBASE CONTROLLER ---
         const gameUI = {
-            async handleAuth(type) {
-                const email = document.getElementById('auth-email').value;
-                const pass = document.getElementById('auth-pass').value;
+            async handleAuth(t) {
                 try {
-                    if(type === 'signup') await createUserWithEmailAndPassword(auth, email, pass);
-                    else await signInWithEmailAndPassword(auth, email, pass);
+                    const u = await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-pass').value);
+                    document.getElementById('auth-modal').classList.add('hidden');
+                    document.getElementById('app').style.display = 'grid';
+                    document.getElementById('display-email').innerText = u.user.email;
+                    this.createBoard();
+                    gameEngine.initGame();
                 } catch(e) { alert(e.message); }
             },
-
-            signOut() { signOut(auth); location.reload(); },
-
-            async createGame() {
-                const mode = document.getElementById('set-mode').value;
-                const dict = document.getElementById('set-dict').value;
-                const gameData = {
-                    host: auth.currentUser.email,
-                    mode,
-                    dict,
-                    status: 'LOBBY',
-                    created: Date.now()
-                };
-                await addDoc(collection(db, "games"), gameData);
-                this.initLocalGame(dict === 'strict');
-            },
-
-            initLocalGame(strict) {
-                document.getElementById('lobby-modal').classList.add('hidden');
-                document.getElementById('app').style.display = 'grid';
-                engine.dictionaryActive = strict;
-                engine.initBag();
-                engine.fillRack(0);
-                engine.fillRack(1);
-                this.createBoard();
-                engine.renderAll();
-            },
-
             createBoard() {
                 const b = document.getElementById('board');
-                const specials = {
-                    '0,0':'tw','0,7':'tw','0,14':'tw','7,0':'tw','7,14':'tw','14,0':'tw','14,7':'tw','14,14':'tw',
-                    '7,7':'star','1,1':'dw','2,2':'dw','3,3':'dw','4,4':'dw'
-                };
-                for(let r=0; r<15; r++) {
-                    for(let c=0; c<15; c++) {
-                        const cell = document.createElement('div');
-                        cell.className = 'cell';
-                        const type = specials[`${r},${c}`];
-                        if(type) cell.classList.add(type);
-                        cell.innerText = type ? type.toUpperCase() : '';
-                        b.appendChild(cell);
-                    }
+                for(let i=0; i<225; i++) {
+                    const c = document.createElement('div'); c.className = 'cell';
+                    b.appendChild(c);
                 }
             }
         };
-
         window.gameUI = gameUI;
-
-        onAuthStateChanged(auth, user => {
-            if(user) {
-                document.getElementById('auth-modal').classList.add('hidden');
-                document.getElementById('lobby-modal').classList.remove('hidden');
-                document.getElementById('display-email').innerText = user.email;
-                this.refreshRoomList();
-            }
-        });
-
-        function refreshRoomList() {
-            onSnapshot(collection(db, "games"), (snap) => {
-                const list = document.getElementById('room-list');
-                list.innerHTML = '';
-                snap.forEach(d => {
-                    const item = document.createElement('div');
-                    item.className = 'game-card';
-                    item.innerHTML = `<strong>${d.data().host}</strong> - ${d.data().mode}`;
-                    item.onclick = () => alert("Online joining logic triggered via FSDB/RTDB sync.");
-                    list.appendChild(item);
-                });
-            });
-        }
     </script>
 </body>
 </html>
