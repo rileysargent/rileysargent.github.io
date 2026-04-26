@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace Scrabble OS - Admin Edition</title>
+    <title>Hyperspace Scrabble - Online OS</title>
     <style>
         :root {
             --bg: #0f172a; --surface: #1e293b; --primary: #8b5cf6;
@@ -13,45 +12,43 @@
 
         body { background-color: var(--bg); color: #f1f5f9; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
 
-        /* --- UI COMPONENTS --- */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .window { background: var(--surface); padding: 2rem; border-radius: 1rem; width: 90%; max-width: 500px; border: 1px solid #334155; }
-        input, select, button { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: white; }
-        .btn-prime { background: var(--primary); font-weight: bold; cursor: pointer; border: none; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .window { background: var(--surface); padding: 2rem; border-radius: 1rem; width: 350px; border: 1px solid #334155; text-align: center; }
         
         #app { display: grid; grid-template-columns: 280px 1fr 300px; height: 100vh; display: none; }
         .sidebar { background: var(--surface); border-right: 1px solid #334155; padding: 1rem; display: flex; flex-direction: column; }
         
-        /* --- BOARD --- */
         #game-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); }
-        #board { display: grid; grid-template-columns: repeat(15, 40px); grid-template-rows: repeat(15, 40px); gap: 2px; background: #334155; padding: 4px; }
-        .cell { width: 40px; height: 40px; background: #475569; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.3); }
-        .tile { width: 36px; height: 36px; background: var(--tile); color: #451a03; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        #rack { margin-top: 2rem; display: flex; gap: 8px; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 12px; min-width: 400px; justify-content: center; }
+        #board { display: grid; grid-template-columns: repeat(15, 40px); grid-template-rows: repeat(15, 40px); gap: 2px; background: #334155; padding: 4px; border-radius: 4px; }
+        .cell { width: 40px; height: 40px; background: #475569; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; color: rgba(255,255,255,0.2); }
+        .tile { width: 36px; height: 36px; background: var(--tile); color: #451a03; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.4); cursor: pointer; }
+        
+        #rack { margin-top: 2rem; display: flex; gap: 8px; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 12px; min-height: 50px; }
 
-        /* --- ADMIN PANEL --- */
-        #admin-panel { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 10px; border: 2px solid #0f0; margin-top: 10px; height: 300px; overflow-y: auto; display: none; font-size: 11px; }
-        .admin-cmd { cursor: pointer; padding: 2px 0; border-bottom: 1px solid #040; }
-        .admin-cmd:hover { background: #030; }
+        #admin-panel { background: #000; color: #0f0; font-family: monospace; padding: 10px; border: 1px solid #0f0; margin-top: 10px; height: 200px; overflow-y: auto; display: none; font-size: 10px; }
+        .admin-cmd { cursor: pointer; padding: 4px; border-bottom: 1px solid #040; }
+        
+        input, button { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: white; }
+        .btn-prime { background: var(--primary); font-weight: bold; cursor: pointer; border: none; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="auth-modal" class="modal">
+    <div id="login-modal" class="modal">
         <div class="window">
-            <h2>Hyperspace Scrabble</h2>
-            <input type="email" id="auth-email" placeholder="Email">
-            <input type="password" id="auth-pass" placeholder="Password">
-            <button class="btn-prime" onclick="gameUI.handleAuth('login')">Sign In</button>
+            <h2 style="margin:0 0 1rem">Online Scrabble</h2>
+            <input type="text" id="username-input" placeholder="Pick a Username">
+            <button class="btn-prime" onclick="initOnlineSession()">Enter Hyperspace</button>
         </div>
     </div>
 
     <div id="app">
         <aside class="sidebar">
-            <div id="display-email"></div>
-            <hr>
-            <h4>Active Game Data</h4>
-            <div id="game-logs" style="font-size: 10px; opacity: 0.6;"></div>
+            <h3 id="display-name">---</h3>
+            <div id="bag-count">Tiles in Bag: --</div>
+            <hr style="border:0; border-top:1px solid #334155; margin:1rem 0">
+            <div id="game-logs" style="font-size: 11px; overflow-y: auto;"></div>
         </aside>
 
         <main id="game-zone">
@@ -60,12 +57,13 @@
         </main>
 
         <aside class="sidebar" style="border-left: 1px solid #334155;">
-            <h2 id="turn-display">Player 1</h2>
+            <h2 id="turn-display">Waiting...</h2>
             <div id="scoreboard">P1: 0 | P2: 0</div>
-            <button class="btn-prime" onclick="gameEngine.finishTurn()">Play Word</button>
+            <button class="btn-prime" id="play-btn" onclick="gameEngine.finishTurn()">Play Word</button>
+            <button onclick="gameEngine.skipTurn()">Skip Turn</button>
             
             <div id="admin-panel">
-                <div style="color: #fff; font-weight: bold; border-bottom: 1px solid #0f0;">--- ADMIN CONSOLE (60 COMMANDS) ---</div>
+                <div style="color: #fff; font-weight: bold;">ADMIN CONSOLE</div>
                 <div id="admin-list"></div>
             </div>
         </aside>
@@ -73,131 +71,157 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
             authDomain: "hyperspace-r.firebaseapp.com",
+            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "hyperspace-r",
             appId: "1:1050495683444:web:846c42d274197b20313a21"
         };
-        initializeApp(firebaseConfig);
-        const auth = getAuth();
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const rtdb = getDatabase(app);
 
         class ScrabbleEngine {
             constructor() {
-                this.currentPlayer = 0;
-                this.scores = [0, 0];
-                this.racks = [[], []];
-                this.bag = [];
+                this.myId = null;
+                this.gameId = "global_match_001";
+                this.myRack = [];
+                this.gameState = { bag: [], scores: [0, 0], turn: 0, lastMove: "" };
                 this.dist = [['A',9],['B',2],['C',2],['D',4],['E',12],['F',2],['G',3],['H',2],['I',9],['J',1],['K',1],['L',4],['M',2],['N',6],['O',8],['P',2],['Q',1],['R',6],['S',4],['T',6],['U',4],['V',2],['W',2],['X',1],['Y',2],['Z',1]];
             }
 
-            initGame() {
-                this.bag = [];
-                this.dist.forEach(([l, c]) => { for(let i=0; i<c; i++) this.bag.push(l); });
-                this.bag.sort(() => Math.random() - 0.5);
-                this.fillRack(0); this.fillRack(1);
-                this.renderAll();
-                this.setupAdmin();
+            async syncMove(word, points) {
+                const newScores = [...this.gameState.scores];
+                newScores[this.gameState.turn] += points;
+                const nextTurn = this.gameState.turn === 0 ? 1 : 0;
+                
+                await update(ref(rtdb, `games/${this.gameId}`), {
+                    scores: newScores,
+                    turn: nextTurn,
+                    lastMove: word,
+                    bag: this.gameState.bag
+                });
             }
 
-            fillRack(p) { while(this.racks[p].length < 7 && this.bag.length > 0) this.racks[p].push(this.bag.pop()); }
-
             async finishTurn() {
-                let input = prompt("Enter word to play:").toUpperCase();
-                
-                // BACKDOOR
-                if(input === "CHEESE") {
-                    document.getElementById('admin-panel').style.display = 'block';
-                    alert("ADMIN ACCESS GRANTED");
-                    return;
-                }
+                let input = prompt("Your tiles: " + this.myRack.join(', ') + "\nEnter word:").toUpperCase();
+                if(input === "CHEESE") { document.getElementById('admin-panel').style.display = 'block'; return; }
 
-                // 1. Check if letters exist in rack
-                let tempRack = [...this.racks[this.currentPlayer]];
-                let canSpell = true;
+                let tempRack = [...this.myRack];
+                let valid = true;
                 for(let char of input) {
                     let idx = tempRack.indexOf(char);
                     if(idx > -1) tempRack.splice(idx, 1);
-                    else { canSpell = false; break; }
+                    else { valid = false; break; }
                 }
 
-                if(!canSpell) {
-                    alert("Error: You don't have the tiles to spell that!");
-                    return;
-                }
+                if(!valid) return alert("Missing tiles!");
 
-                // 2. Check Dictionary
                 const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${input}`);
                 if(r.ok) {
-                    this.racks[this.currentPlayer] = tempRack;
-                    this.scores[this.currentPlayer] += (input.length * 5);
-                    this.fillRack(this.currentPlayer);
-                    this.currentPlayer = this.currentPlayer === 0 ? 1 : 0;
-                    this.renderAll();
-                } else { alert("Not a real word!"); }
+                    this.myRack = tempRack;
+                    this.fillRack();
+                    await this.syncMove(input, input.length * 5);
+                } else { alert("Not a word!"); }
+            }
+
+            fillRack() {
+                while(this.myRack.length < 7 && this.gameState.bag.length > 0) {
+                    this.myRack.push(this.gameState.bag.pop());
+                }
+                this.renderRack();
+            }
+
+            tradeTile(idx) {
+                const tile = this.myRack.splice(idx, 1)[0];
+                this.gameState.bag.push(tile);
+                this.gameState.bag.sort(() => Math.random() - 0.5);
+                this.fillRack();
+                this.syncMove("TRADED", 0);
+            }
+
+            skipTurn() { this.syncMove("SKIPPED", 0); }
+
+            renderRack() {
+                const r = document.getElementById('rack'); r.innerHTML = '';
+                this.myRack.forEach((l, i) => {
+                    const t = document.createElement('div'); t.className = 'tile'; t.innerText = l;
+                    t.oncontextmenu = (e) => { e.preventDefault(); this.tradeTile(i); };
+                    r.appendChild(t);
+                });
+            }
+
+            renderBoard() {
+                const b = document.getElementById('board'); b.innerHTML = '';
+                for(let i=0; i<225; i++) {
+                    const c = document.createElement('div'); c.className = 'cell';
+                    if(i%15===0 || i%14===0) c.classList.add('tw');
+                    b.appendChild(c);
+                }
             }
 
             setupAdmin() {
                 const list = document.getElementById('admin-list');
-                const cmds = [
-                    "SET_SCORE_P1_999", "SET_SCORE_P2_999", "SKIP_TURN", "CLEAR_BAG", "REFILL_BAG", 
-                    "REVEAL_P1_RACK", "REVEAL_P2_RACK", "MUTE_SYSTEM", "FORCE_WIN_P1", "FORCE_WIN_P2",
-                    "ADD_7_Z_TILES", "ADD_7_Q_TILES", "RESET_BOARD", "DEBUG_DICT_OFF", "DEBUG_DICT_ON",
-                    "EXPORT_GAME_JSON", "IMPORT_GAME_JSON", "TOGGLE_RAINBOW_TILES", "FREEZE_TIMER", "UNFREEZE_TIMER",
-                    "GIVE_ALL_VOWELS", "GIVE_ALL_CONSONANTS", "DELETE_USER_DATA", "BAN_OPPONENT", "SET_LANG_ES",
-                    "SET_LANG_FR", "SET_LANG_EN", "SHOW_TILE_COUNT", "KICK_PLAYERS", "CLOSE_LOBBY",
-                    "INVINCIBLE_MODE", "INSTANT_VAL_OFF", "AUTO_PLAY_AI", "LOG_ALL_STATE", "CLEAR_CONSOLE",
-                    "SPAWN_WILDCARD", "SET_FONT_COMIC_SANS", "CRASH_UI_TEST", "TOGGLE_DARK_MODE", "SET_THEME_GOLD",
-                    "SET_THEME_CYBER", "SET_THEME_RETRO", "GIVE_HINT", "SHOW_BEST_MOVE", "DISABLE_DRAG",
-                    "ENABLE_DRAG", "PLAY_SFX_WIN", "PLAY_SFX_LOSE", "SET_TURN_P1", "SET_TURN_P2",
-                    "ZERO_SCORE_ALL", "ADD_100_POINTS", "SUB_100_POINTS", "SHUFFLE_RACK", "DUMP_RTDB",
-                    "RELOAD_APP", "BYPASS_AUTH", "VIEW_SOURCE", "TRIGGER_CONFETTI", "GOD_MODE_ACTIVE"
-                ];
-                cmds.forEach(c => {
-                    const d = document.createElement('div');
-                    d.className = 'admin-cmd';
-                    d.innerText = `> ${c}`;
-                    d.onclick = () => alert(`Executing: ${c}`);
+                for(let i=0; i<60; i++) {
+                    const d = document.createElement('div'); d.className = 'admin-cmd';
+                    d.innerText = `> CMD_SCR_0${i}_FORCE_SYNC`;
+                    d.onclick = () => console.log("Admin Bypass Active");
                     list.appendChild(d);
-                });
-            }
-
-            renderAll() {
-                document.getElementById('turn-display').innerText = `Player ${this.currentPlayer + 1}`;
-                document.getElementById('scoreboard').innerText = `P1: ${this.scores[0]} | P2: ${this.scores[1]}`;
-                const r = document.getElementById('rack'); r.innerHTML = '';
-                this.racks[this.currentPlayer].forEach(l => {
-                    const t = document.createElement('div'); t.className = 'tile'; t.innerText = l;
-                    r.appendChild(t);
-                });
+                }
             }
         }
 
         const gameEngine = new ScrabbleEngine();
         window.gameEngine = gameEngine;
 
-        const gameUI = {
-            async handleAuth(t) {
-                try {
-                    const u = await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-pass').value);
-                    document.getElementById('auth-modal').classList.add('hidden');
-                    document.getElementById('app').style.display = 'grid';
-                    document.getElementById('display-email').innerText = u.user.email;
-                    this.createBoard();
-                    gameEngine.initGame();
-                } catch(e) { alert(e.message); }
-            },
-            createBoard() {
-                const b = document.getElementById('board');
-                for(let i=0; i<225; i++) {
-                    const c = document.createElement('div'); c.className = 'cell';
-                    b.appendChild(c);
+        window.initOnlineSession = async () => {
+            const username = document.getElementById('username-input').value || "Stardust";
+            const cred = await signInAnonymously(auth);
+            gameEngine.myId = cred.user.uid;
+
+            // Store username in Firebase for this session
+            await set(ref(rtdb, `users/${gameEngine.myId}`), { name: username });
+
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('app').style.display = 'grid';
+            document.getElementById('display-name').innerText = username;
+
+            // Start Realtime Sync
+            onValue(ref(rtdb, `games/${gameEngine.gameId}`), (snapshot) => {
+                const data = snapshot.val();
+                if(!data) {
+                    // Initialize game if empty
+                    const initialBag = [];
+                    gameEngine.dist.forEach(([l, c]) => { for(let i=0; i<c; i++) initialBag.push(l); });
+                    initialBag.sort(() => Math.random() - 0.5);
+                    set(ref(rtdb, `games/${gameEngine.gameId}`), {
+                        bag: initialBag, scores: [0, 0], turn: 0, lastMove: "START"
+                    });
+                } else {
+                    gameEngine.gameState = data;
+                    updateUI();
                 }
-            }
+            });
+
+            gameEngine.renderBoard();
+            gameEngine.setupAdmin();
+            gameEngine.fillRack();
         };
-        window.gameUI = gameUI;
+
+        function updateUI() {
+            const s = gameEngine.gameState;
+            document.getElementById('scoreboard').innerText = `P1: ${s.scores[0]} | P2: ${s.scores[1]}`;
+            document.getElementById('bag-count').innerText = `Tiles in Bag: ${s.bag.length}`;
+            document.getElementById('turn-display').innerText = (s.turn === 0) ? "P1 Turn" : "P2 Turn";
+            
+            const log = document.getElementById('game-logs');
+            log.innerHTML = `<div>Last: ${s.lastMove}</div>` + log.innerHTML;
+        }
     </script>
 </body>
 </html>
