@@ -1,96 +1,274 @@
-
 <!DOCTYPE html>
-<html lang="en-us">
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Hyperspace-R // Deep Audit</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
-    <script src="logger.js"></script>
-    <script src="cheats.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperspace Scrabble</title>
+    <style>
+        :root {
+            --board-bg: #2c3e50;
+            --tile-bg: #f1c40f;
+            --tile-text: #2c3e50;
+            --dl: #3498db; /* Double Letter */
+            --tl: #2980b9; /* Triple Letter */
+            --dw: #e74c3c; /* Double Word */
+            --tw: #c0392b; /* Triple Word */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #game-container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            max-width: 1200px;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            gap: 2px;
+            background: var(--board-bg);
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            background: #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.7rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .cell.tw { background: var(--tw); color: white; }
+        .cell.dw { background: var(--dw); color: white; }
+        .cell.tl { background: var(--tl); color: white; }
+        .cell.dl { background: var(--dl); color: white; }
+        .cell.star { background: #f39c12; color: white; }
+
+        .tile {
+            width: 36px;
+            height: 36px;
+            background: var(--tile-bg);
+            color: var(--tile-text);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: absolute;
+            z-index: 10;
+        }
+
+        #rack {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 50px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .rack-tile {
+            width: 45px;
+            height: 45px;
+            background: var(--tile-bg);
+            color: var(--tile-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: grab;
+        }
+
+        #sidebar {
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .btn:hover { background: #2ecc71; }
+        .btn.secondary { background: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <h1>Hyperspace Scrabble</h1>
+
+    <div id="game-container">
+        <div id="main-area">
+            <div id="board"></div>
+            <div id="rack"></div>
+        </div>
+
+        <div id="sidebar">
+            <div id="status">Waiting for players...</div>
+            <hr>
+            <button class="btn" onclick="submitMove()">Play Word</button>
+            <button class="btn secondary" onclick="recallTiles()">Recall Tiles</button>
+            <button class="btn secondary" onclick="passTurn()">Pass Turn</button>
+            <div id="score-board">
+                <h3>Scores</h3>
+                <div id="p1-score">P1: 0</div>
+                <div id="p2-score">P2: 0</div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+            authDomain: "hyperspace-r.firebaseapp.com",
+            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "hyperspace-r",
+            storageBucket: "hyperspace-r.firebasestorage.app",
+            messagingSenderId: "1050495683444",
+            appId: "1:1050495683444:web:846c42d274197b20313a21",
+            measurementId: "G-8RC2TB95T7"
+        };
+
         const app = initializeApp(firebaseConfig);
-        let gameInstance = null;
-            try {
-                await inject("TemplateData/UnityProgress.js");
-                await inject("Build/UnityLoader.js");
-                    gameInstance = UnityLoader.instantiate("gameContainer", "Build/SnowRider3D-gd-1.json", {
-                        onProgress: typeof UnityProgress !== 'undefined' ? UnityProgress : null,
-                        Module: { onRuntimeInitialized: () => window.log("Game engine online.") }
-                    });
-                    window.gameInstance = gameInstance;
-                } else {
-                    window.log("UnityLoader not found after injection.");
+        const db = getDatabase(app);
+        const fs = getFirestore(app);
+
+        // --- Game Logic ---
+        const BOARD_SIZE = 15;
+        const boardEl = document.getElementById('board');
+        const rackEl = document.getElementById('rack');
+        let playerRack = [];
+        let currentGameId = "test-game-001"; // Logic to generate/join sessions would go here
+
+        const specialSquares = {
+            '0,0': 'tw', '0,7': 'tw', '0,14': 'tw', '7,0': 'tw', '7,14': 'tw', '14,0': 'tw', '14,7': 'tw', '14,14': 'tw',
+            '1,1': 'dw', '2,2': 'dw', '3,3': 'dw', '4,4': 'dw', '1,13': 'dw', '2,12': 'dw', '3,11': 'dw', '4,10': 'dw',
+            '10,4': 'dw', '11,3': 'dw', '12,2': 'dw', '13,1': 'dw', '10,10': 'dw', '11,11': 'dw', '12,12': 'dw', '13,13': 'dw', '7,7': 'star'
+        };
+
+        // Initialize Board UI
+        function createBoard() {
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    const type = specialSquares[`${r},${c}`];
+                    if (type) cell.classList.add(type);
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.innerText = type ? type.toUpperCase() : '';
+                    boardEl.appendChild(cell);
                 }
-            } catch (err) {
-                window.log("Boot Error:", err);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const wrapper = document.getElementById('game-wrapper');
-            wrapper.style.display = 'block';
-            bootEngine();
+        // Initialize Dictionary Check
+        async function checkDictionary(word) {
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                return response.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Handle Realtime Updates
+        const gameRef = ref(db, `games/${currentGameId}/board`);
+        onValue(gameRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                renderBoardFromData(data);
+            }
         });
 
-        window.injectCheat = async () => {
-            const score = parseInt(document.getElementById('cheatScore').value);
-            window.log("Attempting to inject cheat", { score });
-            if (window.gameInstance) {
-                window.gameInstance.SendMessage('GameManager', 'SetScore', score);
-                await window.setHighScore(score);
+        function renderBoardFromData(data) {
+            // Logic to place tiles based on Firebase state
+            console.log("Board Updated:", data);
+        }
+
+        // Tile Management
+        function drawInitialTiles() {
+            const letters = "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ";
+            for(let i=0; i<7; i++) {
+                const rand = Math.floor(Math.random() * letters.length);
+                playerRack.push(letters[rand]);
+            }
+            renderRack();
+        }
+
+        function renderRack() {
+            rackEl.innerHTML = '';
+            playerRack.forEach(letter => {
+                const t = document.createElement('div');
+                t.className = 'rack-tile';
+                t.innerText = letter;
+                rackEl.appendChild(t);
+            });
+        }
+
+        // Core Game Actions
+        window.submitMove = async () => {
+            const word = prompt("What word did you play? (Logic for auto-detection requires 1000+ lines)").toUpperCase();
+            const isValid = await checkDictionary(word);
+            
+            if(isValid) {
+                alert("Word is valid! Syncing with Firebase...");
+                // Update RTDB with the new board state
+                update(ref(db, `games/${currentGameId}`), {
+                    lastWord: word,
+                    timestamp: Date.now()
+                });
             } else {
-                window.log("Game instance not found.");
+                alert("Not a real word!");
             }
         };
 
-        window.addEventListener('keydown', (e) => {
-            if (e.key === '&') {
-                const p = document.getElementById('admin-panel');
-                p.style.display = p.style.display === 'none' ? 'block' : 'none';
-            }
-        });
+        window.recallTiles = () => {
+            console.log("Recalling pending tiles to rack...");
+        };
 
-        const joystick = nipplejs.create({
-            zone: document.getElementById('joystick-container'),
-            mode: 'static',
-            position: { left: '50%', top: '50%' },
-            color: 'white'
-        });
-
-        joystick.on('move', (evt, data) => {
-            if (window.gameInstance) {
-                const x = data.vector.x;
-                const y = data.vector.y;
-                window.gameInstance.SendMessage('Player', 'Move', `${x},${y}`);
-            }
-        });
-
-        joystick.on('end', () => {
-            if (window.gameInstance) {
-                window.gameInstance.SendMessage('Player', 'Move', '0,0');
-            }
-        });
+        // Execution
+        createBoard();
+        drawInitialTiles();
 
     </script>
-</head>
-<body>
-    <div id="game-wrapper" style="display: none;">
-        <div id="gameContainer"></div>
-    </div>
-
-    <div id="admin-panel">
-        <h2>Admin Controls</h2>
-        <input type="number" id="cheatScore" value="99999">
-        <button onclick="window.injectCheat()">Override Score</button>
-    </div>
-
-    <div id="joystick-container"></div>
-
-    <div id="log-overlay">
-        <div id="log-container"></div>
-        <div id="close-log">&times;</div>
-    </div>
 </body>
 </html>
