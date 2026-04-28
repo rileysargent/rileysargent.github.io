@@ -2,225 +2,139 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hyperspace Scrabble - Online OS</title>
+    <title>Dell Optiplex 7010 - Virtual BIOS</title>
     <style>
-        :root {
-            --bg: #0f172a; --surface: #1e293b; --primary: #8b5cf6;
-            --accent: #10b981; --tile: #fde68a;
-            --tw: #ef4444; --dw: #f87171; --tl: #3b82f6; --dl: #93c5fd;
+        :root { --dell-blue: #0056b3; --text-gray: #ccc; }
+        body, html { margin: 0; padding: 0; background: #000; color: var(--text-gray); font-family: "Courier New", monospace; height: 100%; overflow: hidden; }
+        
+        #boot-screen { padding: 40px; display: flex; flex-direction: column; justify-content: space-between; height: 85vh; }
+        .dell-logo { color: #fff; font-size: 42px; font-weight: bold; border: 3px solid #fff; display: inline-block; padding: 5px 25px; border-radius: 50px; margin-bottom: 20px; }
+        .highlight { color: #fff; font-weight: bold; }
+        
+        #screen-container { display: none; width: 100vw; height: 100vh; background: #000; }
+        #screen canvas { display: block; margin: 0 auto; cursor: none; }
+
+        #bios-ui { position: fixed; bottom: 30px; left: 30px; background: rgba(20, 20, 20, 0.95); padding: 25px; border: 1px solid #444; z-index: 100; width: 350px; }
+        input[type="file"] { margin: 15px 0; width: 100%; color: #888; }
+        
+        .btn { 
+            background: var(--dell-blue); color: white; border: none; padding: 12px; 
+            cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s;
         }
+        .btn:hover { background: #007bff; transform: scale(1.02); }
+        .btn:disabled { background: #333; cursor: not-allowed; }
 
-        body { background-color: var(--bg); color: #f1f5f9; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
-
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .window { background: var(--surface); padding: 2rem; border-radius: 1rem; width: 350px; border: 1px solid #334155; text-align: center; }
-        
-        #app { display: grid; grid-template-columns: 280px 1fr 300px; height: 100vh; display: none; }
-        .sidebar { background: var(--surface); border-right: 1px solid #334155; padding: 1rem; display: flex; flex-direction: column; }
-        
-        #game-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); }
-        #board { display: grid; grid-template-columns: repeat(15, 40px); grid-template-rows: repeat(15, 40px); gap: 2px; background: #334155; padding: 4px; border-radius: 4px; }
-        .cell { width: 40px; height: 40px; background: #475569; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; color: rgba(255,255,255,0.2); }
-        .tile { width: 36px; height: 36px; background: var(--tile); color: #451a03; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.4); cursor: pointer; }
-        
-        #rack { margin-top: 2rem; display: flex; gap: 8px; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 12px; min-height: 50px; }
-
-        #admin-panel { background: #000; color: #0f0; font-family: monospace; padding: 10px; border: 1px solid #0f0; margin-top: 10px; height: 200px; overflow-y: auto; display: none; font-size: 10px; }
-        .admin-cmd { cursor: pointer; padding: 4px; border-bottom: 1px solid #040; }
-        
-        input, button { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: white; }
-        .btn-prime { background: var(--primary); font-weight: bold; cursor: pointer; border: none; }
-        .hidden { display: none !important; }
+        #status-overlay { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; border: 1px solid #fff; padding: 40px; background: #000; z-index: 1000;
+        }
+        .loading-bar { width: 200px; height: 2px; background: #333; margin: 20px auto; position: relative; }
+        #progress-fill { width: 0%; height: 100%; background: var(--dell-blue); transition: width 0.1s; }
     </style>
 </head>
 <body>
 
-    <div id="login-modal" class="modal">
-        <div class="window">
-            <h2 style="margin:0 0 1rem">Online Scrabble</h2>
-            <input type="text" id="username-input" placeholder="Pick a Username">
-            <button class="btn-prime" onclick="initOnlineSession()">Enter Hyperspace</button>
+    <div id="boot-screen">
+        <div class="bios-info">
+            <div class="dell-logo">DELL</div>
+            <p class="highlight">Optiplex 7010 Series</p>
+            <p>BIOS Revision: A29 (GitHub Pages Edition)</p>
+            <p>CPU: Intel(R) Core(TM) i5-3470 @ 3.20GHz</p>
+            <p>RAM: 8192 MB | VRAM: 128 MB</p>
+            <br>
+            <p>SATA 0: Virtual Disk 0 (No Media)</p>
+            <p>SATA 1: Optical Drive (Waiting...)</p>
+        </div>
+        <div>
+            <p>KEK Status: <span style="color: #0f0;">OVERRIDDEN</span></p>
+            <p class="highlight">F12: One-Time Boot Menu</p>
         </div>
     </div>
 
-    <div id="app">
-        <aside class="sidebar">
-            <h3 id="display-name">---</h3>
-            <div id="bag-count">Tiles in Bag: --</div>
-            <hr style="border:0; border-top:1px solid #334155; margin:1rem 0">
-            <div id="game-logs" style="font-size: 11px; overflow-y: auto;"></div>
-        </aside>
+    <div id="screen-container"><div id="screen"></div></div>
 
-        <main id="game-zone">
-            <div id="board"></div>
-            <div id="rack"></div>
-        </main>
-
-        <aside class="sidebar" style="border-left: 1px solid #334155;">
-            <h2 id="turn-display">Waiting...</h2>
-            <div id="scoreboard">P1: 0 | P2: 0</div>
-            <button class="btn-prime" id="play-btn" onclick="gameEngine.finishTurn()">Play Word</button>
-            <button onclick="gameEngine.skipTurn()">Skip Turn</button>
-            
-            <div id="admin-panel">
-                <div style="color: #fff; font-weight: bold;">ADMIN CONSOLE</div>
-                <div id="admin-list"></div>
-            </div>
-        </aside>
+    <div id="bios-ui">
+        <label class="highlight">MOUNT ISO IMAGE:</label>
+        <input type="file" id="iso-input" accept=".iso">
+        <button id="boot-btn" class="btn" onclick="powerOn()">F12 - START BOOT</button>
+        <p id="error-log" style="color: #ff4d4d; font-size: 12px; margin-top: 10px;"></p>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <div id="status-overlay">
+        <p class="highlight">DELL SYSTEM INITIALIZING</p>
+        <p id="status-msg" style="font-size: 14px;">Loading BIOS...</p>
+        <div class="loading-bar"><div id="progress-fill"></div></div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
-            authDomain: "hyperspace-r.firebaseapp.com",
-            databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "hyperspace-r",
-            appId: "1:1050495683444:web:846c42d274197b20313a21"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const rtdb = getDatabase(app);
-
-        class ScrabbleEngine {
-            constructor() {
-                this.myId = null;
-                this.gameId = "global_match_001";
-                this.myRack = [];
-                this.gameState = { bag: [], scores: [0, 0], turn: 0, lastMove: "" };
-                this.dist = [['A',9],['B',2],['C',2],['D',4],['E',12],['F',2],['G',3],['H',2],['I',9],['J',1],['K',1],['L',4],['M',2],['N',6],['O',8],['P',2],['Q',1],['R',6],['S',4],['T',6],['U',4],['V',2],['W',2],['X',1],['Y',2],['Z',1]];
-            }
-
-            async syncMove(word, points) {
-                const newScores = [...this.gameState.scores];
-                newScores[this.gameState.turn] += points;
-                const nextTurn = this.gameState.turn === 0 ? 1 : 0;
-                
-                await update(ref(rtdb, `games/${this.gameId}`), {
-                    scores: newScores,
-                    turn: nextTurn,
-                    lastMove: word,
-                    bag: this.gameState.bag
-                });
-            }
-
-            async finishTurn() {
-                let input = prompt("Your tiles: " + this.myRack.join(', ') + "\nEnter word:").toUpperCase();
-                if(input === "CHEESE") { document.getElementById('admin-panel').style.display = 'block'; return; }
-
-                let tempRack = [...this.myRack];
-                let valid = true;
-                for(let char of input) {
-                    let idx = tempRack.indexOf(char);
-                    if(idx > -1) tempRack.splice(idx, 1);
-                    else { valid = false; break; }
-                }
-
-                if(!valid) return alert("Missing tiles!");
-
-                const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${input}`);
-                if(r.ok) {
-                    this.myRack = tempRack;
-                    this.fillRack();
-                    await this.syncMove(input, input.length * 5);
-                } else { alert("Not a word!"); }
-            }
-
-            fillRack() {
-                while(this.myRack.length < 7 && this.gameState.bag.length > 0) {
-                    this.myRack.push(this.gameState.bag.pop());
-                }
-                this.renderRack();
-            }
-
-            tradeTile(idx) {
-                const tile = this.myRack.splice(idx, 1)[0];
-                this.gameState.bag.push(tile);
-                this.gameState.bag.sort(() => Math.random() - 0.5);
-                this.fillRack();
-                this.syncMove("TRADED", 0);
-            }
-
-            skipTurn() { this.syncMove("SKIPPED", 0); }
-
-            renderRack() {
-                const r = document.getElementById('rack'); r.innerHTML = '';
-                this.myRack.forEach((l, i) => {
-                    const t = document.createElement('div'); t.className = 'tile'; t.innerText = l;
-                    t.oncontextmenu = (e) => { e.preventDefault(); this.tradeTile(i); };
-                    r.appendChild(t);
-                });
-            }
-
-            renderBoard() {
-                const b = document.getElementById('board'); b.innerHTML = '';
-                for(let i=0; i<225; i++) {
-                    const c = document.createElement('div'); c.className = 'cell';
-                    if(i%15===0 || i%14===0) c.classList.add('tw');
-                    b.appendChild(c);
-                }
-            }
-
-            setupAdmin() {
-                const list = document.getElementById('admin-list');
-                for(let i=0; i<60; i++) {
-                    const d = document.createElement('div'); d.className = 'admin-cmd';
-                    d.innerText = `> CMD_SCR_0${i}_FORCE_SYNC`;
-                    d.onclick = () => console.log("Admin Bypass Active");
-                    list.appendChild(d);
-                }
-            }
+    <script>
+        // High-reliability script loader
+        async function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.async = true;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error("Failed to load: " + url));
+                document.head.appendChild(script);
+            });
         }
 
-        const gameEngine = new ScrabbleEngine();
-        window.gameEngine = gameEngine;
+        async function powerOn() {
+            const file = document.getElementById('iso-input').files[0];
+            if (!file) {
+                document.getElementById('error-log').innerText = "ALERT: No bootable media detected in SATA 1.";
+                return;
+            }
 
-        window.initOnlineSession = async () => {
-            const username = document.getElementById('username-input').value || "Stardust";
-            const cred = await signInAnonymously(auth);
-            gameEngine.myId = cred.user.uid;
-
-            // Store username in Firebase for this session
-            await set(ref(rtdb, `users/${gameEngine.myId}`), { name: username });
-
-            document.getElementById('login-modal').classList.add('hidden');
-            document.getElementById('app').style.display = 'grid';
-            document.getElementById('display-name').innerText = username;
-
-            // Start Realtime Sync
-            onValue(ref(rtdb, `games/${gameEngine.gameId}`), (snapshot) => {
-                const data = snapshot.val();
-                if(!data) {
-                    // Initialize game if empty
-                    const initialBag = [];
-                    gameEngine.dist.forEach(([l, c]) => { for(let i=0; i<c; i++) initialBag.push(l); });
-                    initialBag.sort(() => Math.random() - 0.5);
-                    set(ref(rtdb, `games/${gameEngine.gameId}`), {
-                        bag: initialBag, scores: [0, 0], turn: 0, lastMove: "START"
-                    });
-                } else {
-                    gameEngine.gameState = data;
-                    updateUI();
-                }
-            });
-
-            gameEngine.renderBoard();
-            gameEngine.setupAdmin();
-            gameEngine.fillRack();
-        };
-
-        function updateUI() {
-            const s = gameEngine.gameState;
-            document.getElementById('scoreboard').innerText = `P1: ${s.scores[0]} | P2: ${s.scores[1]}`;
-            document.getElementById('bag-count').innerText = `Tiles in Bag: ${s.bag.length}`;
-            document.getElementById('turn-display').innerText = (s.turn === 0) ? "P1 Turn" : "P2 Turn";
+            const btn = document.getElementById('boot-btn');
+            const overlay = document.getElementById('status-overlay');
+            const statusMsg = document.getElementById('status-msg');
+            const progressFill = document.getElementById('progress-fill');
             
-            const log = document.getElementById('game-logs');
-            log.innerHTML = `<div>Last: ${s.lastMove}</div>` + log.innerHTML;
+            btn.disabled = true;
+            overlay.style.display = 'block';
+
+            try {
+                // 1. Fetch the Engine (v86)
+                statusMsg.innerText = "Downloading v86 Emulator...";
+                if (typeof V86Starter === 'undefined') {
+                    await loadScript("https://copy.sh/v86/build/libv86.js");
+                }
+                progressFill.style.width = "30%";
+
+                // 2. Read the Local ISO
+                statusMsg.innerText = "Buffering ISO to Virtual RAM...";
+                const buffer = await file.arrayBuffer();
+                progressFill.style.width = "70%";
+
+                // 3. Finalize Hardware Handshake
+                statusMsg.innerText = "POST Success. Booting...";
+                progressFill.style.width = "100%";
+
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    document.getElementById('boot-screen').style.display = 'none';
+                    document.getElementById('bios-ui').style.display = 'none';
+                    document.getElementById('screen-container').style.display = 'block';
+
+                    // Initialize with 512MB RAM (Safe for GitHub Pages containers)
+                    new V86Starter({
+                        wasm_path: "https://copy.sh/v86/build/v86.wasm",
+                        memory_size: 512 * 1024 * 1024,
+                        vga_memory_size: 16 * 1024 * 1024,
+                        screen_container: document.getElementById("screen"),
+                        bios: { url: "https://copy.sh/v86/bios/seabios.bin" },
+                        vga_bios: { url: "https://copy.sh/v86/bios/vgabios.bin" },
+                        cdrom: { buffer: buffer },
+                        autostart: true,
+                    });
+                }, 800);
+
+            } catch (err) {
+                overlay.style.display = 'none';
+                btn.disabled = false;
+                document.getElementById('error-log').innerText = "CRITICAL ERROR: " + err.message;
+            }
         }
     </script>
 </body>
