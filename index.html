@@ -2,114 +2,677 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dell Optiplex 7010 - Terminal Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C H A T</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; background: #000; color: #ccc; font-family: "Courier New", monospace; height: 100%; overflow: hidden; }
-        #boot-screen { padding: 20px; height: 60vh; display: flex; flex-direction: column; justify-content: space-between; }
-        .dell-logo { color: #fff; font-size: 32px; font-weight: bold; border: 2px solid #fff; display: inline-block; padding: 5px 15px; border-radius: 40px; }
-        #screen-container { display: none; width: 100vw; height: 65vh; background: #000; border-bottom: 2px solid #333; }
-        #terminal { height: 35vh; width: 100%; background: #050505; color: #00ff00; font-size: 11px; overflow-y: auto; padding: 10px; box-sizing: border-box; border-top: 1px solid #222; }
-        #bios-ui { position: fixed; top: 150px; left: 20px; background: #111; padding: 15px; border: 1px solid #0056b3; width: 280px; z-index: 100; }
-        .btn { background: #0056b3; color: #fff; border: none; padding: 10px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
-        .err { color: #ff5555; }
+        :root {
+            --bg-gradient: linear-gradient(135deg, #120c1f 0%, #241442 50%, #0b0714 100%);
+            --sidebar-bg: rgba(30, 20, 50, 0.45);
+            --chat-bg: rgba(20, 12, 36, 0.75);
+            --panel-bg: rgba(25, 15, 42, 0.6);
+            --accent-purple: #9d4edd;
+            --accent-light: #c77dff;
+            --bubble-sent: #7b2cbf;
+            --bubble-received: rgba(255, 255, 255, 0.08);
+            --text-light: #f3effa;
+            --glass-border: 1px solid rgba(157, 78, 221, 0.2);
+            --input-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-light);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Auth Screen */
+        #auth-container {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .auth-card {
+            background: rgba(30, 15, 50, 0.6);
+            backdrop-filter: blur(25px);
+            border: var(--glass-border);
+            padding: 40px;
+            border-radius: 24px;
+            width: 420px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        .auth-card h1 { font-size: 28px; letter-spacing: 6px; margin-bottom: 10px; color: var(--accent-light); }
+        .auth-card p { font-size: 13px; color: #aaa; margin-bottom: 25px; }
+
+        /* App Layout */
+        #app-container {
+            width: 96vw;
+            height: 92vh;
+            background: rgba(15, 8, 28, 0.2);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            border: var(--glass-border);
+            display: flex;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        #app-container.visible { opacity: 1; pointer-events: auto; }
+
+        /* Left Sidebar */
+        #sidebar {
+            width: 300px;
+            background: var(--sidebar-bg);
+            border-right: var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+        }
+
+        .logo {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 10px;
+            color: var(--accent-light);
+            margin-bottom: 35px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(199, 125, 255, 0.3);
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-light);
+            margin: 20px 0 12px 0;
+            opacity: 0.8;
+        }
+
+        .group-list { list-style: none; overflow-y: auto; flex-grow: 1; }
+        .group-item {
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid transparent;
+        }
+        .group-item:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(157, 78, 221, 0.2); }
+        .group-item.active {
+            background: var(--bubble-sent);
+            border-color: var(--accent-light);
+            box-shadow: 0 0 15px rgba(123, 44, 191, 0.4);
+        }
+
+        /* Central Workspace */
+        #chat-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--chat-bg);
+            position: relative;
+        }
+
+        #chat-header {
+            padding: 20px 35px;
+            border-bottom: var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.1);
+        }
+
+        #messages {
+            flex-grow: 1;
+            padding: 25px 35px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Video Call UI Overlay */
+        #video-grid {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 50%;
+            background: rgba(10, 5, 20, 0.95);
+            border-bottom: var(--glass-border);
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 15px;
+            z-index: 10;
+        }
+        .video-wrapper {
+            position: relative;
+            background: #111;
+            border-radius: 14px;
+            overflow: hidden;
+            border: var(--glass-border);
+        }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .video-label {
+            position: absolute; bottom: 10px; left: 10px;
+            background: rgba(0,0,0,0.6); padding: 4px 10px;
+            border-radius: 6px; font-size: 12px;
+        }
+
+        /* Message Formatting */
+        .message {
+            max-width: 65%;
+            padding: 14px 18px;
+            border-radius: 20px;
+            position: relative;
+            animation: slideUp 0.25s cubic-bezier(0.1, 1, 0.1, 1);
+            color: #ffffff;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+        .message.sent {
+            align-self: flex-end;
+            background: var(--bubble-sent);
+            border-bottom-right-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: var(--bubble-received);
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .message.mention {
+            border: 1px solid #ffb703;
+            background: rgba(255, 183, 3, 0.12);
+            box-shadow: 0 0 15px rgba(255, 183, 3, 0.15);
+        }
+
+        .msg-info { font-size: 11px; margin-bottom: 6px; opacity: 0.7; font-weight: 600; }
+        .msg-text { word-wrap: break-word; line-height: 1.5; font-size: 14.5px; }
+
+        /* Interface Inputs */
+        #input-container {
+            padding: 25px 35px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            border-top: var(--glass-border);
+            background: rgba(0,0,0,0.1);
+        }
+
+        .input-field {
+            background: var(--input-bg);
+            border: var(--glass-border);
+            padding: 15px 22px;
+            border-radius: 16px;
+            outline: none;
+            font-size: 15px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .input-field:focus {
+            border-color: var(--accent-light);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 15px rgba(199, 125, 255, 0.15);
+        }
+        #msg-input { flex-grow: 1; }
+
+        .btn {
+            background: var(--bubble-sent);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 14px 28px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn:hover { transform: translateY(-2px); background: #8a2be2; box-shadow: 0 5px 15px rgba(123,44,191,0.4); }
+        .btn-call { background: #2a9d8f; }
+        .btn-call:hover { background: #264653; box-shadow: 0 5px 15px rgba(42,157,143,0.4); }
+
+        #emoji-bar {
+            padding: 0 35px; display: flex; gap: 14px; font-size: 22px; margin-top: -10px; margin-bottom: 10px;
+        }
+        .emoji-btn { cursor: pointer; transition: transform 0.2s; }
+        .emoji-btn:hover { transform: scale(1.35); }
+
+        /* Right Structural Info Bar */
+        #info-panel { width: 280px; background: var(--panel-bg); border-left: var(--glass-border); padding: 25px; }
+        .user-pill { display: flex; align-items: center; gap: 12px; padding: 10px 0; font-size: 14px; }
+        .status-dot { width: 9px; height: 9px; background: #00f5d4; border-radius: 50%; box-shadow: 0 0 8px #00f5d4; }
+        .system-msg { text-align: center; font-size: 12px; color: var(--accent-light); font-style: italic; margin: 12px 0; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <div id="boot-screen">
-        <div>
-            <div class="dell-logo">DELL</div>
-            <p>Optiplex 7010 | BIOS A29</p>
-            <p>CPU: Intel i5-3470 @ 3.20GHz</p>
-        </div>
-        <p>Press F12 for Boot Menu... | <span id="clock"></span></p>
+<div id="auth-container">
+    <div class="auth-card">
+        <h1>C H A T</h1>
+        <p>Access requires a verified institutional framework address</p>
+        <input type="text" id="auth-email" class="input-field" placeholder="username@pacificeducation.online" style="width: 100%; margin-bottom: 15px; text-align: center;">
+        <input type="text" id="auth-nick" class="input-field" placeholder="Choose Custom Identity/Callsign" style="width: 100%; margin-bottom: 20px; text-align: center;">
+        <button class="btn" id="login-btn" style="width: 100%;">Initialize Anonymous Session</button>
     </div>
+</div>
 
-    <div id="screen-container"><div id="screen"></div></div>
-
-    <div id="bios-ui">
-        <b style="color:#fff">BOOT SEQUENCE</b><br>
-        <input type="file" id="iso-input" style="font-size:10px; margin-top:10px;">
-        <button class="btn" onclick="powerOn()">EXECUTE BOOT</button>
-    </div>
-
-    <div id="terminal">
-        <div>[ SYSTEM ] Diagnostic console active...</div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/gh/copy/v86@master/build/libv86.js"></script>
-
-    <script>
-        const term = document.getElementById('terminal');
-        function log(msg, isErr = false) {
-            const div = document.createElement('div');
-            if(isErr) div.className = 'err';
-            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            term.appendChild(div);
-            term.scrollTop = term.scrollHeight;
-        }
-
-        // Global Error Catch
-        window.addEventListener('error', (e) => log(`RUNTIME ERROR: ${e.message}`, true));
+<div id="app-container">
+    <div id="sidebar">
+        <div class="logo">C H A T</div>
         
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+        <div class="section-label">Structural Channels</div>
+        <ul class="group-list" id="group-list">
+            <li class="group-item active" onclick="switchGroup('General')"># General Nexus</li>
+            <li class="group-item" onclick="switchGroup('Design')"># Aesthetic Design</li>
+            <li class="group-item" onclick="switchGroup('Development')"># Architecture Dev</li>
+            <li class="group-item" onclick="switchGroup('Engineering')"># Engineering Hub</li>
+        </ul>
 
-        function powerOn() {
-            const file = document.getElementById('iso-input').files[0];
-            if (!file) { log("BOOT ERROR: Drive SATA-1 empty.", true); return; }
+        <div class="section-label">Local Matrix Config</div>
+        <div style="font-size: 13px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: var(--glass-border)">
+            Callsign: <strong id="current-username" style="color: var(--accent-light);">...</strong><br>
+            <span id="current-user-email" style="font-size: 11px; opacity:0.6;">...</span>
+        </div>
+    </div>
 
-            log(`Starting POST for ${file.name}...`);
-            
-            if (typeof V86Starter !== 'function') {
-                log("CRITICAL: libv86.js failed to initialize. Checking CDN...", true);
-                // Attempt Emergency Re-load
-                const s = document.createElement('script');
-                s.src = "https://copy.sh/v86/build/libv86.js";
-                s.onload = () => log("Emergency Library Patch Applied. Click 'EXECUTE BOOT' again.");
-                document.head.appendChild(s);
-                return;
-            }
+    <div id="chat-area">
+        <div id="chat-header">
+            <h2 id="current-group-name"># General Nexus</h2>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="btn btn-call" id="start-call-btn" onclick="toggleVideoCall()">Join AV Stream</button>
+                <div id="online-count" style="font-size: 13px; color: var(--accent-light); font-weight: 600;">Mapping nodes...</div>
+            </div>
+        </div>
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                log("ISO buffered. Initializing hardware layers...");
-                
-                document.getElementById('bios-ui').style.display = 'none';
-                document.getElementById('boot-screen').style.display = 'none';
-                document.getElementById('screen-container').style.display = 'block';
+        <div id="video-grid">
+            <div class="video-wrapper">
+                <video id="local-video" autoplay playsinline muted></video>
+                <div class="video-label">Local Capture Stream (You)</div>
+            </div>
+            <div class="video-wrapper">
+                <video id="remote-video" autoplay playsinline></video>
+                <div class="video-label" id="remote-label">Awaiting Remote Signal Link...</div>
+            </div>
+        </div>
 
-                try {
-                    window.emulator = new V86Starter({
-                        wasm_path: "https://cdn.jsdelivr.net/gh/copy/v86@master/build/v86.wasm",
-                        memory_size: 512 * 1024 * 1024,
-                        vga_memory_size: 8 * 1024 * 1024, // Keep low for compatibility
-                        screen_container: document.getElementById("screen"),
-                        bios: { url: "https://copy.sh/v86/bios/seabios.bin" },
-                        vga_bios: { url: "https://copy.sh/v86/bios/vgabios.bin" },
-                        cdrom: { buffer: e.target.result },
-                        autostart: true,
-                        // Compatibility flags for GitHub Pages
-                        disable_keyboard: false,
-                        disable_mouse: false
-                    });
+        <div id="messages"></div>
 
-                    log("Emulator engine started. Handing off to SeaBIOS...");
+        <div id="emoji-bar">
+            <span class="emoji-btn" onclick="addEmoji('🔮')">🔮</span>
+            <span class="emoji-btn" onclick="addEmoji('🛸')">🛸</span>
+            <span class="emoji-btn" onclick="addEmoji('🧬')">🧬</span>
+            <span class="emoji-btn" onclick="addEmoji('👾')">👾</span>
+            <span class="emoji-btn" onclick="addEmoji('✨')">✨</span>
+            <span class="emoji-btn" onclick="addEmoji('🪐')">🪐</span>
+        </div>
+
+        <div id="input-container">
+            <input type="text" id="msg-input" class="input-field" placeholder="Broadcast to node array or execute macro command (/help)..." autocomplete="off">
+            <button class="btn" id="send-btn">Transmit</button>
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <div class="section-label">Active Network Nodes</div>
+        <div id="member-list"></div>
+    </div>
+</div>
+
+<script>
+    // --- APP FIREBASE CORE INFRASTRUCTURE CONFIGURATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
+        authDomain: "hyperspace-r.firebaseapp.com",
+        databaseURL: "https://hyperspace-r-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "hyperspace-r",
+        storageBucket: "hyperspace-r.firebasestorage.app",
+        messagingSenderId: "1050495683444",
+        appId: "1:1050495683444:web:846c42d274197b20313a21",
+        measurementId: "G-8RC2TB95T7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // --- APPLICATION DATA STATE MANAGEMENT ---
+    let currentUser = { id: '', name: '', email: '', color: '#9d4edd' };
+    let currentGroup = 'General';
+    const contentFilterArray = ['exploit', 'malware', 'phish', 'badword', 'toxic'];
+    
+    // --- WebRTC PEER-TO-PEER GLOBAL SIGNALLING STATE ---
+    let localStream = null;
+    let peerConnection = null;
+    let callActive = false;
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    // --- UI ELEMENT SELECTOR MAPS ---
+    const authContainer = document.getElementById('auth-container');
+    const appContainer = document.getElementById('app-container');
+    const msgInput = document.getElementById('msg-input');
+    const sendBtn = document.getElementById('send-btn');
+    const messagesContainer = document.getElementById('messages');
+    const memberList = document.getElementById('member-list');
+
+    // --- GATEWAY GATEKEEPER & ANONYMOUS SESSION ENTRY VALIDATOR ---
+    document.getElementById('login-btn').addEventListener('click', () => {
+        const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
+        const nicknameInput = document.getElementById('auth-nick').value.trim();
+
+        if (!nicknameInput) { alert('Specify an identity signifier.'); return; }
+        
+        // Custom domain checking rule constraints
+        if (emailInput.endsWith('@pacificeducation.online') || emailInput.endsWith('@stu.pacificeducation.online')) {
+            // Authorized domain -> Initiate Anonymous sign-in bypass matrix
+            auth.signInAnonymously()
+                .then((credential) => {
+                    currentUser.id = credential.user.uid;
+                    currentUser.name = nicknameInput;
+                    currentUser.email = emailInput;
+                    currentUser.color = '#' + Math.floor(Math.random()*16777215).toString(16);
                     
-                    // Periodically check if emulator is actually running
-                    setTimeout(() => {
-                        if (window.emulator.is_running()) {
-                            log("CPU cycle detected. Boot successful.");
-                        } else {
-                            log("WARNING: CPU cycle stalled. Possible WASM block.", true);
-                        }
-                    }, 3000);
-
-                } catch (err) {
-                    log(`EMULATOR HALT: ${err.message}`, true);
-                }
-            };
-            reader.readAsArrayBuffer(file);
+                    setupSessionWorkspace();
+                })
+                .catch((error) => { alert('Authentication Node Error: ' + error.message); });
+        } else {
+            alert('Access Denied. You must specify a valid @pacificeducation.online domain profile target.');
         }
-    </script>
+    });
+
+    // --- MAIN ENGINE INITIALIZATION RUNTIMES ---
+    function setupSessionWorkspace() {
+        authContainer.style.opacity = '0';
+        setTimeout(() => authContainer.style.display = 'none', 500);
+        appContainer.classList.add('visible');
+
+        document.getElementById('current-username').innerText = currentUser.name;
+        document.getElementById('current-user-email').innerText = currentUser.email;
+
+        loadMessages(currentGroup);
+        initializePresenceEngine();
+        listenForIncomingWebRTCSignals();
+    }
+
+    // --- CHAT STREAM RETRIEVAL IMPLEMENTATION ---
+    function loadMessages(group) {
+        messagesContainer.innerHTML = '';
+        const groupRef = db.ref(`groups/${group}/messages`).limitToLast(60);
+        
+        groupRef.off(); 
+        groupRef.on('child_added', (snapshot) => {
+            displayMessage(snapshot.val());
+        });
+    }
+
+    function sendMessage() {
+        const rawText = msgInput.value.trim();
+        if (!rawText) return;
+
+        // Command Macro Interception
+        if (rawText.startsWith('/')) {
+            executeMacroCommand(rawText);
+            msgInput.value = '';
+            return;
+        }
+
+        // Deep Content Scrubbing / Filtering Engine
+        let filteredText = rawText;
+        contentFilterArray.forEach(word => {
+            const regexPattern = new RegExp(word, 'gi');
+            filteredText = filteredText.replace(regexPattern, '■■■■■');
+        });
+
+        const payload = {
+            senderId: currentUser.id,
+            senderName: currentUser.name,
+            senderColor: currentUser.color,
+            text: filteredText,
+            timestamp: Date.now()
+        };
+
+        db.ref(`groups/${currentGroup}/messages`).push(payload);
+        msgInput.value = '';
+    }
+
+    function displayMessage(data) {
+        const div = document.createElement('div');
+        const isSelf = data.senderId === currentUser.id;
+        const isMentioned = data.text.includes(`@${currentUser.name}`);
+
+        div.className = `message ${isSelf ? 'sent' : 'received'} ${isMentioned ? 'mention' : ''}`;
+        
+        // Media Parsing Middleware Injector
+        let formattedBody = data.text;
+        if (formattedBody.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
+            formattedBody = `<img src="${formattedBody}" style="max-width:100%; border-radius:12px; margin-top:6px; display:block; border: 1px solid rgba(255,255,255,0.1)">`;
+        }
+
+        div.innerHTML = `
+            <div class="msg-info" style="color: ${isSelf ? '#e0aaff' : data.senderColor}">
+                ${data.senderName} • ${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </div>
+            <div class="msg-text">${formattedBody}</div>
+        `;
+
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // --- MACRO SLASH COMMAND PARSER ---
+    function executeMacroCommand(inputStr) {
+        const segmentArgs = inputStr.split(' ');
+        const macro = segmentArgs[0].toLowerCase();
+        const variableStr = segmentArgs.slice(1).join(' ');
+
+        switch(macro) {
+            case '/nick':
+                if (variableStr) {
+                    currentUser.name = variableStr;
+                    document.getElementById('current-username').innerText = variableStr;
+                    db.ref(`presence/${currentUser.id}`).update({ name: variableStr });
+                    systemNotification(`Identity matrix redefined to: ${variableStr}`);
+                }
+                break;
+            case '/color':
+                if (variableStr) {
+                    currentUser.color = variableStr;
+                    systemNotification(`Visual rendering color re-assigned to: ${variableStr}`);
+                }
+                break;
+            case '/clear':
+                messagesContainer.innerHTML = '';
+                break;
+            case '/help':
+                systemNotification("Macros active: /nick [identity], /color [hex-value], /clear, /help");
+                break;
+            default:
+                systemNotification("Error: Command macro lookup failure. Type /help.");
+        }
+    }
+
+    function systemNotification(text) {
+        const div = document.createElement('div');
+        div.className = 'system-msg';
+        div.innerText = `[System]: ${text}`;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function switchGroup(groupName) {
+        currentGroup = groupName;
+        document.getElementById('current-group-name').innerText = '# ' + groupName + ' Channel';
+        
+        document.querySelectorAll('.group-item').forEach(el => el.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        loadMessages(groupName);
+    }
+
+    function addEmoji(emoji) {
+        msgInput.value += emoji;
+        msgInput.focus();
+    }
+
+    // --- PRESENCE ENGINE SYNCHRONIZATION ---
+    function initializePresenceEngine() {
+        const directoryRef = db.ref('presence');
+        const activeNode = directoryRef.child(currentUser.id);
+
+        activeNode.set({ name: currentUser.name, email: currentUser.email, online: true });
+        activeNode.onDisconnect().remove();
+
+        directoryRef.on('value', (snap) => {
+            document.getElementById('online-count').innerText = `${snap.numChildren()} Nodes Arrayed`;
+            memberList.innerHTML = '';
+            snap.forEach(child => {
+                const nodeData = child.val();
+                const nodeRow = document.createElement('div');
+                nodeRow.className = 'user-pill';
+                nodeRow.innerHTML = `<div class="status-dot"></div> <div><strong>${nodeData.name}</strong><br><small style="font-size:10px; opacity:0.5">${nodeData.email}</small></div>`;
+                memberList.appendChild(nodeRow);
+            });
+        });
+    }
+
+    // --- WebRTC COMPREHENSIVE AUDIO/VIDEO STREAM SIGNALLING SUITE ---
+    async function toggleVideoCall() {
+        const surfacePanel = document.getElementById('video-grid');
+        const triggerBtn = document.getElementById('start-call-btn');
+
+        if (callActive) {
+            // Disconnect Active Peer Streaming Session
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            db.ref(`calls/${currentGroup}`).remove();
+            surfacePanel.style.display = 'none';
+            triggerBtn.innerText = 'Join AV Stream';
+            triggerBtn.style.background = '#2a9d8f';
+            callActive = false;
+        } else {
+            // Initialize Capture Stream
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('local-video').srcObject = localStream;
+                surfacePanel.style.display = 'grid';
+                triggerBtn.innerText = 'Disconnect Stream';
+                triggerBtn.style.background = '#d90429';
+                callActive = true;
+
+                initiateSignalingCallMesh();
+            } catch (err) {
+                alert('Device capture hardware access failure: ' + err.message);
+            }
+        }
+    }
+
+    async function initiateSignalingCallMesh() {
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        peerConnection.ontrack = (event) => {
+            document.getElementById('remote-video').srcObject = event.streams[0];
+            document.getElementById('remote-label').innerText = 'External Peer Audio/Video Linked';
+        };
+
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                db.ref(`calls/${currentGroup}/iceCandidates`).push(event.candidate.toJSON());
+            }
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        const sessionPayload = {
+            offer: { type: offer.type, sdp: offer.sdp },
+            hostId: currentUser.id
+        };
+        db.ref(`calls/${currentGroup}`).set(sessionPayload);
+    }
+
+    function listenForIncomingWebRTCSignals() {
+        db.ref(`calls`).on('value', (snapshot) => {
+            snapshot.forEach(async (groupCall) => {
+                const targetGroup = groupCall.key;
+                if (targetGroup !== currentGroup || !callActive) return;
+
+                const data = groupCall.val();
+                if (!data) return;
+
+                // An answering peer captures signaling data from a host initialization step
+                if (data.hostId !== currentUser.id && !peerConnection.remoteDescription) {
+                    await setupRespondingPeerLink(data.offer);
+                } else if (data.hostId === currentUser.id && data.answer && !peerConnection.remoteDescription) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                }
+            });
+        });
+
+        // Watch external candidate node structures
+        db.ref(`calls/${currentGroup}/iceCandidates`).on('child_added', (snapshot) => {
+            if (!peerConnection || !peerConnection.remoteDescription) return;
+            const candidate = new RTCIceCandidate(snapshot.val());
+            peerConnection.addIceCandidate(candidate).catch(e => console.error(e));
+        });
+    }
+
+    async function setupRespondingPeerLink(offerData) {
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        peerConnection.ontrack = (event) => {
+            document.getElementById('remote-video').srcObject = event.streams[0];
+            document.getElementById('remote-label').innerText = 'External Peer Audio/Video Linked';
+        };
+
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                db.ref(`calls/${currentGroup}/iceCandidates`).push(event.candidate.toJSON());
+            }
+        };
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        db.ref(`calls/${currentGroup}/answer`).set({ type: answer.type, sdp: answer.sdp });
+    }
+
+    // --- GLOBAL EVENT REGISTRATION MANAGEMENT ---
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+</script>
 </body>
 </html>
