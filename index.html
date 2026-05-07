@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guilded | Functional Master</title>
+    <title>Guilded | Secure Protocol</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -25,112 +25,124 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Segoe UI', sans-serif; }
         body { background: var(--bg-deep); height: 100vh; display: flex; color: var(--text-main); overflow: hidden; }
 
-        /* AUTH SCREEN */
+        /* AUTHENTICATION SYSTEM */
         #auth-screen { position: fixed; inset: 0; background: #111214; z-index: 10000; display: flex; align-items: center; justify-content: center; }
-        .auth-card { background: #2b2d31; padding: 32px; border-radius: 8px; width: 440px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
-        .auth-card h2 { text-align: center; margin-bottom: 8px; }
-        .auth-card p { text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
-        .label { color: var(--text-muted); font-size: 11px; font-weight: 800; margin-bottom: 8px; display: block; text-transform: uppercase; }
-        .input-box { width: 100%; padding: 12px; background: #1e1f22; border: none; color: white; border-radius: 4px; margin-bottom: 15px; outline: none; }
-        .btn-primary { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .auth-footer { margin-top: 15px; text-align: center; font-size: 14px; color: var(--text-muted); }
+        .auth-card { background: #2b2d31; padding: 32px; border-radius: 8px; width: 440px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .label { color: var(--text-muted); font-size: 11px; font-weight: 800; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-box { width: 100%; padding: 12px; background: #1e1f22; border: 1px solid transparent; color: white; border-radius: 4px; margin-bottom: 20px; outline: none; transition: 0.2s; }
+        .input-box:focus { border-color: var(--accent); }
+        .btn-primary { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn-primary:hover { background: #4752c4; }
+        .auth-footer { margin-top: 16px; text-align: center; font-size: 14px; color: var(--text-muted); }
         .auth-link { color: var(--accent); cursor: pointer; font-weight: 500; }
+        .auth-link:hover { text-decoration: underline; }
 
-        /* NAVIGATION */
-        #nav-rail { width: 72px; background: var(--bg-deep); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.2); }
-        .guild-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-side); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold; position: relative; overflow: hidden; }
-        .guild-icon:hover, .guild-icon.active { border-radius: 15px; background: var(--accent); }
-        .guild-icon.active::before { content: ""; position: absolute; left: -12px; height: 40px; width: 4px; background: white; border-radius: 4px; }
+        /* NAVIGATION RAIL */
+        #nav-rail { width: 72px; background: var(--bg-deep); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 12px; border-right: 1px solid rgba(0,0,0,0.2); flex-shrink: 0; }
+        .guild-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-side); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold; position: relative; font-size: 18px; }
+        .guild-icon:hover { border-radius: 15px; background: var(--accent); }
+        .guild-icon.active { border-radius: 15px; background: var(--accent); }
+        .guild-icon.active::before { content: ""; position: absolute; left: -12px; height: 32px; width: 8px; background: white; border-radius: 0 4px 4px 0; }
 
-        /* SIDEBAR */
+        /* SIDEBAR (CHANNELS) */
         #sidebar { width: 240px; background: var(--bg-side); display: flex; flex-direction: column; flex-shrink: 0; }
-        .side-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 700; }
-        .side-content { flex: 1; overflow-y: auto; padding: 8px 0; }
-        .side-footer { padding: 10px; background: rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; }
+        .side-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 700; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .side-content { flex: 1; overflow-y: auto; padding: 12px 0; }
+        .side-footer { padding: 8px; background: #232428; display: flex; align-items: center; gap: 8px; }
 
-        /* CHAT */
-        #chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); border-right: 1px solid rgba(255,255,255,0.05); }
-        #chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 600; }
-        #message-area { flex: 1; overflow-y: auto; padding: 16px; }
-        #input-zone { padding: 0 16px 24px; }
-        #msg-input { width: 100%; padding: 11px; background: #383a40; border: none; border-radius: 8px; color: white; outline: none; }
+        /* CHANT WINDOW */
+        #chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); position: relative; }
+        #chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 600; color: white; gap: 8px; }
+        #message-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+        #input-zone { padding: 0 16px 24px; position: relative; }
+        #msg-input { width: 100%; padding: 12px 16px; background: #383a40; border: none; border-radius: 8px; color: white; outline: none; font-size: 15px; }
 
-        /* MEMBERS */
-        #member-sidebar { width: 240px; background: var(--bg-members); display: flex; flex-direction: column; padding: 10px; flex-shrink: 0; }
-        .member-group { font-size: 11px; font-weight: 800; color: var(--text-muted); padding: 12px 8px 4px; text-transform: uppercase; }
-        .member-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; }
+        /* MEMBER LIST */
+        #member-sidebar { width: 240px; background: var(--bg-members); display: flex; flex-direction: column; padding: 0 8px; flex-shrink: 0; }
+        .member-group { font-size: 12px; font-weight: 700; color: var(--text-muted); padding: 24px 8px 4px; text-transform: uppercase; }
+        .member-item { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 4px; cursor: pointer; transition: 0.1s; margin-bottom: 2px; }
+        .member-item:hover { background: rgba(255,255,255,0.05); }
 
-        /* UI ELEMENTS */
-        .msg-row { display: flex; gap: 16px; margin-bottom: 18px; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #444; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
-        .badge { font-size: 9px; padding: 2px 4px; border-radius: 3px; color: white; text-transform: uppercase; margin-left: 5px; }
-        .badge-owner { background: var(--gold); color: black; font-weight: 800; }
-        .badge-system { background: #5c6fb1; }
-        
-        .channel-btn { padding: 8px 10px; margin: 2px 8px; border-radius: 4px; cursor: pointer; color: var(--text-muted); font-size: 14px; }
+        /* UTILITY CLASSES */
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: #444; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 14px; position: relative; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-members); position: absolute; bottom: 0; right: 0; background: var(--success); }
+        .channel-btn { padding: 6px 8px; margin: 2px 8px; border-radius: 4px; cursor: pointer; color: var(--text-muted); font-size: 15px; display: flex; align-items: center; gap: 6px; }
         .channel-btn:hover, .channel-btn.active { background: rgba(255,255,255,0.05); color: white; }
-        
-        #voice-active-box { background: #232428; padding: 10px; margin: 8px; border-radius: 8px; border: 1px solid var(--voice); }
         .hidden { display: none !important; }
+
+        /* DEBUG CONSOLE */
+        #console-overlay { position: fixed; bottom: 20px; right: 20px; width: 350px; max-height: 400px; background: rgba(0,0,0,0.95); border: 1px solid var(--accent); border-radius: 8px; z-index: 100000; padding: 15px; font-family: monospace; font-size: 11px; overflow-y: auto; box-shadow: 0 0 20px var(--accent); color: #0f0; display: none; }
     </style>
 </head>
 <body>
 
+<div id="console-overlay">
+    <div style="border-bottom: 1px solid #333; margin-bottom: 10px; padding-bottom: 5px; font-weight: bold; color: var(--accent);">SYSTEM CONSOLE [v4.2.1]</div>
+    <div id="log-output">Initialized... Press § to hide.</div>
+</div>
+
 <div id="auth-screen">
-    <div class="auth-card" id="card-login">
-        <h2>Welcome back!</h2>
-        <p>Log in to your account</p>
-        <span class="label">Email</span>
-        <input type="email" id="l-email" class="input-box">
-        <span class="label">Password</span>
-        <input type="password" id="l-pass" class="input-box">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; font-size:14px; color:var(--text-muted);">
-            <input type="checkbox" id="l-rem"> <label for="l-rem">Remember Me</label>
-        </div>
-        <button class="btn-primary" style="width:100%" id="btn-login">Log In</button>
-        <div class="auth-footer">Don't have an account? <span class="auth-link" id="go-reg">Register</span></div>
+    <div class="auth-card" id="view-login">
+        <h2 style="text-align:center; margin-bottom:8px;">Welcome back!</h2>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom:24px;">We're so excited to see you again!</p>
+        
+        <form onsubmit="app.executeAuth(event, 'login')">
+            <span class="label">Email</span>
+            <input type="email" id="auth-email-l" class="input-box" required>
+            
+            <span class="label">Password</span>
+            <input type="password" id="auth-pass-l" class="input-box" required>
+            
+            <button type="submit" class="btn-primary">Log In</button>
+            <div class="auth-footer">
+                Need an account? <span class="auth-link" onclick="app.setAuthMode('register')">Register</span>
+            </div>
+        </form>
     </div>
 
-    <div class="auth-card hidden" id="card-reg">
-        <h2>Create account</h2>
-        <p>Join Guilded today</p>
-        <span class="label">Email</span>
-        <input type="email" id="r-email" class="input-box">
-        <span class="label">Username</span>
-        <input type="text" id="r-nick" class="input-box">
-        <span class="label">Password</span>
-        <input type="password" id="r-pass" class="input-box">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; font-size:14px; color:var(--text-muted);">
-            <input type="checkbox" id="r-rem"> <label for="r-rem">Remember Me</label>
-        </div>
-        <button class="btn-primary" style="width:100%" id="btn-reg">Register</button>
-        <div class="auth-footer"><span class="auth-link" id="go-login">Already have an account?</span></div>
+    <div class="auth-card hidden" id="view-register">
+        <h2 style="text-align:center; margin-bottom:8px;">Create an account</h2>
+        
+        <form onsubmit="app.executeAuth(event, 'register')">
+            <span class="label">Email</span>
+            <input type="email" id="auth-email-r" class="input-box" required>
+            
+            <span class="label">Username</span>
+            <input type="text" id="auth-nick-r" class="input-box" required>
+            
+            <span class="label">Password</span>
+            <input type="password" id="auth-pass-r" class="input-box" required>
+            
+            <button type="submit" class="btn-primary">Continue</button>
+            <div class="auth-footer">
+                <span class="auth-link" onclick="app.setAuthMode('login')">Already have an account?</span>
+            </div>
+        </form>
     </div>
 </div>
 
 <nav id="nav-rail">
-    <div class="guild-icon active" id="rail-dm-btn">G</div>
-    <div style="width:32px; height:2px; background:#333; margin:4px 0;"></div>
-    <div id="guild-render-area" style="display:contents;"></div>
-    <div class="guild-icon" id="add-server-btn" style="color:var(--success)">+</div>
+    <div class="guild-icon active" id="rail-home-btn" title="Direct Messages">G</div>
+    <div style="width:32px; height:2px; background:#333; border-radius:1px;"></div>
+    <div id="rail-server-list" style="display:contents;"></div>
+    <div class="guild-icon" style="color:var(--success)" onclick="app.createServer()">+</div>
 </nav>
 
 <aside id="sidebar">
-    <div class="side-header" id="sidebar-title">Guilded</div>
-    <div id="voice-active-box" class="hidden">
-        <div style="color:var(--voice); font-size:11px; font-weight:bold; margin-bottom:5px;">🔊 VOICE CHANNEL</div>
-        <button id="btn-voice-dc" style="background:var(--danger); color:white; border:none; padding:4px; border-radius:3px; cursor:pointer; width:100%; font-size:10px;">Disconnect</button>
-    </div>
-    <div class="side-content" id="sidebar-list"></div>
+    <div class="side-header" id="side-title">Guilded</div>
+    <div class="side-content" id="side-list"></div>
     <div class="side-footer">
-        <div class="avatar" style="width:32px; height:32px; font-size:12px;" id="u-avatar">?</div>
-        <div style="flex:1; font-size:13px; font-weight:600;" id="u-name">...</div>
-        <div style="cursor:pointer; opacity:0.5;" id="btn-signout">🚪</div>
+        <div class="avatar" id="footer-avatar">?</div>
+        <div style="flex:1;">
+            <div id="footer-name" style="font-size:13px; font-weight:700;">...</div>
+            <div style="font-size:11px; color:var(--text-muted);">Online</div>
+        </div>
+        <div style="cursor:pointer; opacity:0.6;" onclick="app.logout()">🚪</div>
     </div>
 </aside>
 
 <main id="chat-main">
-    <div id="chat-header"># welcome</div>
+    <div id="chat-header"># select-channel</div>
     <div id="message-area"></div>
     <div id="input-zone">
         <input type="text" id="msg-input" placeholder="Message..." autocomplete="off">
@@ -138,14 +150,13 @@
 </main>
 
 <aside id="member-sidebar">
-    <div class="member-group">Admins</div>
+    <div class="member-group">Staff</div>
     <div id="list-admins"></div>
-    <div class="member-group">Online</div>
+    <div class="member-group">Members</div>
     <div id="list-users"></div>
 </aside>
 
 <script>
-    // Config
     const firebaseConfig = {
         apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
         authDomain: "hyperspace-r.firebaseapp.com",
@@ -164,136 +175,129 @@
     const app = {
         me: null,
         activePath: null,
-        micStream: null,
+
+        log(msg, color = "#0f0") {
+            const out = document.getElementById('log-output');
+            const entry = document.createElement('div');
+            entry.style.color = color;
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            out.prepend(entry);
+            console.log(msg);
+        },
 
         init() {
-            this.bindStaticEvents();
+            this.log("System Initializing...", "var(--accent)");
+            
+            // Toggle console with §
+            window.addEventListener('keydown', (e) => {
+                if (e.key === '§') {
+                    const con = document.getElementById('console-overlay');
+                    con.style.display = con.style.display === 'block' ? 'none' : 'block';
+                }
+            });
+
             auth.onAuthStateChanged(u => {
                 if(u) {
+                    this.log(`Session found: ${u.email}`, "var(--success)");
                     db.ref(`users/${u.uid}`).on('value', snap => {
                         this.me = snap.val();
                         if(!this.me) return;
                         document.getElementById('auth-screen').style.display = 'none';
-                        document.getElementById('u-name').innerText = this.me.name;
-                        document.getElementById('u-avatar').innerText = this.me.name[0];
-                        this.syncGuilds();
-                        this.syncGlobalMembers();
-                        this.viewDMs();
+                        document.getElementById('footer-name').innerText = this.me.name;
+                        document.getElementById('footer-avatar').innerText = this.me.name[0];
+                        this.syncGlobals();
+                        this.loadDMs();
                     });
                 } else {
                     document.getElementById('auth-screen').style.display = 'flex';
                 }
             });
-        },
 
-        bindStaticEvents() {
-            // Auth View Switching
-            document.getElementById('go-reg').onclick = () => this.setAuthView('reg');
-            document.getElementById('go-login').onclick = () => this.setAuthView('login');
-            
-            // Auth Execution
-            document.getElementById('btn-login').onclick = () => this.authAction('login');
-            document.getElementById('btn-reg').onclick = () => this.authAction('reg');
-            
-            // Navigation
-            document.getElementById('rail-dm-btn').onclick = () => this.viewDMs();
-            document.getElementById('add-server-btn').onclick = () => this.promptCreateServer();
-            document.getElementById('btn-signout').onclick = () => this.signOut();
-            document.getElementById('btn-voice-dc').onclick = () => this.disconnectVoice();
-
-            // Chat Input
+            document.getElementById('rail-home-btn').onclick = () => this.loadDMs();
             document.getElementById('msg-input').onkeypress = e => { if(e.key === 'Enter') this.send(); };
         },
 
-        setAuthView(v) {
-            document.getElementById('card-login').classList.toggle('hidden', v !== 'login');
-            document.getElementById('card-reg').classList.toggle('hidden', v !== 'reg');
+        setAuthMode(mode) {
+            document.getElementById('view-login').classList.toggle('hidden', mode !== 'login');
+            document.getElementById('view-register').classList.toggle('hidden', mode !== 'register');
         },
 
-        async authAction(type) {
-            const email = document.getElementById(type === 'login' ? 'l-email' : 'r-email').value;
-            const pass = document.getElementById(type === 'login' ? 'l-pass' : 'r-pass').value;
-            const rem = document.getElementById(type === 'login' ? 'l-rem' : 'r-rem').checked;
-            
-            try {
-                await auth.setPersistence(rem ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
-                if(type === 'login') {
-                    await auth.signInWithEmailAndPassword(email, pass);
-                } else {
-                    const nick = document.getElementById('r-nick').value;
-                    if(!nick) return alert("Username required");
-                    const res = await auth.createUserWithEmailAndPassword(email, pass);
-                    await db.ref(`users/${res.user.uid}`).set({ uid: res.user.uid, name: nick, email: email.toLowerCase() });
-                }
-            } catch(e) { alert(e.message); }
+        async executeAuth(event, type) {
+            event.preventDefault(); // CRITICAL: Stops button from refreshing the page
+            this.log(`Executing ${type} routine...`, "var(--accent)");
+
+            if(type === 'login') {
+                const e = document.getElementById('auth-email-l').value;
+                const p = document.getElementById('auth-pass-l').value;
+                try {
+                    await auth.signInWithEmailAndPassword(e, p);
+                } catch(err) { this.log(err.message, "var(--danger)"); alert(err.message); }
+            } else {
+                const e = document.getElementById('auth-email-r').value;
+                const p = document.getElementById('auth-pass-r').value;
+                const n = document.getElementById('auth-nick-r').value;
+                try {
+                    const res = await auth.createUserWithEmailAndPassword(e, p);
+                    await db.ref(`users/${res.user.uid}`).set({
+                        uid: res.user.uid,
+                        name: n,
+                        email: e.toLowerCase()
+                    });
+                } catch(err) { this.log(err.message, "var(--danger)"); alert(err.message); }
+            }
         },
 
-        syncGuilds() {
+        syncGlobals() {
+            // Server Rail
             db.ref('servers').on('value', snap => {
-                const area = document.getElementById('guild-render-area');
-                area.innerHTML = '';
+                const rail = document.getElementById('rail-server-list');
+                rail.innerHTML = '';
                 snap.forEach(s => {
                     const icon = document.createElement('div');
                     icon.className = 'guild-icon';
                     icon.innerText = s.val().name[0];
-                    icon.onclick = () => this.viewServer(s.key, s.val());
-                    area.appendChild(icon);
+                    icon.onclick = () => this.loadServer(s.key, s.val());
+                    rail.appendChild(icon);
                 });
             });
-        },
 
-        syncGlobalMembers() {
+            // Member Lists
             db.ref('users').on('value', snap => {
                 const adm = document.getElementById('list-admins');
                 const usr = document.getElementById('list-users');
                 adm.innerHTML = ''; usr.innerHTML = '';
                 snap.forEach(u => {
                     const d = u.val();
-                    const isAdmin = ADMINS.includes(d.email.toLowerCase());
-                    const item = `<div class="member-item">
-                        <div class="avatar" style="width:28px; height:28px; font-size:11px; background:${isAdmin ? 'var(--gold)' : '#444'}; color:${isAdmin ? 'black' : 'white'}">${d.name[0]}</div>
-                        <span style="font-size:14px; color:${isAdmin ? 'var(--gold)' : 'inherit'}">${d.name}</span>
-                    </div>`;
-                    if(isAdmin) adm.innerHTML += item; else usr.innerHTML += item;
+                    const isStaff = ADMINS.includes(d.email.toLowerCase());
+                    const item = `
+                        <div class="member-item">
+                            <div class="avatar" style="background:${isStaff ? 'var(--gold)' : '#444'}; color:${isStaff ? 'black' : 'white'}">
+                                ${d.name[0]}
+                                <div class="status-dot"></div>
+                            </div>
+                            <span style="font-weight:500; color:${isStaff ? 'var(--gold)' : 'inherit'}">${d.name}</span>
+                        </div>`;
+                    if(isStaff) adm.innerHTML += item; else usr.innerHTML += item;
                 });
             });
         },
 
-        viewServer(id, data) {
+        loadServer(id, data) {
             document.querySelectorAll('.guild-icon').forEach(i => i.classList.remove('active'));
-            document.getElementById('sidebar-title').innerText = data.name;
-            const list = document.getElementById('sidebar-list');
-            list.innerHTML = '';
-            
-            const txtGroup = document.createElement('div');
-            txtGroup.className = 'member-group';
-            txtGroup.innerText = 'Text Channels';
-            list.appendChild(txtGroup);
-
-            const genBtn = document.createElement('div');
-            genBtn.className = 'channel-btn';
-            genBtn.innerText = '# general';
-            genBtn.onclick = () => this.openChat(`servers/${id}/gen`, 'general');
-            list.appendChild(genBtn);
-
-            const vcGroup = document.createElement('div');
-            vcGroup.className = 'member-group';
-            vcGroup.innerText = 'Voice Channels';
-            vcGroup.style.marginTop = '12px';
-            list.appendChild(vcGroup);
-
-            const vcBtn = document.createElement('div');
-            vcBtn.className = 'channel-btn';
-            vcBtn.innerText = '🔊 Lounge';
-            vcBtn.onclick = () => this.connectVoice(`${id}_voice`);
-            list.appendChild(vcBtn);
+            document.getElementById('side-title').innerText = data.name;
+            const list = document.getElementById('side-list');
+            list.innerHTML = `
+                <div class="channel-btn active" onclick="app.openChat('servers/${id}/gen', 'general')"># general</div>
+                <div class="channel-btn"># announcements</div>
+            `;
+            this.openChat(`servers/${id}/gen`, 'general');
         },
 
-        viewDMs() {
+        loadDMs() {
             document.querySelectorAll('.guild-icon').forEach(i => i.classList.remove('active'));
-            document.getElementById('rail-dm-btn').classList.add('active');
-            document.getElementById('sidebar-title').innerText = "Direct Messages";
-            const list = document.getElementById('sidebar-list');
+            document.getElementById('rail-home-btn').classList.add('active');
+            document.getElementById('side-title').innerText = "Direct Messages";
+            const list = document.getElementById('side-list');
             list.innerHTML = '';
             
             db.ref('users').once('value', snap => {
@@ -302,7 +306,7 @@
                     const d = u.val();
                     const btn = document.createElement('div');
                     btn.className = 'channel-btn';
-                    btn.innerHTML = `<span>@</span> ${d.name}`;
+                    btn.innerHTML = `<div class="avatar" style="width:24px; height:24px; font-size:10px;">${d.name[0]}</div> ${d.name}`;
                     btn.onclick = () => {
                         const room = this.me.uid < u.key ? `${this.me.uid}_${u.key}` : `${u.key}_${this.me.uid}`;
                         this.openChat(`dms/${room}`, d.name);
@@ -317,60 +321,45 @@
             document.getElementById('chat-header').innerText = `# ${name}`;
             const area = document.getElementById('message-area');
             area.innerHTML = '';
+            
             db.ref(`${path}/messages`).off();
-            db.ref(`${path}/messages`).limitToLast(60).on('child_added', snap => {
+            db.ref(`${path}/messages`).limitToLast(50).on('child_added', snap => {
                 const m = snap.val();
                 const isA = ADMINS.includes(m.email.toLowerCase());
-                const isS = m.isSystem;
                 const row = document.createElement('div');
-                row.className = 'msg-row';
+                row.style.cssText = "display:flex; gap:16px; margin-bottom:16px;";
                 row.innerHTML = `
-                    <div class="avatar" style="background:${isS ? 'var(--accent)' : (isA ? 'var(--gold)' : '#444')}; color:${isA && !isS ? 'black' : 'white'}">${isS ? 'G' : m.name[0]}</div>
-                    <div class="msg-info">
-                        <div style="font-weight:600; color:${isA && !isS ? 'var(--gold)' : 'inherit'}">
-                            ${isS ? 'Guilded' : m.name} ${isA && !isS ? '<span class="badge badge-owner">Owner</span>' : ''} ${isS ? '<span class="badge badge-system">System</span>' : ''}
-                        </div>
-                        <div style="line-height:1.4;">${m.text}</div>
+                    <div class="avatar" style="background:${isA ? 'var(--gold)' : '#444'}; color:${isA ? 'black' : 'white'}">${m.name[0]}</div>
+                    <div>
+                        <div style="font-weight:600; font-size:15px; color:${isA ? 'var(--gold)' : 'white'}">${m.name}</div>
+                        <div style="color:var(--text-main); font-size:15px;">${m.text}</div>
                     </div>`;
                 area.appendChild(row);
                 area.scrollTop = area.scrollHeight;
             });
         },
 
-        async connectVoice(id) {
-            try {
-                this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                document.getElementById('voice-active-box').classList.remove('hidden');
-            } catch(e) { alert("Mic required for voice."); }
-        },
-
-        disconnectVoice() {
-            if(this.micStream) this.micStream.getTracks().forEach(t => t.stop());
-            document.getElementById('voice-active-box').classList.add('hidden');
-        },
-
         send() {
             const inp = document.getElementById('msg-input');
-            let val = inp.value.trim();
-            if(!val || !this.activePath) return;
-
-            let pkg = { uid: this.me.uid, name: this.me.name, email: this.me.email, text: val, time: Date.now(), isSystem: false };
-            const isA = ADMINS.includes(this.me.email.toLowerCase());
-            if(isA && val.startsWith("/sys ")) { pkg.text = val.replace("/sys ", ""); pkg.isSystem = true; }
-
-            db.ref(`${this.activePath}/messages`).push(pkg);
+            if(!inp.value.trim() || !this.activePath) return;
+            db.ref(`${this.activePath}/messages`).push({
+                uid: this.me.uid,
+                name: this.me.name,
+                email: this.me.email,
+                text: inp.value,
+                time: Date.now()
+            });
             inp.value = '';
         },
 
-        promptCreateServer() {
-            const n = prompt("Server Name:");
+        createServer() {
+            const n = prompt("Enter Server Name:");
             if(n) db.ref('servers').push({ name: n, owner: this.me.uid });
         },
 
-        signOut() { auth.signOut().then(() => location.reload()); }
+        logout() { auth.signOut().then(() => location.reload()); }
     };
 
-    // Run
     app.init();
 </script>
 </body>
