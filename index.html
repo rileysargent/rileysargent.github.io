@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guilded | Complete Edition</title>
+    <title>Guilded | Absolute Final working Build</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -25,108 +25,107 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Segoe UI', sans-serif; }
         body { background: var(--bg-deep); height: 100vh; display: flex; color: var(--text-main); overflow: hidden; }
 
-        /* Authentication UI */
+        /* AUTH GATE */
         #auth-screen { position: fixed; inset: 0; background: #111214; z-index: 10000; display: flex; align-items: center; justify-content: center; }
-        .auth-card { background: #2b2d31; padding: 32px; border-radius: 8px; width: 440px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); text-align: left; }
-        .auth-card h2 { text-align: center; font-size: 24px; margin-bottom: 8px; color: white; }
+        .auth-card { background: #2b2d31; padding: 32px; border-radius: 8px; width: 440px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
+        .auth-card h2 { text-align: center; margin-bottom: 8px; }
         .auth-card p { text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
         .label { color: var(--text-muted); font-size: 11px; font-weight: 800; margin-bottom: 8px; display: block; text-transform: uppercase; }
         .input-box { width: 100%; padding: 12px; background: #1e1f22; border: none; color: white; border-radius: 4px; margin-bottom: 15px; outline: none; }
-        .btn-primary { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 16px; }
-        .btn-primary:hover { background: #4752c4; }
+        .btn-primary { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
         .auth-footer { margin-top: 15px; text-align: center; font-size: 14px; color: var(--text-muted); }
         .auth-link { color: var(--accent); cursor: pointer; font-weight: 500; }
-        .auth-link:hover { text-decoration: underline; }
 
-        /* Main Navigation Rail */
-        #nav-rail { width: 72px; background: var(--bg-deep); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; }
-        .guild-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-side); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold; color: var(--text-main); position: relative; }
+        /* APP RAIL */
+        #nav-rail { width: 72px; background: var(--bg-deep); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.2); }
+        .guild-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-side); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold; position: relative; }
         .guild-icon:hover, .guild-icon.active { border-radius: 15px; background: var(--accent); }
         .guild-icon.active::before { content: ""; position: absolute; left: -12px; height: 40px; width: 4px; background: white; border-radius: 4px; }
 
-        /* Sidebar (Channels & DMs) */
+        /* SIDEBAR */
         #sidebar { width: 240px; background: var(--bg-side); display: flex; flex-direction: column; flex-shrink: 0; }
-        .side-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 700; font-size: 15px; }
-        .channel-list-container { flex: 1; overflow-y: auto; padding-top: 8px; }
-        .side-footer { padding: 8px; background: rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .side-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 700; }
+        .side-content { flex: 1; overflow-y: auto; padding: 8px 0; }
+        .side-footer { padding: 10px; background: rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; }
 
-        /* Chat Window */
+        /* CHAT */
         #chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); border-right: 1px solid rgba(255,255,255,0.05); }
-        #chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 600; color: white; }
+        #chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: 600; }
         #message-area { flex: 1; overflow-y: auto; padding: 16px; }
         #input-zone { padding: 0 16px 24px; }
         #msg-input { width: 100%; padding: 11px; background: #383a40; border: none; border-radius: 8px; color: white; outline: none; }
 
-        /* Member List Sidebar */
+        /* MEMBERS */
         #member-sidebar { width: 240px; background: var(--bg-members); display: flex; flex-direction: column; padding: 10px; flex-shrink: 0; }
-        .member-group { font-size: 11px; font-weight: 800; color: var(--text-muted); padding: 12px 8px 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .member-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; cursor: default; }
+        .member-group { font-size: 11px; font-weight: 800; color: var(--text-muted); padding: 12px 8px 4px; text-transform: uppercase; }
+        .member-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; }
 
-        /* Reusable Components */
+        /* HELPERS */
+        .msg-row { display: flex; gap: 16px; margin-bottom: 18px; }
         .avatar { width: 40px; height: 40px; border-radius: 50%; background: #444; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
-        .msg-row { display: flex; gap: 16px; margin-bottom: 18px; padding-left: 4px; }
-        .badge { font-size: 9px; padding: 2px 4px; border-radius: 3px; color: white; text-transform: uppercase; margin-left: 5px; vertical-align: middle; }
+        .badge { font-size: 9px; padding: 2px 4px; border-radius: 3px; color: white; text-transform: uppercase; margin-left: 5px; }
         .badge-owner { background: var(--gold); color: black; font-weight: 800; }
         .badge-system { background: #5c6fb1; }
-        .channel-btn { padding: 8px 10px; margin: 2px 8px; border-radius: 4px; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: 0.1s; }
+        
+        .channel-btn { padding: 8px 10px; margin: 2px 8px; border-radius: 4px; cursor: pointer; color: var(--text-muted); font-size: 14px; }
         .channel-btn:hover, .channel-btn.active { background: rgba(255,255,255,0.05); color: white; }
+        
+        #voice-active-box { background: #232428; padding: 10px; margin: 8px; border-radius: 8px; border: 1px solid var(--voice); }
         .hidden { display: none !important; }
-
-        #voice-panel { background: #232428; padding: 10px; margin: 8px; border-radius: 8px; border: 1px solid var(--voice); }
     </style>
 </head>
 <body>
 
 <div id="auth-screen">
-    <div class="auth-card" id="view-login">
+    <div class="auth-card" id="card-login">
         <h2>Welcome back!</h2>
-        <p>We're so excited to see you again!</p>
+        <p>Log in to your account</p>
         <span class="label">Email</span>
-        <input type="email" id="log-email" class="input-box">
+        <input type="email" id="l-email" class="input-box">
         <span class="label">Password</span>
-        <input type="password" id="log-pass" class="input-box">
+        <input type="password" id="l-pass" class="input-box">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; font-size:14px; color:var(--text-muted);">
-            <input type="checkbox" id="log-remember"> <label for="log-remember">Remember Me</label>
+            <input type="checkbox" id="l-rem"> <label for="l-rem">Remember Me</label>
         </div>
-        <button class="btn-primary" onclick="app.handleAuth('login')">Log In</button>
-        <div class="auth-footer">Don't have an account? <span class="auth-link" onclick="app.toggleAuth('register')">Register</span></div>
+        <button class="btn-primary" style="width:100%" onclick="app.authAction('login')">Log In</button>
+        <div class="auth-footer">Don't have an account? <span class="auth-link" onclick="app.setAuthView('reg')">Register</span></div>
     </div>
 
-    <div class="auth-card hidden" id="view-register">
-        <h2>Create an account</h2>
-        <p>Start your journey with us today.</p>
+    <div class="auth-card hidden" id="card-reg">
+        <h2>Create account</h2>
+        <p>Join Guilded today</p>
         <span class="label">Email</span>
-        <input type="email" id="reg-email" class="input-box">
+        <input type="email" id="r-email" class="input-box">
         <span class="label">Username</span>
-        <input type="text" id="reg-nick" class="input-box">
+        <input type="text" id="r-nick" class="input-box">
         <span class="label">Password</span>
-        <input type="password" id="reg-pass" class="input-box">
+        <input type="password" id="r-pass" class="input-box">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; font-size:14px; color:var(--text-muted);">
-            <input type="checkbox" id="reg-remember"> <label for="reg-remember">Remember Me</label>
+            <input type="checkbox" id="r-rem"> <label for="r-rem">Remember Me</label>
         </div>
-        <button class="btn-primary" onclick="app.handleAuth('register')">Continue</button>
-        <div class="auth-footer"><span class="auth-link" onclick="app.toggleAuth('login')">Already have an account?</span></div>
+        <button class="btn-primary" style="width:100%" onclick="app.authAction('reg')">Register</button>
+        <div class="auth-footer"><span class="auth-link" onclick="app.setAuthView('login')">Already have an account?</span></div>
     </div>
 </div>
 
 <nav id="nav-rail">
-    <div class="guild-icon active" id="nav-dms" onclick="app.viewDMs()">G</div>
+    <div class="guild-icon active" id="rail-dm" onclick="app.viewDMs()">G</div>
     <div style="width:32px; height:2px; background:#333; margin:4px 0;"></div>
-    <div id="guild-list"></div>
-    <div class="guild-icon" style="color:var(--success)" onclick="app.createServer()">+</div>
+    <div id="guild-render-area" style="display:contents;"></div>
+    <div class="guild-icon" style="color:var(--success)" onclick="app.promptCreateServer()">+</div>
 </nav>
 
 <aside id="sidebar">
-    <div class="side-header"><span id="sidebar-title">Guilded</span></div>
-    <div id="voice-panel" class="hidden">
-        <div style="color:var(--voice); font-size:11px; font-weight:bold; margin-bottom:5px;">VOICE CONNECTED</div>
-        <button onclick="app.leaveVoice()" style="background:var(--danger); color:white; border:none; border-radius:3px; padding:4px 8px; font-size:10px; cursor:pointer; width:100%;">Disconnect</button>
+    <div class="side-header" id="sidebar-title">Guilded</div>
+    <div id="voice-active-box" class="hidden">
+        <div style="color:var(--voice); font-size:11px; font-weight:bold; margin-bottom:5px;">🔊 VOICE CHANNEL</div>
+        <button onclick="app.disconnectVoice()" style="background:var(--danger); color:white; border:none; padding:4px; border-radius:3px; cursor:pointer; width:100%; font-size:10px;">Disconnect</button>
     </div>
-    <div class="channel-list-container" id="channel-list"></div>
+    <div class="side-content" id="sidebar-list"></div>
     <div class="side-footer">
-        <div class="avatar" style="width:32px; height:32px; font-size:12px;" id="my-avatar">?</div>
-        <div style="flex:1; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden;" id="my-name">...</div>
-        <div style="cursor:pointer; opacity:0.6;" onclick="app.logout()">🚪</div>
+        <div class="avatar" style="width:32px; height:32px; font-size:12px;" id="u-avatar">?</div>
+        <div style="flex:1; font-size:13px; font-weight:600;" id="u-name">...</div>
+        <div style="cursor:pointer; opacity:0.5;" onclick="app.signOut()">🚪</div>
     </div>
 </aside>
 
@@ -164,25 +163,25 @@
     const app = {
         me: null,
         activePath: null,
-        voiceStream: null,
+        micStream: null,
 
-        toggleAuth(mode) {
-            document.getElementById('view-login').classList.toggle('hidden', mode !== 'login');
-            document.getElementById('view-register').classList.toggle('hidden', mode !== 'register');
+        setAuthView(v) {
+            document.getElementById('card-login').classList.toggle('hidden', v !== 'login');
+            document.getElementById('card-reg').classList.toggle('hidden', v !== 'reg');
         },
 
-        async handleAuth(mode) {
-            const email = document.getElementById(mode === 'login' ? 'log-email' : 'reg-email').value;
-            const pass = document.getElementById(mode === 'login' ? 'log-pass' : 'reg-pass').value;
-            const remember = document.getElementById(mode === 'login' ? 'log-remember' : 'reg-remember').checked;
+        async authAction(type) {
+            const email = document.getElementById(type === 'login' ? 'l-email' : 'r-email').value;
+            const pass = document.getElementById(type === 'login' ? 'l-pass' : 'r-pass').value;
+            const rem = document.getElementById(type === 'login' ? 'l-rem' : 'r-rem').checked;
             
             try {
-                await auth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
-                if(mode === 'login') {
+                await auth.setPersistence(rem ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+                if(type === 'login') {
                     await auth.signInWithEmailAndPassword(email, pass);
                 } else {
-                    const nick = document.getElementById('reg-nick').value;
-                    if(!nick) throw new Error("Username required");
+                    const nick = document.getElementById('r-nick').value;
+                    if(!nick) return alert("Username required");
                     const res = await auth.createUserWithEmailAndPassword(email, pass);
                     await db.ref(`users/${res.user.uid}`).set({ uid: res.user.uid, name: nick, email: email.toLowerCase() });
                 }
@@ -196,10 +195,10 @@
                         this.me = snap.val();
                         if(!this.me) return;
                         document.getElementById('auth-screen').style.display = 'none';
-                        document.getElementById('my-name').innerText = this.me.name;
-                        document.getElementById('my-avatar').innerText = this.me.name[0];
-                        this.loadGuilds();
-                        this.loadGlobalMembers();
+                        document.getElementById('u-name').innerText = this.me.name;
+                        document.getElementById('u-avatar').innerText = this.me.name[0];
+                        this.syncGuilds();
+                        this.syncGlobalMembers();
                         this.viewDMs();
                     });
                 } else {
@@ -208,52 +207,51 @@
             });
         },
 
-        loadGlobalMembers() {
-            db.ref('users').on('value', snap => {
-                const adminDiv = document.getElementById('list-admins');
-                const userDiv = document.getElementById('list-users');
-                adminDiv.innerHTML = ''; userDiv.innerHTML = '';
-                snap.forEach(u => {
-                    const d = u.val();
-                    const isAdmin = ADMINS.includes(d.email.toLowerCase());
-                    const item = `<div class="member-item">
-                        <div class="avatar" style="width:28px; height:28px; font-size:11px; background:${isAdmin ? 'var(--gold)' : '#444'}; color:${isAdmin ? 'black' : 'white'}">${d.name[0]}</div>
-                        <span style="font-size:14px; font-weight:500; color:${isAdmin ? 'var(--gold)' : 'inherit'}">${d.name}</span>
-                    </div>`;
-                    if(isAdmin) adminDiv.innerHTML += item; else userDiv.innerHTML += item;
-                });
-            });
-        },
-
-        loadGuilds() {
+        syncGuilds() {
             db.ref('servers').on('value', snap => {
-                const rail = document.getElementById('guild-list');
-                rail.innerHTML = '';
+                const area = document.getElementById('guild-render-area');
+                area.innerHTML = '';
                 snap.forEach(s => {
                     const icon = document.createElement('div');
                     icon.className = 'guild-icon';
                     icon.innerText = s.val().name[0];
                     icon.onclick = () => this.viewServer(s.key, s.val());
-                    rail.appendChild(icon);
+                    area.appendChild(icon);
+                });
+            });
+        },
+
+        syncGlobalMembers() {
+            db.ref('users').on('value', snap => {
+                const adm = document.getElementById('list-admins');
+                const usr = document.getElementById('list-users');
+                adm.innerHTML = ''; usr.innerHTML = '';
+                snap.forEach(u => {
+                    const d = u.val();
+                    const isAdmin = ADMINS.includes(d.email.toLowerCase());
+                    const item = `<div class="member-item">
+                        <div class="avatar" style="width:28px; height:28px; font-size:11px; background:${isAdmin ? 'var(--gold)' : '#444'}; color:${isAdmin ? 'black' : 'white'}">${d.name[0]}</div>
+                        <span style="font-size:14px; color:${isAdmin ? 'var(--gold)' : 'inherit'}">${d.name}</span>
+                    </div>`;
+                    if(isAdmin) adm.innerHTML += item; else usr.innerHTML += item;
                 });
             });
         },
 
         viewServer(id, data) {
-            document.querySelectorAll('.guild-icon').forEach(i => i.classList.remove('active'));
             document.getElementById('sidebar-title').innerText = data.name;
-            const list = document.getElementById('channel-list');
+            const list = document.getElementById('sidebar-list');
             list.innerHTML = `
                 <div class="member-group">Text Channels</div>
                 <div class="channel-btn" onclick="app.openChat('servers/${id}/gen', 'general')"># general</div>
                 <div class="member-group" style="margin-top:12px;">Voice Channels</div>
-                <div class="channel-btn" onclick="app.joinVoice('${id}_voice')">🔊 Public Lounge</div>
+                <div class="channel-btn" onclick="app.connectVoice('${id}_voice')">🔊 Lounge</div>
             `;
         },
 
         viewDMs() {
             document.getElementById('sidebar-title').innerText = "Direct Messages";
-            const list = document.getElementById('channel-list');
+            const list = document.getElementById('sidebar-list');
             list.innerHTML = '';
             db.ref('users').once('value', snap => {
                 snap.forEach(u => {
@@ -279,63 +277,54 @@
             db.ref(`${path}/messages`).off();
             db.ref(`${path}/messages`).limitToLast(60).on('child_added', snap => {
                 const m = snap.val();
-                const isAdmin = ADMINS.includes(m.email.toLowerCase());
-                const isSys = m.isSystem;
+                const isA = ADMINS.includes(m.email.toLowerCase());
+                const isS = m.isSystem;
                 const row = document.createElement('div');
                 row.className = 'msg-row';
                 row.innerHTML = `
-                    <div class="avatar" style="background:${isSys ? 'var(--accent)' : (isAdmin ? 'var(--gold)' : '#444')}; color:${isAdmin && !isSys ? 'black' : 'white'}">${isSys ? 'G' : m.name[0]}</div>
+                    <div class="avatar" style="background:${isS ? 'var(--accent)' : (isA ? 'var(--gold)' : '#444')}; color:${isA && !isS ? 'black' : 'white'}">${isS ? 'G' : m.name[0]}</div>
                     <div class="msg-info">
-                        <div style="font-weight:600; color:${isAdmin && !isSys ? 'var(--gold)' : 'inherit'}">
-                            ${isSys ? 'Guilded' : m.name}
-                            ${isAdmin && !isSys ? '<span class="badge badge-owner">Owner</span>' : ''}
-                            ${isSys ? '<span class="badge badge-system">System</span>' : ''}
+                        <div style="font-weight:600; color:${isA && !isS ? 'var(--gold)' : 'inherit'}">
+                            ${isS ? 'Guilded' : m.name} ${isA && !isS ? '<span class="badge badge-owner">Owner</span>' : ''} ${isS ? '<span class="badge badge-system">System</span>' : ''}
                         </div>
-                        <div style="color:var(--text-main); line-height:1.4;">${m.text}</div>
+                        <div style="line-height:1.4;">${m.text}</div>
                     </div>`;
                 area.appendChild(row);
                 area.scrollTop = area.scrollHeight;
             });
         },
 
-        async joinVoice(id) {
+        async connectVoice(id) {
             try {
-                this.voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                document.getElementById('voice-panel').classList.remove('hidden');
-            } catch(e) { alert("Mic required."); }
+                this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                document.getElementById('voice-active-box').classList.remove('hidden');
+            } catch(e) { alert("Mic required for calls."); }
         },
 
-        leaveVoice() {
-            if(this.voiceStream) this.voiceStream.getTracks().forEach(t => t.stop());
-            document.getElementById('voice-panel').classList.add('hidden');
+        disconnectVoice() {
+            if(this.micStream) this.micStream.getTracks().forEach(t => t.stop());
+            document.getElementById('voice-active-box').classList.add('hidden');
         },
 
         send() {
-            const input = document.getElementById('msg-input');
-            let text = input.value.trim();
-            if(!text || !this.activePath) return;
+            const inp = document.getElementById('msg-input');
+            let val = inp.value.trim();
+            if(!val || !this.activePath) return;
 
-            let payload = {
-                uid: this.me.uid, name: this.me.name, email: this.me.email,
-                text: text, time: Date.now(), isSystem: false
-            };
+            let pkg = { uid: this.me.uid, name: this.me.name, email: this.me.email, text: val, time: Date.now(), isSystem: false };
+            const isA = ADMINS.includes(this.me.email.toLowerCase());
+            if(isA && val.startsWith("/sys ")) { pkg.text = val.replace("/sys ", ""); pkg.isSystem = true; }
 
-            const isAdmin = ADMINS.includes(this.me.email.toLowerCase());
-            if(isAdmin && text.startsWith("/sys ")) {
-                payload.text = text.replace("/sys ", "");
-                payload.isSystem = true;
-            }
-
-            db.ref(`${this.activePath}/messages`).push(payload);
-            input.value = '';
+            db.ref(`${this.activePath}/messages`).push(pkg);
+            inp.value = '';
         },
 
-        createServer() {
+        promptCreateServer() {
             const n = prompt("Server Name:");
             if(n) db.ref('servers').push({ name: n, owner: this.me.uid });
         },
 
-        logout() { auth.signOut().then(() => location.reload()); }
+        signOut() { auth.signOut().then(() => location.reload()); }
     };
 
     app.init();
