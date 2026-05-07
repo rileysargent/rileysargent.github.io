@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guilded | Absolute Final working Build</title>
+    <title>Guilded | Functional Master</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -25,7 +25,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Segoe UI', sans-serif; }
         body { background: var(--bg-deep); height: 100vh; display: flex; color: var(--text-main); overflow: hidden; }
 
-        /* AUTH GATE */
+        /* AUTH SCREEN */
         #auth-screen { position: fixed; inset: 0; background: #111214; z-index: 10000; display: flex; align-items: center; justify-content: center; }
         .auth-card { background: #2b2d31; padding: 32px; border-radius: 8px; width: 440px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
         .auth-card h2 { text-align: center; margin-bottom: 8px; }
@@ -36,9 +36,9 @@
         .auth-footer { margin-top: 15px; text-align: center; font-size: 14px; color: var(--text-muted); }
         .auth-link { color: var(--accent); cursor: pointer; font-weight: 500; }
 
-        /* APP RAIL */
+        /* NAVIGATION */
         #nav-rail { width: 72px; background: var(--bg-deep); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.2); }
-        .guild-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-side); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold; position: relative; }
+        .guild-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-side); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold; position: relative; overflow: hidden; }
         .guild-icon:hover, .guild-icon.active { border-radius: 15px; background: var(--accent); }
         .guild-icon.active::before { content: ""; position: absolute; left: -12px; height: 40px; width: 4px; background: white; border-radius: 4px; }
 
@@ -60,7 +60,7 @@
         .member-group { font-size: 11px; font-weight: 800; color: var(--text-muted); padding: 12px 8px 4px; text-transform: uppercase; }
         .member-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; }
 
-        /* HELPERS */
+        /* UI ELEMENTS */
         .msg-row { display: flex; gap: 16px; margin-bottom: 18px; }
         .avatar { width: 40px; height: 40px; border-radius: 50%; background: #444; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
         .badge { font-size: 9px; padding: 2px 4px; border-radius: 3px; color: white; text-transform: uppercase; margin-left: 5px; }
@@ -87,8 +87,8 @@
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; font-size:14px; color:var(--text-muted);">
             <input type="checkbox" id="l-rem"> <label for="l-rem">Remember Me</label>
         </div>
-        <button class="btn-primary" style="width:100%" onclick="app.authAction('login')">Log In</button>
-        <div class="auth-footer">Don't have an account? <span class="auth-link" onclick="app.setAuthView('reg')">Register</span></div>
+        <button class="btn-primary" style="width:100%" id="btn-login">Log In</button>
+        <div class="auth-footer">Don't have an account? <span class="auth-link" id="go-reg">Register</span></div>
     </div>
 
     <div class="auth-card hidden" id="card-reg">
@@ -103,29 +103,29 @@
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; font-size:14px; color:var(--text-muted);">
             <input type="checkbox" id="r-rem"> <label for="r-rem">Remember Me</label>
         </div>
-        <button class="btn-primary" style="width:100%" onclick="app.authAction('reg')">Register</button>
-        <div class="auth-footer"><span class="auth-link" onclick="app.setAuthView('login')">Already have an account?</span></div>
+        <button class="btn-primary" style="width:100%" id="btn-reg">Register</button>
+        <div class="auth-footer"><span class="auth-link" id="go-login">Already have an account?</span></div>
     </div>
 </div>
 
 <nav id="nav-rail">
-    <div class="guild-icon active" id="rail-dm" onclick="app.viewDMs()">G</div>
+    <div class="guild-icon active" id="rail-dm-btn">G</div>
     <div style="width:32px; height:2px; background:#333; margin:4px 0;"></div>
     <div id="guild-render-area" style="display:contents;"></div>
-    <div class="guild-icon" style="color:var(--success)" onclick="app.promptCreateServer()">+</div>
+    <div class="guild-icon" id="add-server-btn" style="color:var(--success)">+</div>
 </nav>
 
 <aside id="sidebar">
     <div class="side-header" id="sidebar-title">Guilded</div>
     <div id="voice-active-box" class="hidden">
         <div style="color:var(--voice); font-size:11px; font-weight:bold; margin-bottom:5px;">🔊 VOICE CHANNEL</div>
-        <button onclick="app.disconnectVoice()" style="background:var(--danger); color:white; border:none; padding:4px; border-radius:3px; cursor:pointer; width:100%; font-size:10px;">Disconnect</button>
+        <button id="btn-voice-dc" style="background:var(--danger); color:white; border:none; padding:4px; border-radius:3px; cursor:pointer; width:100%; font-size:10px;">Disconnect</button>
     </div>
     <div class="side-content" id="sidebar-list"></div>
     <div class="side-footer">
         <div class="avatar" style="width:32px; height:32px; font-size:12px;" id="u-avatar">?</div>
         <div style="flex:1; font-size:13px; font-weight:600;" id="u-name">...</div>
-        <div style="cursor:pointer; opacity:0.5;" onclick="app.signOut()">🚪</div>
+        <div style="cursor:pointer; opacity:0.5;" id="btn-signout">🚪</div>
     </div>
 </aside>
 
@@ -145,6 +145,7 @@
 </aside>
 
 <script>
+    // Config
     const firebaseConfig = {
         apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
         authDomain: "hyperspace-r.firebaseapp.com",
@@ -164,6 +165,45 @@
         me: null,
         activePath: null,
         micStream: null,
+
+        init() {
+            this.bindStaticEvents();
+            auth.onAuthStateChanged(u => {
+                if(u) {
+                    db.ref(`users/${u.uid}`).on('value', snap => {
+                        this.me = snap.val();
+                        if(!this.me) return;
+                        document.getElementById('auth-screen').style.display = 'none';
+                        document.getElementById('u-name').innerText = this.me.name;
+                        document.getElementById('u-avatar').innerText = this.me.name[0];
+                        this.syncGuilds();
+                        this.syncGlobalMembers();
+                        this.viewDMs();
+                    });
+                } else {
+                    document.getElementById('auth-screen').style.display = 'flex';
+                }
+            });
+        },
+
+        bindStaticEvents() {
+            // Auth View Switching
+            document.getElementById('go-reg').onclick = () => this.setAuthView('reg');
+            document.getElementById('go-login').onclick = () => this.setAuthView('login');
+            
+            // Auth Execution
+            document.getElementById('btn-login').onclick = () => this.authAction('login');
+            document.getElementById('btn-reg').onclick = () => this.authAction('reg');
+            
+            // Navigation
+            document.getElementById('rail-dm-btn').onclick = () => this.viewDMs();
+            document.getElementById('add-server-btn').onclick = () => this.promptCreateServer();
+            document.getElementById('btn-signout').onclick = () => this.signOut();
+            document.getElementById('btn-voice-dc').onclick = () => this.disconnectVoice();
+
+            // Chat Input
+            document.getElementById('msg-input').onkeypress = e => { if(e.key === 'Enter') this.send(); };
+        },
 
         setAuthView(v) {
             document.getElementById('card-login').classList.toggle('hidden', v !== 'login');
@@ -186,25 +226,6 @@
                     await db.ref(`users/${res.user.uid}`).set({ uid: res.user.uid, name: nick, email: email.toLowerCase() });
                 }
             } catch(e) { alert(e.message); }
-        },
-
-        init() {
-            auth.onAuthStateChanged(u => {
-                if(u) {
-                    db.ref(`users/${u.uid}`).on('value', snap => {
-                        this.me = snap.val();
-                        if(!this.me) return;
-                        document.getElementById('auth-screen').style.display = 'none';
-                        document.getElementById('u-name').innerText = this.me.name;
-                        document.getElementById('u-avatar').innerText = this.me.name[0];
-                        this.syncGuilds();
-                        this.syncGlobalMembers();
-                        this.viewDMs();
-                    });
-                } else {
-                    document.getElementById('auth-screen').style.display = 'flex';
-                }
-            });
         },
 
         syncGuilds() {
@@ -239,20 +260,42 @@
         },
 
         viewServer(id, data) {
+            document.querySelectorAll('.guild-icon').forEach(i => i.classList.remove('active'));
             document.getElementById('sidebar-title').innerText = data.name;
             const list = document.getElementById('sidebar-list');
-            list.innerHTML = `
-                <div class="member-group">Text Channels</div>
-                <div class="channel-btn" onclick="app.openChat('servers/${id}/gen', 'general')"># general</div>
-                <div class="member-group" style="margin-top:12px;">Voice Channels</div>
-                <div class="channel-btn" onclick="app.connectVoice('${id}_voice')">🔊 Lounge</div>
-            `;
+            list.innerHTML = '';
+            
+            const txtGroup = document.createElement('div');
+            txtGroup.className = 'member-group';
+            txtGroup.innerText = 'Text Channels';
+            list.appendChild(txtGroup);
+
+            const genBtn = document.createElement('div');
+            genBtn.className = 'channel-btn';
+            genBtn.innerText = '# general';
+            genBtn.onclick = () => this.openChat(`servers/${id}/gen`, 'general');
+            list.appendChild(genBtn);
+
+            const vcGroup = document.createElement('div');
+            vcGroup.className = 'member-group';
+            vcGroup.innerText = 'Voice Channels';
+            vcGroup.style.marginTop = '12px';
+            list.appendChild(vcGroup);
+
+            const vcBtn = document.createElement('div');
+            vcBtn.className = 'channel-btn';
+            vcBtn.innerText = '🔊 Lounge';
+            vcBtn.onclick = () => this.connectVoice(`${id}_voice`);
+            list.appendChild(vcBtn);
         },
 
         viewDMs() {
+            document.querySelectorAll('.guild-icon').forEach(i => i.classList.remove('active'));
+            document.getElementById('rail-dm-btn').classList.add('active');
             document.getElementById('sidebar-title').innerText = "Direct Messages";
             const list = document.getElementById('sidebar-list');
             list.innerHTML = '';
+            
             db.ref('users').once('value', snap => {
                 snap.forEach(u => {
                     if(u.key === this.me.uid) return;
@@ -298,7 +341,7 @@
             try {
                 this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 document.getElementById('voice-active-box').classList.remove('hidden');
-            } catch(e) { alert("Mic required for calls."); }
+            } catch(e) { alert("Mic required for voice."); }
         },
 
         disconnectVoice() {
@@ -327,8 +370,8 @@
         signOut() { auth.signOut().then(() => location.reload()); }
     };
 
+    // Run
     app.init();
-    document.getElementById('msg-input').onkeypress = e => { if(e.key === 'Enter') app.send(); };
 </script>
 </body>
 </html>
