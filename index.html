@@ -33,31 +33,43 @@
         .user-item:hover { background: rgba(255,255,255,0.3); }
 
         /* Main Chat */
-        #chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.5); }
+        #chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.5); position: relative; }
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
 
-        /* Message Layout - Right/Left */
-        .msg-row { display: flex; gap: 12px; max-width: 80%; }
-        .msg-row.me { align-self: flex-end; flex-direction: row-reverse; }
-        .msg-row.other { align-self: flex-start; }
+        /* DIRECTIONAL MESSAGES FIX */
+        .msg-row { display: flex; gap: 12px; width: 100%; margin-bottom: 5px; }
+        .msg-row.me { justify-content: flex-end; }
+        .msg-row.other { justify-content: flex-start; }
+
+        .msg-wrapper { display: flex; gap: 10px; max-width: 75%; }
+        .me .msg-wrapper { flex-direction: row-reverse; }
 
         .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; flex-shrink: 0; cursor: pointer; }
-        
         .msg-content { display: flex; flex-direction: column; }
         .me .msg-content { align-items: flex-end; }
 
-        .bubble { padding: 10px 16px; border-radius: 18px; font-size: 14.5px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .bubble { padding: 10px 16px; border-radius: 18px; font-size: 14.5px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); word-break: break-word; }
         .me .bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
         .other .bubble { background: white; border-bottom-left-radius: 4px; }
 
         .meta { font-size: 11px; margin-bottom: 4px; opacity: 0.8; display: flex; align-items: center; gap: 5px; }
-        .role-tag { font-size: 9px; padding: 2px 6px; border-radius: 8px; color: white; background: var(--accent); text-transform: uppercase; font-weight: bold; }
+        .role-tag { font-size: 9px; padding: 2px 6px; border-radius: 8px; color: white; background: #e74c3c; text-transform: uppercase; font-weight: bold; }
 
-        #input-box { padding: 20px; display: flex; gap: 10px; background: rgba(255,255,255,0.2); }
+        /* Input & Commands */
+        #input-container { padding: 20px; position: relative; background: rgba(255,255,255,0.2); }
+        #command-hint { 
+            position: absolute; bottom: 80px; left: 20px; right: 20px; 
+            background: white; border-radius: 12px; box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            display: none; padding: 10px; z-index: 100;
+        }
+        .cmd-opt { padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .cmd-opt:hover { background: var(--bg-gradient); }
+
+        #input-row { display: flex; gap: 10px; }
         .input-main { flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.5); outline: none; }
         .btn { padding: 10px 20px; border-radius: 20px; border: none; background: var(--accent); color: white; cursor: pointer; font-weight: 600; }
 
-        /* Profile Modal */
+        /* Modals */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 4000; }
         .card { background: white; width: 320px; border-radius: 24px; padding: 25px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
 
@@ -68,10 +80,10 @@
 
 <div id="auth-screen">
     <div class="card">
-        <h2 style="color: var(--accent); margin-bottom: 15px;">Enter C H A T</h2>
+        <h2 style="color: var(--accent); margin-bottom: 15px;">Connect</h2>
         <input type="text" id="auth-email" class="input-main" placeholder="email@pacificeducation.online" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="auth-nick" class="input-main" placeholder="Display Name" style="width:100%; margin-bottom:20px;">
-        <button class="btn" style="width:100%" onclick="login()">Connect</button>
+        <input type="text" id="auth-nick" class="input-main" placeholder="Unique Display Name" style="width:100%; margin-bottom:20px;">
+        <button class="btn" style="width:100%" onclick="login()">Join Chat</button>
     </div>
 </div>
 
@@ -93,9 +105,18 @@
     <main id="chat-area">
         <header class="sidebar-header" style="background:rgba(255,255,255,0.2)"><span id="target-name">Select Chat</span></header>
         <div id="messages"></div>
-        <div id="input-box">
-            <input type="text" id="msg-input" class="input-main" placeholder="Type /role Admin to set role...">
-            <button class="btn" onclick="sendMsg()">Send</button>
+        
+        <div id="input-container">
+            <div id="command-hint">
+                <div class="cmd-opt" onclick="applyCmd('/role ')"><b>/role [name]</b> - Set your display role</div>
+                <div class="cmd-opt" onclick="applyCmd('/pfp ')"><b>/pfp [url]</b> - Set profile picture</div>
+                <div class="cmd-opt" onclick="applyCmd('/pronouns ')"><b>/pronouns [text]</b> - Set pronouns</div>
+                <div class="cmd-opt" onclick="applyCmd('/bio ')"><b>/bio [text]</b> - Set your bio</div>
+            </div>
+            <div id="input-row">
+                <input type="text" id="msg-input" class="input-main" placeholder="Type a message or / for commands..." autocomplete="off">
+                <button class="btn" onclick="sendMsg()">Send</button>
+            </div>
         </div>
     </main>
 </div>
@@ -106,7 +127,6 @@
         <h3 id="p-name">Name</h3>
         <p id="p-pronouns" style="font-size:12px; color:#7f8c8d; margin-bottom:10px;"></p>
         <p id="p-bio" style="font-size:14px; color:#34495e;"></p>
-        <div id="p-footer" style="margin-top:20px"></div>
     </div>
 </div>
 
@@ -125,29 +145,124 @@
     const db = firebase.database();
     const auth = firebase.auth();
 
-    let me = { id: '', name: '', role: '', pronouns: '', bio: '' };
+    const ADMIN_EMAIL = "admin@rileysargent.github.io";
+    let me = { id: '', name: '', email: '', role: '', pronouns: '', bio: '', isAdmin: false };
     let activePath = null;
 
     async function login() {
-        const email = document.getElementById('auth-email').value.toLowerCase();
+        const email = document.getElementById('auth-email').value.trim().toLowerCase();
         const nick = document.getElementById('auth-nick').value.trim();
-        if(!nick || !email.includes('pacificeducation.online')) return alert("Access Denied");
+        
+        if(!nick || (!email.includes('pacificeducation.online') && email !== ADMIN_EMAIL)) {
+            return alert("Invalid Email or Nickname");
+        }
+
+        // Check if name is taken
+        const nameCheck = await db.ref('users').orderByChild('name').equalTo(nick).once('value');
+        if(nameCheck.exists()) {
+            let taken = false;
+            nameCheck.forEach(u => { if(u.val().email !== email) taken = true; });
+            if(taken) return alert("This display name is already taken by another user.");
+        }
 
         const cred = await auth.signInAnonymously();
         me.id = cred.user.uid;
+        me.email = email;
+        me.isAdmin = (email === ADMIN_EMAIL);
         
         const snap = await db.ref(`users/${me.id}`).once('value');
         if(snap.exists()) {
             me = { ...me, ...snap.val() };
         } else {
             me.name = nick;
-            db.ref(`users/${me.id}`).set({ name: me.name, online: true });
+            db.ref(`users/${me.id}`).set({ name: me.name, email: me.email, isAdmin: me.isAdmin, online: true });
         }
 
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('my-name-display').innerText = me.name;
         loadDMs();
         loadServers();
+    }
+
+    function openChat(path, title) {
+        activePath = path;
+        document.getElementById('target-name').innerText = title;
+        const box = document.getElementById('messages');
+        box.innerHTML = '';
+
+        db.ref(`${path}/messages`).off();
+        db.ref(`${path}/messages`).on('child_added', snap => {
+            const m = snap.val();
+            // STRICT DIRECTIONAL CHECK
+            const isMe = String(m.uid) === String(me.id);
+            
+            const row = document.createElement('div');
+            row.className = `msg-row ${isMe ? 'me' : 'other'}`;
+            
+            const roleTag = (m.role && m.role !== "") ? `<span class="role-tag">${m.role}</span>` : '';
+
+            row.innerHTML = `
+                <div class="msg-wrapper">
+                    <div class="avatar" onclick="openProfile('${m.uid}')">${m.name[0]}</div>
+                    <div class="msg-content">
+                        <div class="meta">${m.name} ${roleTag}</div>
+                        <div class="bubble">${m.text}</div>
+                    </div>
+                </div>
+            `;
+            box.appendChild(row);
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+
+    function sendMsg() {
+        const input = document.getElementById('msg-input');
+        const val = input.value.trim();
+        if(!val) return;
+
+        // Command Permission Logic
+        if(val.startsWith('/')) {
+            if(!me.isAdmin && me.role !== "Owner" && me.role !== "Moderator") {
+                alert("You do not have permission to run commands.");
+                input.value = '';
+                return;
+            }
+            
+            if(val.startsWith('/role ')) {
+                me.role = val.replace('/role ', '');
+                db.ref(`users/${me.id}/role`).set(me.role);
+            } else if(val.startsWith('/pronouns ')) {
+                me.pronouns = val.replace('/pronouns ', '');
+                db.ref(`users/${me.id}/pronouns`).set(me.pronouns);
+            } else if(val.startsWith('/bio ')) {
+                me.bio = val.replace('/bio ', '');
+                db.ref(`users/${me.id}/bio`).set(me.bio);
+            }
+            input.value = '';
+            document.getElementById('command-hint').style.display = 'none';
+            return;
+        }
+
+        if(!activePath) return;
+        db.ref(`${activePath}/messages`).push({
+            uid: me.id,
+            name: me.name,
+            role: me.role || "",
+            text: val,
+            time: Date.now()
+        });
+        input.value = '';
+    }
+
+    // Command Hint Logic
+    document.getElementById('msg-input').addEventListener('input', (e) => {
+        const hint = document.getElementById('command-hint');
+        hint.style.display = (e.target.value.startsWith('/')) ? 'block' : 'none';
+    });
+
+    function applyCmd(cmd) {
+        document.getElementById('msg-input').value = cmd;
+        document.getElementById('msg-input').focus();
     }
 
     function loadDMs() {
@@ -167,93 +282,6 @@
                 list.appendChild(div);
             });
         });
-    }
-
-    function openChat(path, title) {
-        activePath = path;
-        document.getElementById('target-name').innerText = title;
-        const box = document.getElementById('messages');
-        box.innerHTML = '';
-
-        db.ref(`${path}/messages`).off();
-        db.ref(`${path}/messages`).on('child_added', snap => {
-            const m = snap.val();
-            const isMe = m.uid === me.id;
-            const div = document.createElement('div');
-            div.className = `msg-row ${isMe ? 'me' : 'other'}`;
-            
-            // Fixed: Hide role tag if undefined or empty
-            const roleTag = (m.role && m.role !== "undefined") 
-                ? `<span class="role-tag">${m.role}</span>` 
-                : '';
-
-            div.innerHTML = `
-                <div class="avatar" onclick="openProfile('${m.uid}')">${m.name[0]}</div>
-                <div class="msg-content">
-                    <div class="meta">${m.name} ${roleTag}</div>
-                    <div class="bubble">${m.text}</div>
-                </div>
-            `;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        });
-    }
-
-    function sendMsg() {
-        const input = document.getElementById('msg-input');
-        const val = input.value.trim();
-        if(!val) return;
-
-        // Command handler
-        if(val.startsWith('/role ')) {
-            me.role = val.replace('/role ', '');
-            db.ref(`users/${me.id}/role`).set(me.role);
-            input.value = '';
-            return;
-        }
-
-        if(!activePath) return;
-
-        db.ref(`${activePath}/messages`).push({
-            uid: me.id,
-            name: me.name,
-            role: me.role || "",
-            text: val,
-            time: Date.now()
-        });
-        input.value = '';
-    }
-
-    function openProfile(id) {
-        db.ref(`users/${id}`).once('value', snap => {
-            const u = snap.val();
-            document.getElementById('p-avatar').innerText = u.name[0];
-            document.getElementById('p-name').innerText = u.name;
-            document.getElementById('p-pronouns').innerText = u.pronouns || 'no pronouns';
-            document.getElementById('p-bio').innerText = u.bio || 'No bio set.';
-            
-            const footer = document.getElementById('p-footer');
-            footer.innerHTML = '';
-            if(id === me.id) {
-                const btn = document.createElement('button');
-                btn.className = 'btn';
-                btn.innerText = "Edit Profile";
-                btn.onclick = () => {
-                    const n = prompt("Display Name:", me.name);
-                    const p = prompt("Pronouns:", me.pronouns);
-                    const b = prompt("Bio:", me.bio);
-                    db.ref(`users/${me.id}`).update({ name: n || me.name, pronouns: p || "", bio: b || "" });
-                    location.reload();
-                };
-                footer.appendChild(btn);
-            }
-            document.getElementById('modal').style.display = 'flex';
-        });
-    }
-
-    function createServer() {
-        const n = prompt("Server Name:");
-        if(n) db.ref('servers').push({ name: n, owner: me.id, channels: { 'general': {name: 'general'} } });
     }
 
     function loadServers() {
@@ -279,6 +307,22 @@
                 rail.appendChild(b);
             });
         });
+    }
+
+    function openProfile(id) {
+        db.ref(`users/${id}`).once('value', snap => {
+            const u = snap.val();
+            document.getElementById('p-avatar').innerText = u.name[0];
+            document.getElementById('p-name').innerText = u.name;
+            document.getElementById('p-pronouns').innerText = u.pronouns || 'no pronouns';
+            document.getElementById('p-bio').innerText = u.bio || 'No bio set.';
+            document.getElementById('modal').style.display = 'flex';
+        });
+    }
+
+    function createServer() {
+        const n = prompt("Server Name:");
+        if(n) db.ref('servers').push({ name: n, owner: me.id, channels: { 'general': {name: 'general'} } });
     }
 
     document.getElementById('msg-input').onkeypress = e => { if(e.key === 'Enter') sendMsg(); };
