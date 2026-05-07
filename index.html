@@ -3,130 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C H A T</title>
+    <title>C H A T | PRO</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #dcd6f7 0%, #a6b1e1 100%);
-            --glass: rgba(255, 255, 255, 0.45);
+            --bg: #0f0c29;
+            --sidebar-bg: rgba(0, 0, 0, 0.4);
             --accent: #7b2cbf;
-            --text: #2d3436;
+            --accent-light: #9d4edd;
+            --text: #ffffff;
+            --glass: rgba(255, 255, 255, 0.1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: var(--bg-gradient); height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; color: var(--text); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text); overflow: hidden; }
 
-        #app-window { width: 95vw; height: 90vh; background: var(--glass); backdrop-filter: blur(20px); border-radius: 24px; display: flex; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
-
-        /* Left Rail */
-        #nav-rail { width: 70px; background: rgba(255, 255, 255, 0.3); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 15px; border-right: 1px solid rgba(255,255,255,0.2); }
-        .nav-btn { width: 48px; height: 48px; border-radius: 16px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent); transition: 0.3s; }
-        .nav-btn.active { background: var(--accent); color: white; }
-
-        /* Sidebar */
-        #sidebar { width: 260px; background: rgba(255, 255, 255, 0.15); border-right: 1px solid rgba(255,255,255,0.2); display: flex; flex-direction: column; }
-        .sidebar-header { padding: 20px; font-weight: 800; color: var(--accent); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .list-area { flex: 1; overflow-y: auto; padding: 10px; }
-        .user-item { padding: 10px; border-radius: 12px; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
-        .user-item:hover { background: rgba(255,255,255,0.3); }
-
-        /* Chat Layout */
-        #chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.5); position: relative; }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-
-        /* Directional Fix */
-        .msg-row { display: flex; width: 100%; }
-        .msg-row.me { justify-content: flex-end; }
-        .msg-row.other { justify-content: flex-start; }
-
-        .msg-wrapper { display: flex; gap: 12px; max-width: 75%; }
-        .me .msg-wrapper { flex-direction: row-reverse; }
-
-        .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; flex-shrink: 0; cursor: pointer; }
-        .msg-content { display: flex; flex-direction: column; }
-        .me .msg-content { align-items: flex-end; }
-        
-        .bubble { padding: 10px 16px; border-radius: 18px; font-size: 14.5px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); word-wrap: break-word; }
-        .me .bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
-        .other .bubble { background: white; border-bottom-left-radius: 4px; }
-
-        /* Calling UI */
-        #call-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; height: 40%; background: #000; z-index: 10; border-bottom: 4px solid var(--accent); }
-        #call-video { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Custom Context Menu */
-        #context-menu {
-            position: fixed; display: none; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 9999;
-            padding: 8px 0; border: 1px solid rgba(0,0,0,0.05); min-width: 200px;
+        /* Main Container */
+        #app-window { 
+            width: 98vw; height: 96vh; background: var(--glass); 
+            backdrop-filter: blur(30px); border-radius: 20px; 
+            display: flex; border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 0 100px rgba(0,0,0,0.5);
         }
-        .menu-item { padding: 12px 18px; cursor: pointer; font-size: 13px; font-weight: 500; }
-        .menu-item:hover { background: var(--accent); color: white; }
+
+        /* 1. Navigation Rail */
+        #nav-rail { width: 72px; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; padding: 15px 0; gap: 12px; }
+        .server-icon { 
+            width: 48px; height: 48px; border-radius: 50%; background: var(--accent); 
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            transition: 0.2s; font-weight: bold; font-size: 18px; border: 2px solid transparent;
+        }
+        .server-icon:hover { border-radius: 16px; background: var(--accent-light); }
+        .server-icon.active { border-radius: 16px; border-color: white; }
+
+        /* 2. Sidebar */
+        #sidebar { width: 240px; background: var(--sidebar-bg); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
+        .side-header { padding: 20px; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+        .list-container { flex: 1; overflow-y: auto; padding: 10px; }
+        .list-item { 
+            padding: 10px; border-radius: 8px; cursor: pointer; margin-bottom: 2px;
+            display: flex; align-items: center; gap: 10px; font-size: 14px; color: #ccc;
+        }
+        .list-item:hover, .list-item.active { background: rgba(255,255,255,0.1); color: white; }
+
+        /* 3. Chat Area */
+        #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); position: relative; }
+        #chat-header { 
+            height: 60px; padding: 0 20px; display: flex; align-items: center; 
+            justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        #message-list { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+
+        /* Messages */
+        .msg-box { display: flex; gap: 15px; padding: 8px; border-radius: 8px; transition: 0.2s; position: relative; }
+        .msg-box:hover { background: rgba(255,255,255,0.03); }
+        .msg-box.me { background: rgba(123, 44, 191, 0.05); }
+        .msg-avatar { width: 40px; height: 40px; border-radius: 12px; background: var(--accent); flex-shrink: 0; cursor: context-menu; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .msg-info { flex: 1; }
+        .msg-author { font-weight: 700; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .role-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--accent); }
+        .msg-text { font-size: 15px; color: #ddd; line-height: 1.4; white-space: pre-wrap; }
+        .msg-timestamp { font-size: 10px; color: #666; }
 
         /* Inputs */
-        #input-zone { padding: 20px; background: rgba(255,255,255,0.2); }
-        #input-row { display: flex; gap: 10px; }
-        .input-main { flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.5); outline: none; }
-        .btn { padding: 10px 20px; border-radius: 20px; border: none; background: var(--accent); color: white; cursor: pointer; font-weight: 600; }
+        #input-area { padding: 20px; background: rgba(0,0,0,0.2); }
+        .input-wrap { 
+            background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px 20px;
+            display: flex; align-items: center; gap: 15px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        #main-input { flex: 1; background: transparent; border: none; outline: none; color: white; font-size: 15px; }
 
-        #auth-screen { position: fixed; inset: 0; background: var(--bg-gradient); display: flex; align-items: center; justify-content: center; z-index: 5000; }
-        .card { background: white; padding: 30px; border-radius: 24px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 340px; }
+        /* Context Menu */
+        #ctx-menu { 
+            position: fixed; display: none; background: #1a1a1a; border: 1px solid #333;
+            border-radius: 8px; padding: 5px 0; z-index: 10000; min-width: 180px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .ctx-item { padding: 10px 15px; cursor: pointer; font-size: 13px; color: #eee; }
+        .ctx-item:hover { background: var(--accent); }
+
+        /* Modals */
+        #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 20000; display: flex; align-items: center; justify-content: center; }
+        .modal-card { background: #1a1a1a; padding: 40px; border-radius: 20px; width: 400px; text-align: center; border: 1px solid #333; }
+        .input-field { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #333; background: #000; color: white; }
+
+        .ping { background: rgba(255, 204, 0, 0.1) !important; border-left: 3px solid #ffcc00; }
     </style>
 </head>
 <body>
 
-<div id="auth-screen">
-    <div class="card">
-        <h2 style="color: var(--accent); margin-bottom: 20px;">C H A T</h2>
-        <input type="text" id="auth-email" class="input-main" placeholder="email@pacificeducation.online" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="auth-nick" class="input-main" placeholder="Unique Display Name" style="width:100%; margin-bottom:20px;">
-        <button class="btn" id="login-btn" style="width:100%" onclick="login()">Join Chat</button>
+<div id="auth-overlay">
+    <div class="modal-card">
+        <h1 style="margin-bottom: 20px; letter-spacing: 2px;">C H A T</h1>
+        <input type="text" id="log-email" class="input-field" placeholder="Email (admin@rileysargent.github.io)">
+        <input type="text" id="log-nick" class="input-field" placeholder="Display Name">
+        <button class="input-field" style="background: var(--accent); font-weight: bold; cursor: pointer;" onclick="app.login()">ENTER</button>
     </div>
 </div>
 
-<div id="context-menu">
-    <div class="menu-item" id="mi-profile">View Profile</div>
-    <div class="menu-item" id="mi-dm">Message User</div>
-    <div class="menu-item" id="mi-friend">Friend User</div>
-</div>
+<div id="ctx-menu"></div>
 
 <div id="app-window">
     <nav id="nav-rail">
-        <div class="nav-btn active">💬</div>
+        <div class="server-icon active" onclick="app.switchView('dms')">DM</div>
+        <div style="width: 30px; height: 2px; background: #333;"></div>
         <div id="server-list"></div>
-        <div class="nav-btn" onclick="createServer()">+</div>
+        <div class="server-icon" style="background: #222;" onclick="app.createServer()">+</div>
     </nav>
 
     <aside id="sidebar">
-        <div class="sidebar-header" id="side-title">Users</div>
-        <div class="list-area" id="side-list"></div>
-        <div style="padding:15px; border-top:1px solid rgba(0,0,0,0.05); cursor:pointer" onclick="viewSelf()">
-            <b id="my-name-label">Connecting...</b>
+        <div class="side-header" id="sidebar-title">Direct Messages</div>
+        <div class="list-container" id="sidebar-list"></div>
+        <div style="padding: 20px; background: rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="app.openProfile(app.me.id)">
+            <div class="msg-avatar" id="my-avatar" style="width:32px; height:32px;">?</div>
+            <div style="font-size: 13px; font-weight: bold;" id="my-name">...</div>
         </div>
     </aside>
 
-    <main id="chat-area">
-        <header class="sidebar-header" style="background:rgba(255,255,255,0.2)">
-            <span id="target-name">Select a Conversation</span>
-            <div id="call-controls" style="display:none">
-                <button class="btn" style="padding:5px 12px" onclick="startCall('video')">📹</button>
-                <button class="btn" style="padding:5px 12px" onclick="startCall('screen')">🖥️</button>
+    <main id="chat-main">
+        <header id="chat-header">
+            <h3 id="current-target">Welcome</h3>
+            <div id="header-tools">
+                <button onclick="app.toggleTheme()" style="background:none; border:none; color:#aaa; cursor:pointer">🌓</button>
             </div>
         </header>
-
-        <div id="call-overlay">
-            <video id="call-video" autoplay playsinline></video>
-            <button class="btn" onclick="endCall()" style="position:absolute; bottom:10px; right:10px; background:#e74c3c">End Call</button>
-        </div>
-
-        <div id="messages"></div>
-        
-        <div id="input-zone">
-            <div id="input-row">
-                <input type="text" id="msg-input" class="input-main" placeholder="Type a message..." autocomplete="off">
-                <button class="btn" onclick="sendMsg()">Send</button>
+        <div id="message-list"></div>
+        <div id="input-area">
+            <div id="typing-notif" style="font-size:11px; color:#666; margin-bottom:5px; height:15px;"></div>
+            <div class="input-wrap">
+                <button style="background:none; border:none; font-size:20px; cursor:pointer">➕</button>
+                <input type="text" id="main-input" placeholder="Message..." autocomplete="off">
+                <button onclick="app.sendMessage()" style="background:none; border:none; font-size:20px; cursor:pointer">🚀</button>
             </div>
         </div>
     </main>
@@ -147,180 +155,219 @@
     const db = firebase.database();
     const auth = firebase.auth();
 
-    const ADMIN_EMAIL = "admin@rileysargent.github.io";
-    let me = { id: '', name: '', email: '', role: '', isAdmin: false };
-    let activePath = null;
-    let currentStream = null;
-
-    async function login() {
-        const btn = document.getElementById('login-btn');
-        const email = document.getElementById('auth-email').value.trim().toLowerCase();
-        const nick = document.getElementById('auth-nick').value.trim();
+    const app = {
+        me: { id: '', name: '', role: '', isAdmin: false },
+        view: 'dms', // 'dms' or 'server'
+        activeRoom: null,
         
-        if(!nick || (!email.includes('pacificeducation.online') && email !== ADMIN_EMAIL)) {
-            return alert("Access Denied: Invalid Email Credentials");
-        }
+        async login() {
+            const email = document.querySelector('#log-email').value.trim().toLowerCase();
+            const nick = document.querySelector('#log-nick').value.trim();
+            if(!nick || (!email.includes('pacificeducation.online') && email !== 'admin@rileysargent.github.io')) return alert("Invalid Credentials");
 
-        btn.innerText = "Authenticating...";
-        btn.disabled = true;
-
-        try {
-            // Check name uniqueness across all users
-            const nameSnap = await db.ref('users').once('value');
-            let isNameTaken = false;
-            nameSnap.forEach(u => {
-                if(u.val().name.toLowerCase() === nick.toLowerCase() && u.val().email !== email) {
-                    isNameTaken = true;
-                }
-            });
-
-            if(isNameTaken) {
-                alert("That name is already in use by another student.");
-                btn.innerText = "Join Chat";
-                btn.disabled = false;
-                return;
+            // Check name uniqueness
+            const nameCheck = await db.ref('users').orderByChild('name').equalTo(nick).once('value');
+            if(nameCheck.exists()) {
+                let taken = false;
+                nameCheck.forEach(u => { if(u.val().email !== email) taken = true; });
+                if(taken) return alert("Name taken.");
             }
 
             const cred = await auth.signInAnonymously();
-            me.id = cred.user.uid;
-            me.email = email;
-            me.isAdmin = (email === ADMIN_EMAIL);
+            this.me.id = cred.user.uid;
+            this.me.isAdmin = (email === 'admin@rileysargent.github.io');
 
-            const userRef = db.ref(`users/${me.id}`);
-            const userSnap = await userRef.once('value');
-            
-            if(userSnap.exists()) {
-                me = { ...me, ...userSnap.val() };
+            const snap = await db.ref(`users/${this.me.id}`).once('value');
+            if(snap.exists()) {
+                this.me = { ...this.me, ...snap.val() };
             } else {
-                me.name = nick;
-                await userRef.set({ name: me.name, email: me.email, isAdmin: me.isAdmin, online: true });
+                this.me.name = nick;
+                this.me.email = email;
+                await db.ref(`users/${this.me.id}`).set({ name: nick, email, isAdmin: this.me.isAdmin, online: true });
             }
 
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('my-name-label').innerText = me.name;
-            loadSidebar();
-        } catch (err) {
-            console.error(err);
-            alert("Connection error. Please check your internet.");
-            btn.innerText = "Join Chat";
-            btn.disabled = false;
-        }
-    }
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('my-name').innerText = this.me.name;
+            document.getElementById('my-avatar').innerText = this.me.name[0];
+            
+            this.init();
+        },
 
-    function loadSidebar() {
-        db.ref('users').on('value', snap => {
-            const list = document.getElementById('side-list');
-            list.innerHTML = '';
-            snap.forEach(u => {
-                if(u.key === me.id) return;
-                const userData = u.val();
-                const div = document.createElement('div');
-                div.className = 'user-item';
-                div.innerHTML = `<div class="avatar" style="width:28px; height:28px; font-size:12px">${userData.name[0]}</div> ${userData.name}`;
-                
-                div.oncontextmenu = (e) => {
-                    e.preventDefault();
-                    showMenu(e, u.key, userData.name);
-                };
-                div.onclick = () => {
-                    const room = me.id < u.key ? `${me.id}_${u.key}` : `${u.key}_${me.id}`;
-                    openChat(`dms/${room}`, userData.name);
-                };
-                list.appendChild(div);
+        init() {
+            this.loadServers();
+            this.switchView('dms');
+            
+            // Global Right Click Closer
+            window.addEventListener('click', () => document.getElementById('ctx-menu').style.display = 'none');
+            
+            // Typing Indicator Logic
+            document.getElementById('main-input').addEventListener('input', () => {
+                if(this.activeRoom) db.ref(`typing/${this.activeRoom}/${this.me.id}`).set(true);
+                clearTimeout(this.typingTimer);
+                this.typingTimer = setTimeout(() => {
+                    if(this.activeRoom) db.ref(`typing/${this.activeRoom}/${this.me.id}`).remove();
+                }, 2000);
             });
-        });
-    }
+        },
 
-    function showMenu(e, id, name) {
-        const menu = document.getElementById('context-menu');
-        menu.style.display = 'block';
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
+        switchView(v) {
+            this.view = v;
+            const list = document.getElementById('sidebar-list');
+            const title = document.getElementById('sidebar-title');
+            list.innerHTML = '';
 
-        document.getElementById('mi-profile').innerText = `View ${name}'s Profile`;
-        document.getElementById('mi-dm').innerText = `Message ${name}`;
-        document.getElementById('mi-friend').innerText = `Friend ${name}`;
-
-        document.getElementById('mi-dm').onclick = () => {
-            const room = me.id < id ? `${me.id}_${id}` : `${id}_${me.id}`;
-            openChat(`dms/${room}`, name);
-        };
-        document.getElementById('mi-friend').onclick = () => alert(`Sent friend request to ${name}`);
-    }
-
-    function openChat(path, title) {
-        activePath = path;
-        document.getElementById('target-name').innerText = title;
-        document.getElementById('call-controls').style.display = 'flex';
-        const box = document.getElementById('messages');
-        box.innerHTML = '';
-
-        db.ref(`${path}/messages`).off();
-        db.ref(`${path}/messages`).on('child_added', snap => {
-            const m = snap.val();
-            const isMe = String(m.uid) === String(me.id);
-            
-            const row = document.createElement('div');
-            row.className = `msg-row ${isMe ? 'me' : 'other'}`;
-            
-            row.innerHTML = `
-                <div class="msg-wrapper">
-                    <div class="avatar" oncontextmenu="event.preventDefault(); showMenu(event, '${m.uid}', '${m.name}')">${m.name[0]}</div>
-                    <div class="msg-content">
-                        <div class="bubble">${m.text}</div>
-                    </div>
-                </div>
-            `;
-            box.appendChild(row);
-            box.scrollTop = box.scrollHeight;
-        });
-    }
-
-    function sendMsg() {
-        const input = document.getElementById('msg-input');
-        const val = input.value.trim();
-        if(!val || !activePath) return;
-
-        if(val.startsWith('/')) {
-            if(!me.isAdmin && me.role !== "Owner") { alert("Permission Denied."); input.value=''; return; }
-            if(val.startsWith('/role ')) {
-                me.role = val.replace('/role ', '');
-                db.ref(`users/${me.id}/role`).set(me.role);
+            if(v === 'dms') {
+                title.innerText = "Direct Messages";
+                db.ref('users').on('value', snap => {
+                    list.innerHTML = '';
+                    snap.forEach(u => {
+                        if(u.key === this.me.id) return;
+                        this.createSidebarItem(u.key, u.val().name, 'dm');
+                    });
+                });
             }
-            input.value = ''; return;
+        },
+
+        createSidebarItem(id, name, type) {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.innerHTML = `<div class="msg-avatar" style="width:24px; height:24px; font-size:10px">${name[0]}</div> ${name}`;
+            div.oncontextmenu = (e) => this.showContextMenu(e, id, name);
+            div.onclick = () => {
+                if(type === 'dm') {
+                    const room = this.me.id < id ? `${this.me.id}_${id}` : `${id}_${this.me.id}`;
+                    this.openChat(`dms/${room}`, name);
+                }
+            };
+            document.getElementById('sidebar-list').appendChild(div);
+        },
+
+        showContextMenu(e, id, name) {
+            e.preventDefault();
+            const menu = document.getElementById('ctx-menu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            menu.innerHTML = `
+                <div class="ctx-item" onclick="app.openProfile('${id}')">View Profile</div>
+                <div class="ctx-item" onclick="app.startDM('${id}', '${name}')">Message ${name}</div>
+                <div class="ctx-item" onclick="app.addFriend('${id}')">Add Friend</div>
+                ${this.me.isAdmin ? `<div class="ctx-item" style="color:red" onclick="app.banUser('${id}')">Ban User</div>` : ''}
+            `;
+        },
+
+        openChat(path, title) {
+            this.activeRoom = path;
+            document.getElementById('current-target').innerText = title;
+            const box = document.getElementById('message-list');
+            box.innerHTML = '';
+
+            db.ref(`${path}/messages`).off();
+            db.ref(`${path}/messages`).limitToLast(50).on('child_added', snap => {
+                const m = snap.val();
+                const isMe = m.uid === this.me.id;
+                const isPing = m.text.includes(`@${this.me.name}`);
+                
+                const div = document.createElement('div');
+                div.className = `msg-box ${isMe ? 'me' : ''} ${isPing ? 'ping' : ''}`;
+                div.innerHTML = `
+                    <div class="msg-avatar" oncontextmenu="app.showContextMenu(event, '${m.uid}', '${m.name}')">${m.name[0]}</div>
+                    <div class="msg-info">
+                        <div class="msg-author">
+                            ${m.name} ${m.role ? `<span class="role-badge">${m.role}</span>` : ''}
+                            <span class="msg-timestamp">${new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        <div class="msg-text">${this.parseText(m.text)}</div>
+                    </div>
+                `;
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+            });
+
+            // Typing Monitor
+            db.ref(`typing/${path}`).on('value', snap => {
+                const users = [];
+                snap.forEach(u => { if(u.key !== this.me.id) users.push(u.key); });
+                document.getElementById('typing-notif').innerText = users.length > 0 ? "Someone is typing..." : "";
+            });
+        },
+
+        parseText(t) {
+            // Feature: Image Previews
+            if(t.match(/\.(jpeg|jpg|gif|png)$/) != null) {
+                return `${t}<br><img src="${t}" style="max-width:300px; border-radius:10px; margin-top:10px;">`;
+            }
+            return t;
+        },
+
+        sendMessage() {
+            const input = document.getElementById('main-input');
+            const val = input.value.trim();
+            if(!val || !this.activeRoom) return;
+
+            // Feature: Commands
+            if(val.startsWith('/')) {
+                this.handleCommand(val);
+                input.value = '';
+                return;
+            }
+
+            db.ref(`${this.activeRoom}/messages`).push({
+                uid: this.me.id,
+                name: this.me.name,
+                role: this.me.role || "",
+                text: val,
+                time: Date.now()
+            });
+            input.value = '';
+            db.ref(`typing/${this.activeRoom}/${this.me.id}`).remove();
+        },
+
+        handleCommand(cmd) {
+            const parts = cmd.split(' ');
+            const base = parts[0];
+            if(base === '/role' && (this.me.isAdmin || this.me.role === 'Owner')) {
+                this.me.role = parts.slice(1).join(' ');
+                db.ref(`users/${this.me.id}/role`).set(this.me.role);
+            }
+            if(base === '/clear' && this.me.isAdmin) {
+                db.ref(`${this.activeRoom}/messages`).remove();
+            }
+        },
+
+        loadServers() {
+            db.ref('servers').on('value', snap => {
+                const rail = document.getElementById('server-list');
+                rail.innerHTML = '';
+                snap.forEach(s => {
+                    const icon = document.createElement('div');
+                    icon.className = 'server-icon';
+                    icon.innerText = s.val().name[0];
+                    icon.onclick = () => {
+                        this.view = 'server';
+                        document.getElementById('sidebar-title').innerText = s.val().name;
+                        const list = document.getElementById('sidebar-list');
+                        list.innerHTML = '';
+                        for(let k in s.val().channels) {
+                            const chan = document.createElement('div');
+                            chan.className = 'list-item';
+                            chan.innerText = "# " + s.val().channels[k].name;
+                            chan.onclick = () => this.openChat(`servers/${s.key}/channels/${k}`, s.val().channels[k].name);
+                            list.appendChild(chan);
+                        }
+                    };
+                    rail.appendChild(icon);
+                });
+            });
+        },
+
+        createServer() {
+            const n = prompt("Server Name:");
+            if(n) db.ref('servers').push({ name: n, owner: this.me.id, channels: { 'gen': {name: 'general'} } });
         }
+    };
 
-        db.ref(`${activePath}/messages`).push({
-            uid: me.id,
-            name: me.name,
-            text: val,
-            time: Date.now()
-        });
-        input.value = '';
-    }
-
-    async function startCall(type) {
-        try {
-            currentStream = (type === 'video') 
-                ? await navigator.mediaDevices.getUserMedia({video: true, audio: true})
-                : await navigator.mediaDevices.getDisplayMedia({video: true});
-            
-            document.getElementById('call-video').srcObject = currentStream;
-            document.getElementById('call-overlay').style.display = 'block';
-        } catch (e) {
-            alert("Could not access camera/screen.");
-        }
-    }
-
-    function endCall() {
-        if(currentStream) currentStream.getTracks().forEach(t => t.stop());
-        document.getElementById('call-overlay').style.display = 'none';
-    }
-
-    function viewSelf() { alert(`Profile: ${me.name}\nRole: ${me.role || 'Member'}`); }
-
-    document.addEventListener('click', () => document.getElementById('context-menu').style.display = 'none');
-    document.getElementById('msg-input').onkeypress = e => { if(e.key === 'Enter') sendMsg(); };
+    document.getElementById('main-input').onkeypress = e => { if(e.key === 'Enter') app.sendMessage(); };
 </script>
 </body>
 </html>
