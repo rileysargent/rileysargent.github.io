@@ -1,0 +1,67 @@
+/* ==========================================================================
+   BASE STYLES - Resets, Scrollbars, Typography
+   ========================================================================== */
+
+/* Box Sizing Reset */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Root Layout */
+html,
+body {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: var(--bg-chat);
+    color: var(--text-normal);
+    font-family: var(--font-primary);
+    font-size: 16px;
+    letter-spacing: 0.1px;
+    display: flex;
+}
+
+/* Form Element Resets */
+input,
+button,
+textarea,
+select {
+    font-family: inherit;
+    font-size: inherit;
+    outline: none;
+    border: none;
+    background: transparent;
+    color: inherit;
+}
+
+/* ==========================================================================
+   SCROLLBAR STYLES
+   ========================================================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1a1b1e;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #111214;
+}
+
+/* Firefox Scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #1a1b1e transparent;
+}

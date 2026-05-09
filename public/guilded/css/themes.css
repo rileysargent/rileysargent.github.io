@@ -1,0 +1,141 @@
+/* ==========================================================================
+   THEME ENGINE - Color Variables & Theme Definitions
+   ========================================================================== */
+
+:root {
+    /* Default Theme: Midnight (Dark) */
+    --bg-server: #1e1f22;
+    --bg-sidebar: #2b2d31;
+    --bg-chat: #313338;
+    --bg-input: #383a40;
+    --bg-hover: #3f4147;
+    --bg-active: #404249;
+    --bg-panel: #232428;
+    
+    --text-normal: #dbdee1;
+    --text-muted: #b5bac1;
+    --text-header: #f2f3f5;
+    --text-staff: #eab308;
+    
+    --accent-primary: #5865F2;
+    --accent-hover: #4752C4;
+    --divider: #1f2023;
+    
+    --status-online: #23a559;
+    --status-idle: #f0b232;
+    --status-dnd: #f23f43;
+    --status-offline: #80848e;
+    
+    --font-primary: 'gg sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-mono: 'Consolas', 'Courier New', Courier, monospace;
+    
+    --z-overlay: 500;
+    --z-modal: 1000;
+    --z-dropdown: 1500;
+    --z-toast: 2000;
+    
+    --server-bar-width: 72px;
+    --sidebar-width: 240px;
+    --member-sidebar-width: 240px;
+    --header-height: 48px;
+}
+
+/* ==========================================================================
+   THEME: Slate (Blue/Gray)
+   ========================================================================== */
+[data-theme="slate"] {
+    --bg-server: #0f172a;
+    --bg-sidebar: #1e293b;
+    --bg-chat: #334155;
+    --bg-input: #0f172a;
+    --bg-hover: #475569;
+    --bg-active: #64748b;
+    --bg-panel: #0f172a;
+    --text-normal: #f1f5f9;
+    --text-muted: #cbd5e1;
+    --text-header: #ffffff;
+    --text-staff: #38bdf8;
+    --accent-primary: #0ea5e9;
+    --accent-hover: #0284c7;
+    --divider: #0f172a;
+}
+
+/* ==========================================================================
+   THEME: Crimson (Red)
+   ========================================================================== */
+[data-theme="crimson"] {
+    --bg-server: #1a0505;
+    --bg-sidebar: #2b0a0a;
+    --bg-chat: #3f0f0f;
+    --bg-input: #1a0505;
+    --bg-hover: #6b1a1a;
+    --bg-active: #821f1f;
+    --bg-panel: #1a0505;
+    --text-normal: #fee2e2;
+    --text-muted: #fca5a5;
+    --text-header: #ffffff;
+    --text-staff: #f87171;
+    --accent-primary: #ef4444;
+    --accent-hover: #dc2626;
+    --divider: #1a0505;
+}
+
+/* ==========================================================================
+   THEME: Gold (Yellow)
+   ========================================================================== */
+[data-theme="gold"] {
+    --bg-server: #1c1914;
+    --bg-sidebar: #2d281f;
+    --bg-chat: #423b2d;
+    --bg-input: #1c1914;
+    --bg-hover: #6b5f48;
+    --bg-active: #827357;
+    --bg-panel: #1c1914;
+    --text-normal: #fef3c7;
+    --text-muted: #fde68a;
+    --text-header: #ffffff;
+    --text-staff: #fbbf24;
+    --accent-primary: #f59e0b;
+    --accent-hover: #d97706;
+    --divider: #1c1914;
+}
+
+/* ==========================================================================
+   THEME: Ocean (Blue)
+   ========================================================================== */
+[data-theme="ocean"] {
+    --bg-server: #041424;
+    --bg-sidebar: #0a2540;
+    --bg-chat: #103c66;
+    --bg-input: #041424;
+    --bg-hover: #2275c2;
+    --bg-active: #2a8ceb;
+    --bg-panel: #041424;
+    --text-normal: #e0f2fe;
+    --text-muted: #bae6fd;
+    --text-header: #ffffff;
+    --text-staff: #38bdf8;
+    --accent-primary: #0284c7;
+    --accent-hover: #0369a1;
+    --divider: #041424;
+}
+
+/* ==========================================================================
+   THEME: Forest (Green)
+   ========================================================================== */
+[data-theme="forest"] {
+    --bg-server: #021a0f;
+    --bg-sidebar: #04331e;
+    --bg-chat: #065431;
+    --bg-input: #021a0f;
+    --bg-hover: #0ca661;
+    --bg-active: #10b981;
+    --bg-panel: #021a0f;
+    --text-normal: #ecfdf5;
+    --text-muted: #a7f3d0;
+    --text-header: #ffffff;
+    --text-staff: #34d399;
+    --accent-primary: #10b981;
+    --accent-hover: #059669;
+    --divider: #021a0f;
+}

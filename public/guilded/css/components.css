@@ -1,0 +1,232 @@
+/* ==========================================================================
+   BUTTON COMPONENTS
+   ========================================================================== */
+
+.btn-primary,
+.btn-secondary,
+.auth-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.btn-primary,
+.auth-btn {
+    background-color: var(--accent-primary);
+    color: #fff;
+}
+
+.btn-primary:hover,
+.auth-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    background-color: var(--bg-hover);
+    color: var(--text-normal);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-active);
+}
+
+.btn-danger {
+    background-color: var(--status-dnd);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #c93539;
+}
+
+/* ==========================================================================
+   INPUT COMPONENTS
+   ========================================================================== */
+
+.input-base,
+.auth-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    background-color: var(--bg-server);
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    color: var(--text-normal);
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.input-base:focus,
+.auth-input:focus {
+    border-color: var(--accent-primary);
+}
+
+/* ==========================================================================
+   LABEL COMPONENTS
+   ========================================================================== */
+
+.modal-label,
+.auth-label {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.modal-label span,
+.auth-label span {
+    color: var(--status-dnd);
+}
+
+/* ==========================================================================
+   TOAST NOTIFICATIONS
+   ========================================================================== */
+
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: var(--z-toast);
+}
+
+.toast {
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: #111214;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s forwards;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    border-left: 4px solid var(--accent-primary);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* ==========================================================================
+   DROPDOWN MENUS
+   ========================================================================== */
+
+.dropdown-menu {
+    position: absolute;
+    top: 56px;
+    left: 16px;
+    width: 208px;
+    background-color: #111214;
+    border-radius: 4px;
+    padding: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+    display: none;
+    flex-direction: column;
+    z-index: var(--z-dropdown);
+    border: 1px solid var(--divider);
+}
+
+.dropdown-item {
+    padding: 8px;
+    border-radius: 2px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-item:hover {
+    background-color: var(--accent-primary);
+    color: #fff;
+}
+
+.dropdown-item.danger {
+    color: var(--status-dnd);
+}
+
+.dropdown-item.danger:hover {
+    background-color: var(--status-dnd);
+    color: #fff;
+}
+
+/* ==========================================================================
+   STATUS PICKER
+   ========================================================================== */
+
+#status-picker {
+    position: absolute;
+    bottom: 60px;
+    left: 8px;
+    width: 220px;
+    background-color: #111214;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    display: none;
+    flex-direction: column;
+    z-index: var(--z-dropdown);
+    border: 1px solid var(--divider);
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-normal);
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.status-option:hover {
+    background-color: var(--accent-primary);
+    color: #fff;
+}
+
+.status-option .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+}

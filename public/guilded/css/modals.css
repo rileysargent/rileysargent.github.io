@@ -1,0 +1,68 @@
+/* ==========================================================================
+   MODAL OVERLAY & CONTAINER
+   ========================================================================== */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.modal-content {
+    width: 90%;
+    max-width: 440px;
+    background-color: var(--bg-chat);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.2s;
+    max-height: 90vh;
+}
+
+/* ==========================================================================
+   MODAL SECTIONS
+   ========================================================================== */
+
+.modal-header {
+    padding: 24px 24px 16px 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.modal-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-header);
+    margin-bottom: 8px;
+}
+
+.modal-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.modal-body {
+    padding: 0 24px 24px 24px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    background-color: var(--bg-sidebar);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid var(--divider);
+    flex-shrink: 0;
+}
