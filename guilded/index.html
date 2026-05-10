@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Guilded | Chat</title>
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/modals.css">
+    <link rel="stylesheet" href="css/layout.css">
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen">
+        <div id="auth-container">
+            <h2 class="auth-title" id="auth-title">Welcome back!</h2>
+            <p class="auth-subtitle" id="auth-subtitle">We're so excited to see you again!</p>
+            <div id="auth-error-msg" style="color:var(--status-dnd);font-size:14px;margin-bottom:12px;display:none;font-weight:500;text-align:center;"></div>
+            <form id="auth-form">
+                <label class="auth-label" for="auth-email">Email <span>*</span></label>
+                <input type="email" id="auth-email" class="auth-input" required autocomplete="email"/>
+                <label class="auth-label" for="auth-password">Password <span>*</span></label>
+                <input type="password" id="auth-password" class="auth-input" required autocomplete="current-password"/>
+                <button type="submit" class="auth-btn" id="auth-submit-btn">
+                    <span id="auth-btn-text">Log In</span>
+                </button>
+            </form>
+            <div class="auth-footer">
+                <span id="auth-toggle-text">Need an account?</span>
+                <a class="auth-link" id="auth-toggle-link">Register</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-screen">
+
+        <!-- SERVER BAR -->
+        <nav id="server-bar">
+            <div id="server-list" style="display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;"></div>
+            <div class="server-separator"></div>
+            <div class="server-icon action-btn" id="btn-add-server" title="Add or Join Server">+</div>
+        </nav>
+
+        <!-- CHANNEL BAR -->
+        <aside id="channel-bar">
+            <header class="channel-header" id="server-header-btn">
+                <span id="server-header-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading...</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
+                </svg>
+            </header>
+
+            <div class="dropdown-menu" id="server-dropdown">
+                <div class="dropdown-item" id="btn-server-invite">
+                    Invite People
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </div>
+                <div class="dropdown-item" id="btn-server-settings">
+                    Server Settings
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.73 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                </div>
+                <div class="dropdown-item danger" id="btn-server-leave">
+                    Leave Server
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                </div>
+            </div>
+
+            <div class="channel-list" id="dynamic-channel-list"></div>
+
+            <div id="voice-panel">
+                <div class="voice-info">
+                    <div class="voice-text">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right:4px;" aria-hidden="true">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                        </svg>
+                        Voice Connected
+                    </div>
+                    <div class="voice-subtext" id="voice-channel-name">Channel</div>
+                </div>
+                <button class="btn-disconnect" id="btn-disconnect-voice" title="Disconnect" aria-label="Disconnect from voice">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" transform="rotate(45 12 12)"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="user-panel">
+                <div class="user-avatar" id="my-avatar">
+                    U
+                    <div class="user-status-badge" style="background-color:var(--status-online);" id="my-status"></div>
+                </div>
+                <div class="user-info" id="btn-open-status">
+                    <div class="user-name" id="my-username">User</div>
+                    <div class="user-subtext" id="my-subtext">Online</div>
+                </div>
+                <div class="user-settings-icon" id="btn-open-user-settings" title="User Settings">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.73 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    </svg>
+                </div>
+                <div id="status-picker">
+                    <div class="status-option" data-status="Online">
+                        <div class="status-dot" style="background-color:var(--status-online);"></div>Online
+                    </div>
+                    <div class="status-option" data-status="Away">
+                        <div class="status-dot" style="background-color:var(--status-idle);"></div>Idle
+                    </div>
+                    <div class="status-option" data-status="DND">
+                        <div class="status-dot" style="background-color:var(--status-dnd);"></div>Do Not Disturb
+                    </div>
+                    <div class="status-option" data-status="Offline">
+                        <div class="status-dot" style="background-color:var(--status-offline);"></div>Invisible
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CHAT AREA -->
+        <main id="chat-area">
+            <!-- Header -->
+            <header class="chat-top-header">
+                <div class="chat-title">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5.88657 21C5.57547 21 5.3399 20.7189 5.39427 20.4126L7.60074 8H3C2.44772 8 2 7.55228 2 7C2 6.44772 2.44772 6 3 6H7.95644L8.84155 1.01261C8.89592 0.70635 9.17698 0.5 9.48809 0.5C9.84378 0.5 10.1501 0.784411 10.1039 1.13783L9.2015 8H15.2015L16.1039 1.13783C16.1501 0.784411 16.4564 0.5 16.8121 0.5C17.1232 0.5 17.4043 0.70635 17.4586 1.01261L16.5735 6H21C21.5523 6 22 6.44772 22 7C22 7.55228 21.5523 8 21 8H16.2178L14.0113 20.4126C13.957 20.7189 13.6759 21 13.3648 21C13.0091 21 12.7028 20.7156 12.749 20.3622L13.6514 13.5H7.65138L6.74898 20.3622C6.70278 20.7156 6.39648 21 6.04079 21H5.88657ZM9.50294 13.5L10.3916 8.5H14.3916L13.5029 13.5H9.50294Z"/>
+                    </svg>
+                    <span id="current-channel-header" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">general</span>
+                </div>
+                <!-- FEATURE #14: Search + FEATURE #18: Shortcuts hint -->
+                <div class="chat-header-actions">
+                    <button class="chat-header-btn" id="btn-search" title="Search messages (Ctrl+F)">🔍</button>
+                    <button class="chat-header-btn" id="btn-shortcuts-hint" title="Keyboard shortcuts (?)"
+                        onclick="UIManager.openModal('modal-shortcuts');event.stopPropagation()">⌨️</button>
+                </div>
+            </header>
+
+            <!-- FEATURE #14: Search bar (hidden by default) -->
+            <div id="search-bar">
+                <input type="text" id="search-input" placeholder="Search messages..." autocomplete="off"/>
+                <button id="btn-clear-search" title="Close search">✕</button>
+            </div>
+
+            <!-- Messages -->
+            <div class="messages-container" id="chat-history" role="log" aria-label="Chat messages"></div>
+
+            <!-- FEATURE #8: Reply preview bar -->
+            <div id="reply-preview">
+                <span style="color:var(--text-muted);font-size:13px;">↩</span>
+                <span id="reply-username"></span>
+                <span id="reply-content"></span>
+                <button id="btn-cancel-reply" title="Cancel reply">✕</button>
+            </div>
+
+            <!-- FEATURE #5: Typing indicator -->
+            <div id="typing-indicator"></div>
+
+            <!-- Chat input -->
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <!-- FEATURE #16: Emoji picker -->
+                    <div id="emoji-picker">
+                        <!-- Row 1: Smileys -->
+                        <button class="emoji-btn" title="Grinning">😀</button>
+                        <button class="emoji-btn" title="Joy">😂</button>
+                        <button class="emoji-btn" title="Smile">😊</button>
+                        <button class="emoji-btn" title="Wink">😉</button>
+                        <button class="emoji-btn" title="Sunglasses">😎</button>
+                        <button class="emoji-btn" title="Thinking">🤔</button>
+                        <button class="emoji-btn" title="Pleading">🥺</button>
+                        <button class="emoji-btn" title="Cry">😢</button>
+                        <button class="emoji-btn" title="Angry">😡</button>
+                        <button class="emoji-btn" title="Surprised">😮</button>
+                        <!-- Row 2: Gestures -->
+                        <button class="emoji-btn" title="Thumbs up">👍</button>
+                        <button class="emoji-btn" title="Thumbs down">👎</button>
+                        <button class="emoji-btn" title="Clap">👏</button>
+                        <button class="emoji-btn" title="Wave">👋</button>
+                        <button class="emoji-btn" title="Fire">🔥</button>
+                        <button class="emoji-btn" title="Party">🎉</button>
+                        <button class="emoji-btn" title="Heart">❤️</button>
+                        <button class="emoji-btn" title="Check">✅</button>
+                        <button class="emoji-btn" title="Eyes">👀</button>
+                        <button class="emoji-btn" title="Star">⭐</button>
+                        <!-- Row 3: More -->
+                        <button class="emoji-btn" title="Pog">😤</button>
+                        <button class="emoji-btn" title="Skull">💀</button>
+                        <button class="emoji-btn" title="Pray">🙏</button>
+                        <button class="emoji-btn" title="Rocket">🚀</button>
+                        <button class="emoji-btn" title="Brain">🧠</button>
+                        <button class="emoji-btn" title="Money">💸</button>
+                        <button class="emoji-btn" title="Shrug">🤷</button>
+                        <button class="emoji-btn" title="100">💯</button>
+                        <button class="emoji-btn" title="Crown">👑</button>
+                        <button class="emoji-btn" title="Salute">🫡</button>
+                    </div>
+
+                    <input type="file" id="img-upload-input" accept="image/*" style="display:none;" aria-label="Upload image"/>
+                    <svg class="chat-input-icon" id="btn-upload-img" viewBox="0 0 24 24" title="Upload Image" role="button" tabindex="0">
+                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                    </svg>
+
+                    <!-- FEATURE #16: Emoji toggle button -->
+                    <button class="emoji-toggle-btn" id="btn-emoji" title="Emoji picker">😊</button>
+
+                    <textarea id="chat-input" class="chat-input-field" placeholder="Message #general..." rows="1" aria-label="Message input"></textarea>
+                </div>
+            </div>
+        </main>
+
+        <!-- MEMBER SIDEBAR -->
+        <aside id="member-bar">
+            <div class="member-list-scroller" id="dynamic-member-list" role="list" aria-label="Member list"></div>
+        </aside>
+    </div>
+
+    <!-- ===================================================================
+         MODALS
+         =================================================================== -->
+
+    <!-- Add / Join Server -->
+    <div class="modal-overlay" id="modal-add-server" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Create or Join a Server</h2>
+                <p class="modal-subtitle">Make your own server or join an existing one with an invite code.</p>
+            </div>
+            <div class="modal-body" style="padding-top:16px;">
+                <label class="modal-label" for="input-invite-code">Join with Invite Code</label>
+                <div style="display:flex;gap:8px;margin-bottom:24px;">
+                    <input type="text" id="input-invite-code" class="input-base" style="margin-bottom:0;" placeholder="e.g. ADMIN"/>
+                    <button class="btn-primary" style="width:100px;" id="btn-submit-join">Join</button>
+                </div>
+                <div style="text-align:center;color:var(--text-muted);margin-bottom:24px;font-weight:bold;">— OR —</div>
+                <label class="modal-label" for="input-create-server">Create New Server</label>
+                <input type="text" id="input-create-server" class="input-base" placeholder="My Awesome Server"/>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" style="width:auto;padding:0 24px;" id="btn-close-add-server">Back</button>
+                <button class="btn-primary" style="width:auto;padding:0 24px;" id="btn-submit-create">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Channel -->
+    <div class="modal-overlay" id="modal-create-channel" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" style="font-size:20px;">Create Channel</h2>
+            </div>
+            <div class="modal-body" style="padding-top:16px;">
+                <label class="modal-label" for="input-channel-type">Channel Type</label>
+                <select id="input-channel-type" class="input-base">
+                    <option value="text">Text Channel</option>
+                    <option value="voice">Voice Channel</option>
+                </select>
+                <label class="modal-label" for="input-channel-name">Channel Name</label>
+                <input type="text" id="input-channel-name" class="input-base" placeholder="new-channel"/>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" style="width:auto;padding:0 24px;" id="btn-close-create-channel">Cancel</button>
+                <button class="btn-primary" style="width:auto;padding:0 24px;" id="btn-submit-channel">Create Channel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Settings -->
+    <div class="modal-overlay" id="modal-server-settings" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Server Settings</h2>
+            </div>
+            <div class="modal-body" style="padding-top:16px;">
+                <label class="modal-label" for="settings-server-name">Server Name</label>
+                <input type="text" id="settings-server-name" class="input-base" placeholder="Server Name"/>
+                <label class="modal-label" for="settings-invite-code">Invite Code (read-only)</label>
+                <input type="text" id="settings-invite-code" class="input-base" readonly/>
+                <div style="border-top:1px solid var(--divider);padding-top:16px;margin-top:8px;">
+                    <label class="modal-label">Roles</label>
+                    <div style="display:flex;gap:8px;margin-bottom:12px;">
+                        <input type="text" id="input-role-name" class="input-base" style="margin-bottom:0;flex:1;" placeholder="Role name"/>
+                        <input type="color" id="input-role-color" value="#5865f2" style="width:40px;height:40px;border-radius:4px;cursor:pointer;flex-shrink:0;"/>
+                        <button class="btn-primary" style="width:80px;" id="btn-create-role">Add</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" style="width:auto;padding:0 24px;" id="btn-close-server-settings">Cancel</button>
+                <button class="btn-primary" style="width:auto;padding:0 24px;" id="btn-save-server-settings">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Member -->
+    <div class="modal-overlay" id="modal-manage-member" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" style="font-size:20px;" id="manage-member-name">Manage Member</h2>
+            </div>
+            <div class="modal-body" style="padding-top:16px;">
+                <input type="hidden" id="hidden-manage-uid"/>
+                <label class="modal-label" for="select-member-role">Assign Role</label>
+                <select id="select-member-role" class="input-base"></select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" style="width:auto;padding:0 24px;" id="btn-close-manage-member">Cancel</button>
+                <button class="btn-primary" style="width:auto;padding:0 24px;" id="btn-save-member-role">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Settings -->
+    <div class="modal-overlay" id="modal-user-settings" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">User Settings</h2>
+            </div>
+            <div class="modal-body" style="padding-top:16px;">
+                <label class="modal-label" for="settings-username">Display Name</label>
+                <input type="text" id="settings-username" class="input-base" placeholder="Display Name"/>
+
+                <label class="modal-label">Theme</label>
+                <!-- FEATURE #13: Visual theme swatches -->
+                <div class="theme-swatches" id="theme-swatches">
+                    <div class="theme-swatch active" data-theme="midnight" title="Midnight (default)"></div>
+                    <div class="theme-swatch" data-theme="forest" title="Forest"></div>
+                    <div class="theme-swatch" data-theme="ocean" title="Ocean"></div>
+                    <div class="theme-swatch" data-theme="crimson" title="Crimson"></div>
+                    <div class="theme-swatch" data-theme="aurora" title="Aurora"></div>
+                    <div class="theme-swatch" data-theme="slate" title="Slate (Discord)"></div>
+                </div>
+
+                <select id="settings-theme" class="input-base">
+                    <option value="midnight">Midnight (default)</option>
+                    <option value="forest">Forest</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="crimson">Crimson</option>
+                    <option value="aurora">Aurora</option>
+                    <option value="slate">Slate (Discord)</option>
+                </select>
+
+                <button class="btn-danger" id="btn-logout" style="margin-top:8px;width:100%;">Log Out</button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" style="width:auto;padding:0 24px;" id="btn-close-user-settings">Cancel</button>
+                <button class="btn-primary" style="width:auto;padding:0 24px;" id="btn-save-user-settings">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURE #18: Keyboard Shortcuts Modal -->
+    <div class="modal-overlay" id="modal-shortcuts" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">⌨️ Keyboard Shortcuts</h2>
+                <p class="modal-subtitle">Quick reference for all shortcuts</p>
+            </div>
+            <div class="modal-body" style="padding-top:8px;padding-bottom:16px;">
+                <div class="shortcuts-grid">
+                    <div class="shortcut-section-title">Messaging</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Send message</span>
+                        <div class="shortcut-keys"><kbd>Enter</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">New line</span>
+                        <div class="shortcut-keys"><kbd>Shift</kbd><span>+</span><kbd>Enter</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Cancel reply</span>
+                        <div class="shortcut-keys"><kbd>Esc</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Bold text</span>
+                        <div class="shortcut-keys"><kbd>**text**</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Italic text</span>
+                        <div class="shortcut-keys"><kbd>*text*</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Strikethrough</span>
+                        <div class="shortcut-keys"><kbd>~~text~~</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Inline code</span>
+                        <div class="shortcut-keys"><kbd>`code`</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Change theme</span>
+                        <div class="shortcut-keys"><kbd>/theme name</kbd></div>
+                    </div>
+
+                    <div class="shortcut-section-title">Navigation</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Search messages</span>
+                        <div class="shortcut-keys"><kbd>🔍</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Show shortcuts</span>
+                        <div class="shortcut-keys"><kbd>?</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Close modals</span>
+                        <div class="shortcut-keys"><kbd>Esc</kbd></div>
+                    </div>
+
+                    <div class="shortcut-section-title">Messages</div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">React to message</span>
+                        <div class="shortcut-keys"><kbd>😊</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Reply to message</span>
+                        <div class="shortcut-keys"><kbd>↩</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Edit message</span>
+                        <div class="shortcut-keys"><kbd>✏️</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Save edit</span>
+                        <div class="shortcut-keys"><kbd>Enter</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Cancel edit</span>
+                        <div class="shortcut-keys"><kbd>Esc</kbd></div>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-desc">Copy message</span>
+                        <div class="shortcut-keys"><kbd>📋</kbd></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="width:auto;padding:0 24px;" id="btn-close-shortcuts">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

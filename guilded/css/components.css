@@ -1,0 +1,576 @@
+/* ==========================================================================
+   BUTTON COMPONENTS
+   ========================================================================== */
+
+.btn-primary, .btn-secondary, .auth-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.btn-primary, .auth-btn {
+    background-color: var(--accent-primary);
+    color: #fff;
+}
+
+.btn-primary:hover, .auth-btn:hover { background-color: var(--accent-hover); }
+
+.btn-primary:disabled, .auth-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background-color: var(--bg-hover);
+    color: var(--text-normal);
+}
+
+.btn-secondary:hover { background-color: var(--bg-active); }
+
+.btn-danger {
+    background-color: var(--status-dnd);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-danger:hover { background-color: #c93539; }
+
+/* ==========================================================================
+   INPUT COMPONENTS
+   ========================================================================== */
+
+.input-base, .auth-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    background-color: var(--bg-server);
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    color: var(--text-normal);
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.input-base:focus, .auth-input:focus { border-color: var(--accent-primary); }
+
+.modal-label, .auth-label {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.modal-label span, .auth-label span { color: var(--status-dnd); }
+
+/* ==========================================================================
+   TOAST NOTIFICATIONS
+   ========================================================================== */
+
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: var(--z-toast);
+}
+
+.toast {
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: #111214;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s forwards;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    border-left: 4px solid var(--accent-primary);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+/* ==========================================================================
+   DROPDOWN MENUS
+   ========================================================================== */
+
+.dropdown-menu {
+    position: absolute;
+    top: 56px;
+    left: 16px;
+    width: 208px;
+    background-color: #111214;
+    border-radius: 4px;
+    padding: 8px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    display: none;
+    flex-direction: column;
+    z-index: var(--z-dropdown);
+    border: 1px solid var(--divider);
+}
+
+.dropdown-item {
+    padding: 8px;
+    border-radius: 2px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-item:hover { background-color: var(--accent-primary); color: #fff; }
+.dropdown-item.danger { color: var(--status-dnd); }
+.dropdown-item.danger:hover { background-color: var(--status-dnd); color: #fff; }
+
+/* ==========================================================================
+   STATUS PICKER
+   ========================================================================== */
+
+#status-picker {
+    position: absolute;
+    bottom: 60px;
+    left: 8px;
+    width: 220px;
+    background-color: #111214;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+    display: none;
+    flex-direction: column;
+    z-index: var(--z-dropdown);
+    border: 1px solid var(--divider);
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-normal);
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.status-option:hover { background-color: var(--accent-primary); color: #fff; }
+
+.status-option .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   FEATURE #8: REPLY QUOTE
+   ========================================================================== */
+
+.reply-quote {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    margin-left: 56px;
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.reply-quote-bar {
+    width: 3px;
+    height: 100%;
+    min-height: 16px;
+    background: var(--text-muted);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.reply-quote-user {
+    font-weight: 700;
+    color: var(--text-header);
+    white-space: nowrap;
+}
+
+.reply-quote-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   MESSAGE HOVER ACTIONS (Features #6, #7, #8, #10, #15)
+   ========================================================================== */
+
+.message {
+    position: relative;
+}
+
+.msg-actions {
+    position: absolute;
+    top: -4px;
+    right: 8px;
+    display: none;
+    align-items: center;
+    gap: 2px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 2px 4px;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.message:hover .msg-actions { display: flex; }
+
+.msg-action-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: background 0.15s;
+    line-height: 1;
+}
+
+.msg-action-btn:hover { background: var(--bg-hover); color: var(--text-normal); }
+.msg-action-btn.danger:hover { background: rgba(239,68,68,0.15); color: var(--status-dnd); }
+
+/* ==========================================================================
+   FEATURE #17: REACTIONS
+   ========================================================================== */
+
+.reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.reaction-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--divider);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    line-height: 1.4;
+}
+
+.reaction-btn:hover { background: rgba(255,255,255,0.12); color: var(--text-normal); }
+.reaction-btn.reacted {
+    background: rgba(88,101,242,0.2);
+    border-color: rgba(88,101,242,0.5);
+    color: #a8b4ff;
+}
+
+.reaction-btn span { font-size: 12px; font-weight: 600; }
+
+/* FEATURE #17: Quick react panel */
+.quick-react-panel {
+    position: fixed;
+    display: none;
+    gap: 4px;
+    background: #111214;
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    padding: 6px 8px;
+    z-index: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+.quick-react-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+    line-height: 1;
+}
+
+.quick-react-btn:hover { background: var(--bg-hover); }
+
+/* ==========================================================================
+   FEATURE #5: TYPING INDICATOR
+   ========================================================================== */
+
+#typing-indicator {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 2px 16px 4px;
+    min-height: 20px;
+}
+
+.typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.typing-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+}
+
+/* ==========================================================================
+   FEATURE #11: UNREAD DOT
+   ========================================================================== */
+
+.unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--status-dnd);
+    margin-left: auto;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ==========================================================================
+   FEATURE #20: ONLINE COUNT HEADER
+   ========================================================================== */
+
+.online-count-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 12px 8px 4px;
+    letter-spacing: 0.5px;
+}
+
+.online-count-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--status-online);
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   FEATURE #10: PINNED MESSAGE
+   ========================================================================== */
+
+.pinned-msg {
+    border-left: 2px solid var(--status-idle);
+    background: rgba(234,179,8,0.04);
+}
+
+/* ==========================================================================
+   FEATURE #7: INLINE EDIT INPUT
+   ========================================================================== */
+
+.edit-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--accent-primary);
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: var(--text-normal);
+    resize: none;
+    font-size: 15px;
+    line-height: 1.4;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   FEATURE #13: THEME SWATCHES
+   ========================================================================== */
+
+.theme-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.theme-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.theme-swatch:hover { transform: scale(1.1); }
+.theme-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent-primary); }
+.theme-swatch[data-theme="midnight"] { background: #166534; }
+.theme-swatch[data-theme="forest"]   { background: #2e7d32; }
+.theme-swatch[data-theme="ocean"]    { background: #1565c0; }
+.theme-swatch[data-theme="crimson"]  { background: #b71c1c; }
+.theme-swatch[data-theme="aurora"]   { background: #5c35cc; }
+.theme-swatch[data-theme="slate"]    { background: #5865f2; }
+
+/* ==========================================================================
+   FEATURE #14: SEARCH BAR
+   ========================================================================== */
+
+#search-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--divider);
+}
+
+#search-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 14px;
+    color: var(--text-normal);
+}
+
+#search-input:focus { border-color: var(--accent-primary); }
+
+#btn-clear-search {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+#btn-clear-search:hover { color: var(--text-normal); background: var(--bg-hover); }
+
+/* ==========================================================================
+   FEATURE #16: EMOJI PICKER
+   ========================================================================== */
+
+#emoji-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 280px;
+    background: #111214;
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    padding: 8px;
+    display: none;
+    flex-wrap: wrap;
+    gap: 4px;
+    z-index: 200;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.emoji-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+    line-height: 1;
+}
+
+.emoji-btn:hover { background: var(--bg-hover); }
+
+/* ==========================================================================
+   FEATURE #8: REPLY PREVIEW BAR (above input)
+   ========================================================================== */
+
+#reply-preview {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: var(--bg-sidebar);
+    border-top: 1px solid var(--divider);
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+#reply-username { font-weight: 700; color: var(--accent-primary); }
+#reply-content {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#btn-cancel-reply {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+#btn-cancel-reply:hover { color: var(--status-dnd); background: rgba(239,68,68,0.1); }

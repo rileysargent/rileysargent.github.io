@@ -1,0 +1,70 @@
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: var(--bg-chat);
+    color: var(--text-normal);
+    font-family: var(--font-primary);
+    font-size: 16px;
+    letter-spacing: 0.1px;
+    display: flex;
+}
+
+input, button, textarea, select {
+    font-family: inherit;
+    font-size: inherit;
+    outline: none;
+    border: none;
+    background: transparent;
+    color: inherit;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #111214; }
+* { scrollbar-width: thin; scrollbar-color: #1a1b1e transparent; }
+
+/* Inline code */
+code {
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.875em;
+    color: var(--status-idle);
+}
+
+/* FEATURE #9: @mention highlight */
+.mention {
+    background: rgba(88, 101, 242, 0.2);
+    color: #a8b4ff;
+    border-radius: 3px;
+    padding: 0 3px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mention:hover {
+    background: rgba(88, 101, 242, 0.4);
+}
+
+/* Edited mark */
+.msg-edited {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+}
