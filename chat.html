@@ -32,20 +32,32 @@
 </div>
 
 <script>
-    const firebaseConfig = { /* SAME AS PREVIOUS */ };
+    const firebaseConfig = {
+        apiKey: "AIzaSyB6d6KXpzXBS702PwR2TYdA2vWiYRP-OJ0",
+        authDomain: "hyperspacechat.firebaseapp.com",
+        databaseURL: "https://hyperspacechat-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "hyperspacechat",
+        storageBucket: "hyperspacechat.firebasestorage.app",
+        messagingSenderId: "620090648601",
+        appId: "1:620090648601:web:06826975596fceb32aa288",
+        measurementId: "G-R4FJRSSKHY"
+    };
+
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
     
+    // Initialize Database globally so it's ready for registerUser
+    const db = firebase.database();
     let currentUser = "";
 
     function registerUser() {
         const username = document.getElementById('username-input').value.trim();
         if (!username) return;
 
-        // Try to claim the username in the 'usernames' node
+        // Use the global 'db' variable
         db.ref('usernames/' + username).transaction((currentData) => {
-            if (currentData === null) return true; // Username is free, claim it
-            return; // Username taken
+            if (currentData === null) return true; 
+            return; 
         }, (error, committed, snapshot) => {
             if (committed) {
                 currentUser = username;
