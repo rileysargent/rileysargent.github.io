@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Anonymous Chat</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        body { margin: 0; background: #1a1a1a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        #header { padding: 10px; background: #333; font-size: 14px; font-weight: bold; border-bottom: 1px solid #444; }
+        #chat-window { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        #input-area { padding: 10px; background: #222; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; background: #444; border: 1px solid #555; color: white; border-radius: 4px; }
+        .msg { background: #333; padding: 8px; border-radius: 6px; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div id="header">Hyperspace Chat</div>
+<div id="chat-window"></div>
+<div id="input-area">
+    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="100">
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyB6d6KXpzXBS702PwR2TYdA2vWiYRP-OJ0",
+        authDomain: "hyperspacechat.firebaseapp.com",
+        databaseURL: "https://hyperspacechat-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "hyperspacechat",
+        storageBucket: "hyperspacechat.firebasestorage.app",
+        messagingSenderId: "620090648601",
+        appId: "1:620090648601:web:06826975596fceb32aa288",
+        measurementId: "G-R4FJRSSKHY"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const chatRef = firebase.database().ref('messages');
+    const input = document.getElementById('chat-input');
+    const windowDiv = document.getElementById('chat-window');
+
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && input.value.trim() !== "") {
+            chatRef.push({ text: input.value, ts: Date.now() });
+            input.value = "";
+        }
+    });
+
+    chatRef.limitToLast(30).on('child_added', (snap) => {
+        const data = snap.val();
+        const msg = document.createElement('div');
+        msg.className = 'msg';
+        msg.textContent = data.text;
+        windowDiv.appendChild(msg);
+        windowDiv.scrollTop = windowDiv.scrollHeight;
+    });
+</script>
+</body>
+</html>
