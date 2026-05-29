@@ -2,17 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guilded - Chat</title>
-    <link rel="stylesheet" href="public/guilded/css/style.css">
-    <link rel="manifest" href="manifest.json">
+    <title>Chat Launcher</title>
 </head>
 <body>
-    <div id="app">
-        <!-- Full enhanced Guilded UI will be here -->
-        <h1>Guilded PWA - Fully Upgraded</h1>
-        <p>Features loaded: Reactions, Replies, Typing, etc.</p>
-    </div>
-    <script src="public/guilded/js/main.js"></script>
+    <p>Launching Chat...</p>
+    <script>
+        // Trigger the detached popup window
+        window.open('chat.html', 'HyperspaceChat', 'width=350,height=500,left=0,top=0,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
+        // Optional: Close the parent window immediately if desired
+        // window.close(); 
+    </script>
 </body>
 </html>
