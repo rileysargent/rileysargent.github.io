@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, runTransaction, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, runTransaction, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         // Firebase Configuration
         const firebaseConfig = {
@@ -28,6 +28,7 @@
         let userId = "user_" + Math.random().toString(36).substr(2, 9);
         let userName = "";
         let currentRoom = "";
+        let roomCodeGlobal = "";
         let isHost = false; 
         let userRole = ""; 
         let roomState = null;
@@ -63,6 +64,7 @@
             audienceCount: document.getElementById('audience-count'),
             hostControls: document.getElementById('host-controls'),
             startBtn: document.getElementById('start-btn'),
+            leaveRoomBtn: document.getElementById('leave-room-btn'),
             phaseContainer: document.getElementById('phase-container'),
             chatBox: document.getElementById('chat-box'),
             chatInput: document.getElementById('chat-input'),
@@ -98,6 +100,11 @@
             if(!code) return alert("Enter a room code!");
             isHost = false;
             connectToRoom(code, 'audience');
+        });
+
+        // Manual Leave Button Operation
+        elements.leaveRoomBtn.addEventListener('click', () => {
+            leaveSessionRoute();
         });
 
         // Global Lobby Discovery Engine
@@ -136,6 +143,7 @@
         };
 
         function connectToRoom(roomCode, role) {
+            roomCodeGlobal = roomCode;
             currentRoom = "room_" + roomCode;
             userRole = role;
             elements.displayRoomCode.innerText = `ROOM: ${roomCode}`;
@@ -163,6 +171,13 @@
                 if (isHost || roomVal.hostId === userId) {
                     isHost = true;
                     elements.hostControls.classList.remove('hidden');
+
+                    // CRITICAL: Setup tab closing/network dropping triggers for the host
+                    onDisconnect(ref(db, `game_directory/${roomCode}`)).remove();
+                    onDisconnect(ref(db, `rooms/${currentRoom}`)).remove();
+                } else {
+                    // Setup disconnect triggers for non-host players to clean up their individual node
+                    onDisconnect(ref(db, `rooms/${currentRoom}/users/${userId}`)).remove();
                 }
 
                 update(ref(db, `game_directory/${roomCode}`), { phase: roomVal.phase || "LOBBY" });
@@ -183,6 +198,22 @@
                 alert("Database Sync Error. Check connection parameters.");
                 console.error(err);
             });
+        }
+
+        function leaveSessionRoute() {
+            if (isHost) {
+                // Host manually leaves -> clear everything out right away
+                remove(ref(db, `game_directory/${roomCodeGlobal}`)).then(() => {
+                    remove(ref(db, `rooms/${currentRoom}`)).then(() => {
+                        location.reload();
+                    });
+                });
+            } else {
+                // Standard player leaves -> remove self and redirect
+                remove(ref(db, `rooms/${currentRoom}/users/${userId}`)).then(() => {
+                    location.reload();
+                });
+            }
         }
 
         // Live Chat Routing
@@ -217,7 +248,14 @@
         function listenToGameRoom() {
             onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
                 const data = snapshot.val();
-                if (!data) return;
+                // If a room was missing/removed because the host left or closed out
+                if (!data) {
+                    if (!isHost) {
+                        alert("The host has ended or disconnected from this game session.");
+                        location.reload();
+                    }
+                    return;
+                }
                 roomState = data;
                 renderRoomState();
             });
@@ -445,8 +483,9 @@
                     <span id="audience-count" class="font-bold font-mono text-indigo-400">0</span>
                 </div>
                 <div id="host-controls" class="hidden bg-slate-900 border border-amber-500/20 p-3 rounded-xl">
-                    <button id="start-btn" disabled class="w-full bg-amber-500 text-slate-950 font-bold py-2 rounded-lg text-xs tracking-wider uppercase">Advance Phase</button>
+                    <button id="start-btn" disabled class="w-full bg-amber-500 text-slate-950 font-bold py-2 rounded-lg text-xs tracking-wider uppercase mb-2">Advance Phase</button>
                 </div>
+                <button id="leave-room-btn" class="w-full bg-rose-950/60 text-rose-400 border border-rose-900/40 font-bold py-2 rounded-xl text-xs tracking-wide uppercase hover:bg-rose-900/40 transition-colors">Leave Room</button>
             </div>
 
             <div class="md:col-span-2 bg-slate-900/40 p-1 rounded-xl">
@@ -465,6 +504,6 @@
 
     </main>
 
-    <footer class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v0.7</footer>
+    <footer class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v0.8</footer>
 </body>
 </html>
