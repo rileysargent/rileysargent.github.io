@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiplash but Not • v1.1 (Video & Audio Suite)</title>
+    <title>Quiplash • v1.2</title>
     <!-- Stable Tailwind CSS Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom scrollbar configurations for ultra-clean interface blending */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #020617; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #334155; }
         
-        /* Easter Egg Layout Animations */
+        /* Easter Egg Master Animations */
         @keyframes jumpScareIn {
             0% { transform: translate(-50%, -50%) scale(0.3) rotate(-20deg); opacity: 0; filter: blur(10px); }
             30% { transform: translate(-50%, -50%) scale(1.2) rotate(5deg); opacity: 1; filter: blur(0px); }
@@ -25,18 +23,44 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
+        @keyframes earthquake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(-4px, 4px) rotate(-1deg); }
+            40% { transform: translate(-4px, -2px) rotate(1deg); }
+            60% { transform: translate(4px, 4px) rotate(0deg); }
+            80% { transform: translate(4px, -2px) rotate(-1deg); }
+        }
+        @keyframes glitchEffect {
+            0%, 100% { filter: hue-rotate(0deg); text-shadow: 2px 2px #f43f5e; }
+            50% { filter: hue-rotate(180deg); text-shadow: -2px -2px #06b6d4; background-color: #000; }
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-20px) scale(0.5); opacity: 1; }
+            100% { transform: translateY(105vh) scale(1.2); opacity: 0; }
+        }
+
         .animate-scare { animation: jumpScareIn 2s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
         .laser-bg {
             background: linear-gradient(-45deg, #ef4444, #ec4899, #3b82f6, #10b981);
             background-size: 400% 400%;
             animation: laserRainbow 1s ease infinite;
         }
+        .animate-earthquake { animation: earthquake 0.15s ease infinite; }
+        .animate-glitch { animation: glitchEffect 0.2s ease infinite; }
+        
+        .confetti-piece {
+            position: fixed;
+            top: -5%;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 40;
+            animation: confettiFall 2.5s linear forwards;
+        }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, runTransaction, remove, onDisconnect, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, runTransaction, remove, onDisconnect, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
             authDomain: "hyperspace-r.firebaseapp.com",
@@ -44,14 +68,12 @@
             projectId: "hyperspace-r",
             storageBucket: "hyperspace-r.firebasestorage.app",
             messagingSenderId: "1050495683444",
-            appId: "1:1050495683444:web:42d7284bee34d749313a21",
-            measurementId: "G-RRQTTD9M4V"
+            appId: "1:1050495683444:web:42d7284bee34d749313a21"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // State Machine Variables
         let userId = "user_" + Math.random().toString(36).substr(2, 9);
         let userName = "";
         let currentRoom = "";
@@ -59,19 +81,15 @@
         let isHost = false; 
         let userRole = ""; 
         let roomState = null;
+        let gameMode = "quiplash"; // "quiplash" or "fibbage"
 
-        // Enhanced WebRTC AV Mesh Suite State
+        // WebRTC Infrastructure
         let localStream = null;
         const peerConnections = {}; 
-        const iceServers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
-        
-        let mediaFlags = {
-            audioEnabled: false,
-            videoEnabled: false,
-            deafened: false
-        };
+        const iceServers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+        let mediaFlags = { audioEnabled: false, videoEnabled: false, deafened: false };
 
-        const badWordsFilter = ["fuck", "shit", "asshole", "bitch", "cunt", "dick", "pussy"];
+        const badWordsFilter = ["fuck", "shit", "asshole", "bitch", "cunt", "dick"];
         function cleanContent(text) {
             let sanitized = text;
             badWordsFilter.forEach(word => {
@@ -81,7 +99,6 @@
             return sanitized;
         }
 
-        // DOM Cached Elements
         const screens = {
             username: document.getElementById('screen-username'),
             room: document.getElementById('screen-room'),
@@ -107,85 +124,67 @@
             chatBox: document.getElementById('chat-box'),
             chatInput: document.getElementById('chat-input'),
             chatSendBtn: document.getElementById('chat-send-btn'),
-            
-            // AV Operational Nodes
             toggleAudioBtn: document.getElementById('toggle-audio-btn'),
             toggleVideoBtn: document.getElementById('toggle-video-btn'),
             toggleDeafBtn: document.getElementById('toggle-deaf-btn'),
             localVideoPreview: document.getElementById('local-video-preview'),
             videoGridContainer: document.getElementById('video-grid-container'),
-            scareOverlay: document.getElementById('scare-overlay')
+            scareOverlay: document.getElementById('scare-overlay'),
+            brandTitle: document.getElementById('brand-title'),
+            footerBuild: document.getElementById('footer-build')
         };
 
-        // Step 1 -> Step 2
         elements.nextBtn.addEventListener('click', () => {
             userName = cleanContent(elements.usernameInput.value.trim());
-            if (!userName) return alert("Please enter a username!");
+            if (!userName) return alert("Enter nickname!");
             screens.username.classList.add('hidden');
             screens.room.classList.remove('hidden');
             initGlobalRoomListener();
         });
 
-        // Dedicated Button Click Routers
         elements.hostRoomBtn.addEventListener('click', () => {
             const code = elements.roomInput.value.trim().toUpperCase();
-            if(!code) return alert("Enter a room code to host!");
-            
-            get(ref(db, `game_directory/${code}`)).then((snapshot) => {
-                if (snapshot.exists()) {
-                    alert("This room is already active! Choose another code or click 'Join Player'.");
-                } else {
-                    isHost = true; 
-                    connectToRoom(code, 'player');
-                }
-            });
+            if(!code) return alert("Enter code!");
+            isHost = true; 
+            connectToRoom(code, 'player');
         });
 
         elements.joinPlayerBtn.addEventListener('click', () => {
             const code = elements.roomInput.value.trim().toUpperCase();
-            if(!code) return alert("Enter a room code to join!");
+            if(!code) return alert("Enter code!");
             isHost = false;
             connectToRoom(code, 'player');
         });
 
         elements.joinAudienceBtn.addEventListener('click', () => {
             const code = elements.roomInput.value.trim().toUpperCase();
-            if(!code) return alert("Enter a room code!");
+            if(!code) return alert("Enter code!");
             isHost = false;
             connectToRoom(code, 'audience');
         });
 
-        elements.leaveRoomBtn.addEventListener('click', () => {
-            leaveSessionRoute();
-        });
+        elements.leaveRoomBtn.addEventListener('click', leaveSessionRoute);
 
-        // Global Lobby Discovery Engine
         function initGlobalRoomListener() {
             onValue(ref(db, 'game_directory'), (snapshot) => {
                 const directory = snapshot.val();
                 elements.activeGamesList.innerHTML = "";
-                if (!directory || Object.keys(directory).length === 0) {
-                    elements.activeGamesList.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No active rooms found. Host one above!</p>`;
-                    return;
-                }
+                if (!directory) return;
                 Object.keys(directory).forEach(roomCode => {
                     const info = directory[roomCode];
                     const div = document.createElement('div');
-                    div.className = "p-3 bg-slate-950 border border-slate-850 rounded-xl flex justify-between items-center hover:border-indigo-500 transition-all";
+                    div.className = "p-2.5 bg-slate-950 border border-slate-850 rounded-xl flex justify-between items-center";
                     div.innerHTML = `
                         <div>
-                            <span class="font-mono text-sm font-bold text-white">${roomCode}</span>
-                            <span class="text-[10px] bg-indigo-950 text-indigo-400 font-bold px-1.5 py-0.5 rounded ml-2 uppercase">${info.phase || "LOBBY"}</span>
+                            <span class="font-mono text-xs font-bold text-white">${roomCode}</span>
+                            <span class="text-[9px] bg-slate-900 text-slate-400 px-1 py-0.5 rounded ml-2 uppercase">${info.mode || "Quiplash"}</span>
                         </div>
-                        <div class="flex gap-2">
-                            <button class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-xs font-bold rounded-lg text-white" onclick="window.directJoin('${roomCode}', 'player')">Play</button>
-                            <button class="bg-slate-800 hover:bg-slate-700 px-3 py-1 text-xs font-bold rounded-lg text-slate-300" onclick="window.directJoin('${roomCode}', 'audience')">Watch</button>
+                        <div class="flex gap-1.5">
+                            <button class="bg-indigo-600 px-2 py-0.5 text-[10px] font-bold rounded text-white" onclick="window.directJoin('${roomCode}', 'player')">Play</button>
                         </div>
                     `;
                     elements.activeGamesList.appendChild(div);
                 });
-            }, (error) => {
-                console.error("Directory read failure:", error);
             });
         }
 
@@ -205,48 +204,22 @@
                 if (!currentData) {
                     if (!isHost) return; 
                     return {
-                        roomCode: roomCode,
-                        hostId: userId,
-                        phase: "LOBBY",
-                        users: {},
-                        currentPrompt: "",
-                        promptWriter: "",
-                        answerWriters: [],
-                        answers: {},
-                        votes: {},
-                        chat: {},
-                        signals: {},
-                        triggers: {}
+                        roomCode: roomCode, hostId: userId, phase: "LOBBY", gameMode: "quiplash",
+                        users: {}, currentPrompt: "", promptWriter: "", answerWriters: [],
+                        answers: {}, votes: {}, chat: {}, signals: {}, triggers: {}, trueAnswer: "Real Fact"
                     };
                 }
                 return currentData;
             }).then((result) => {
                 const roomVal = result.snapshot.val();
-                if (!roomVal) {
-                    alert("This room does not exist yet. Please host it first!");
-                    location.reload();
-                    return;
-                }
-                
                 if (roomVal.hostId === userId) {
                     isHost = true;
                     elements.hostControls.classList.remove('hidden');
-                    onDisconnect(ref(db, `game_directory/${roomCode}`)).remove();
-                    onDisconnect(ref(db, `rooms/${currentRoom}`)).remove();
-                } else {
-                    isHost = false; 
-                    elements.hostControls.classList.add('hidden');
-                    onDisconnect(ref(db, `rooms/${currentRoom}/users/${userId}`)).remove();
                 }
+                update(ref(db, `game_directory/${roomCode}`), { phase: "LOBBY", mode: roomVal.gameMode || "quiplash" });
 
-                update(ref(db, `game_directory/${roomCode}`), { phase: roomVal.phase || "LOBBY" });
-
-                const userRef = ref(db, `rooms/${currentRoom}/users/${userId}`);
-                set(userRef, {
-                    id: userId,
-                    name: userName,
-                    role: role,
-                    score: 0,
+                set(ref(db, `rooms/${currentRoom}/users/${userId}`), {
+                    id: userId, name: userName, role: role, score: 0,
                     mediaState: { audio: false, video: false, deaf: false }
                 }).then(() => {
                     screens.room.classList.add('hidden');
@@ -256,657 +229,390 @@
                     initWebRTCSignaling();
                     listenToEasterEggs();
                 });
-            }).catch(err => {
-                alert("Database Sync Error. Check connection parameters.");
-                console.error(err);
             });
         }
 
         function leaveSessionRoute() {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (isHost) {
-                remove(ref(db, `game_directory/${roomCodeGlobal}`)).then(() => {
-                    remove(ref(db, `rooms/${currentRoom}`)).then(() => { location.reload(); });
-                });
-            } else {
-                remove(ref(db, `rooms/${currentRoom}/users/${userId}`)).then(() => { location.reload(); });
-            }
+            location.reload();
         }
 
         /* HARDWARE ACCESS CAPTURE SUITE */
         async function maintainLocalStream() {
-            // Evaluates targeted track combinations based on flag selections
             if (!mediaFlags.audioEnabled && !mediaFlags.videoEnabled) {
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop());
-                    localStream = null;
-                }
-                elements.localVideoPreview.srcObject = null;
+                if (localStream) localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
                 elements.localVideoPreview.classList.add('hidden');
                 syncMediaStateToDatabase();
                 return;
             }
-
             try {
-                const constraints = {
-                    audio: true,
-                    video: mediaFlags.videoEnabled ? { width: 320, height: 240, frameRate: 15 } : false
-                };
-
-                // Request replacement hardware stream allocation
+                const constraints = { audio: true, video: mediaFlags.videoEnabled ? { width: 320, height: 240 } : false };
                 const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-                
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop());
-                }
-
+                if (localStream) localStream.getTracks().forEach(t => t.stop());
                 localStream = newStream;
 
-                // Enforce manual software muting layer if audio track exists but audio flag is dropped
-                if (!mediaFlags.audioEnabled) {
-                    localStream.getAudioTracks().forEach(t => t.enabled = false);
-                }
+                if (!mediaFlags.audioEnabled) localStream.getAudioTracks().forEach(t => t.enabled = false);
 
-                if (mediaFlags.videoEnabled && localStream.getVideoTracks().length > 0) {
+                if (mediaFlags.videoEnabled) {
                     elements.localVideoPreview.srcObject = localStream;
                     elements.localVideoPreview.classList.remove('hidden');
                 } else {
-                    elements.localVideoPreview.srcObject = null;
                     elements.localVideoPreview.classList.add('hidden');
                 }
 
-                // Hot-patch active P2P mesh structural senders
                 Object.values(peerConnections).forEach(pc => {
-                    const senders = pc.getSenders();
-                    localStream.getTracks().forEach(track => {
-                        const matchingSender = senders.find(s => s.track && s.track.kind === track.kind);
-                        if (matchingSender) {
-                            matchingSender.replaceTrack(track);
-                        } else {
-                            pc.addTrack(track, localStream);
-                        }
-                    });
+                    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
                 });
-
             } catch (err) {
-                console.warn("Hardware track configurations rejected:", err);
-                mediaFlags.audioEnabled = false;
-                mediaFlags.videoEnabled = false;
+                mediaFlags.audioEnabled = false; mediaFlags.videoEnabled = false;
                 updateAVControlUIElements();
             }
-
             syncMediaStateToDatabase();
         }
 
         function syncMediaStateToDatabase() {
-            if (!currentRoom || !userId) return;
             update(ref(db, `rooms/${currentRoom}/users/${userId}/mediaState`), {
-                audio: mediaFlags.audioEnabled,
-                video: mediaFlags.videoEnabled,
-                deaf: mediaFlags.deafened
+                audio: mediaFlags.audioEnabled, video: mediaFlags.videoEnabled, deaf: mediaFlags.deafened
             });
         }
 
-        // AV Button Click Listeners
-        elements.toggleAudioBtn.addEventListener('click', () => {
-            mediaFlags.audioEnabled = !mediaFlags.audioEnabled;
-            if (mediaFlags.audioEnabled && mediaFlags.deafened) {
-                mediaFlags.deafened = false; // Undeafen automatically on mic activate
-            }
-            updateAVControlUIElements();
-            maintainLocalStream();
-        });
-
-        elements.toggleVideoBtn.addEventListener('click', () => {
-            mediaFlags.videoEnabled = !mediaFlags.videoEnabled;
-            updateAVControlUIElements();
-            maintainLocalStream();
-        });
-
+        elements.toggleAudioBtn.addEventListener('click', () => { mediaFlags.audioEnabled = !mediaFlags.audioEnabled; updateAVControlUIElements(); maintainLocalStream(); });
+        elements.toggleVideoBtn.addEventListener('click', () => { mediaFlags.videoEnabled = !mediaFlags.videoEnabled; updateAVControlUIElements(); maintainLocalStream(); });
         elements.toggleDeafBtn.addEventListener('click', () => {
             mediaFlags.deafened = !mediaFlags.deafened;
-            if (mediaFlags.deafened) {
-                mediaFlags.audioEnabled = false; // Automatically mute mic when deafened
-                if(localStream) {
-                    localStream.getAudioTracks().forEach(t => t.enabled = false);
-                }
-            }
+            if (mediaFlags.deafened) mediaFlags.audioEnabled = false;
             updateAVControlUIElements();
-            evaluateRemoteAudioMutingSchedules();
             maintainLocalStream();
         });
 
         function updateAVControlUIElements() {
-            // Audio Button Rendering logic
-            if (mediaFlags.audioEnabled) {
-                elements.toggleAudioBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all";
-                elements.toggleAudioBtn.innerText = "Mute Mic";
-            } else {
-                elements.toggleAudioBtn.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all";
-                elements.toggleAudioBtn.innerText = "Unmute Mic";
-            }
-
-            // Video Button Rendering logic
-            if (mediaFlags.videoEnabled) {
-                elements.toggleVideoBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all";
-                elements.toggleVideoBtn.innerText = "Cam Off";
-            } else {
-                elements.toggleVideoBtn.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all";
-                elements.toggleVideoBtn.innerText = "Cam On";
-            }
-
-            // Deaf Button Rendering logic
-            if (mediaFlags.deafened) {
-                elements.toggleDeafBtn.className = "bg-rose-600 hover:bg-rose-500 text-white font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all";
-                elements.toggleDeafBtn.innerText = "Undeafen";
-            } else {
-                elements.toggleDeafBtn.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all";
-                elements.toggleDeafBtn.innerText = "Deafen";
-            }
+            elements.toggleAudioBtn.innerText = mediaFlags.audioEnabled ? "Mute Mic" : "Mic On";
+            elements.toggleVideoBtn.innerText = mediaFlags.videoEnabled ? "Cam Off" : "Cam On";
+            elements.toggleDeafBtn.innerText = mediaFlags.deafened ? "Undeafen" : "Deafen";
         }
 
-        function evaluateRemoteAudioMutingSchedules() {
-            // Forces programmatic hardware mute layer over incoming audio element tag structures if localized deaf node flags are raised
-            const remoteAudioNodes = document.querySelectorAll('audio[id^="audio_"]');
-            remoteAudioNodes.forEach(audioNode => {
-                audioNode.muted = mediaFlags.deafened;
-            });
-        }
-
-
-        /* WEBRTC MESH NETWORKING SIGNALING ENGINE */
+        /* WEBRTC SIGNALING ROUTERS */
         function initWebRTCSignaling() {
             onValue(ref(db, `rooms/${currentRoom}/signals/${userId}`), (snapshot) => {
-                const signals = snapshot.val();
-                if (!signals) return;
-                
+                const signals = snapshot.val(); if (!signals) return;
                 Object.keys(signals).forEach(async senderId => {
                     const data = signals[senderId];
                     if (data.type === "offer" && !peerConnections[senderId]) {
                         await handleInboundOffer(senderId, data.sdp);
-                    } else if (data.type === "answer" && peerConnections[senderId]) {
-                        await peerConnections[senderId].setRemoteDescription(new RTCSessionDescription(data.sdp));
-                    } else if (data.type === "candidate" && peerConnections[senderId]) {
-                        await peerConnections[senderId].addIceCandidate(new RTCIceCandidate(data.candidate));
                     }
                 });
-            });
-        }
-
-        async function initiateCall(remoteId) {
-            if (peerConnections[remoteId]) return;
-            
-            const pc = new RTCPeerConnection(iceServers);
-            peerConnections[remoteId] = pc;
-
-            if (localStream) {
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            }
-
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    set(ref(db, `rooms/${currentRoom}/signals/${remoteId}/${userId}_cand`), {
-                        type: "candidate",
-                        candidate: event.candidate.toJSON()
-                    });
-                }
-            };
-
-            pc.ontrack = (event) => {
-                handleRemoteTrackAddition(remoteId, event.streams[0], event.track.kind);
-            };
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            set(ref(db, `rooms/${currentRoom}/signals/${remoteId}/${userId}`), {
-                type: "offer",
-                sdp: offer.toJSON()
             });
         }
 
         async function handleInboundOffer(senderId, sdp) {
             const pc = new RTCPeerConnection(iceServers);
             peerConnections[senderId] = pc;
-
-            if (localStream) {
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            }
-
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    set(ref(db, `rooms/${currentRoom}/signals/${senderId}/${userId}_cand`), {
-                        type: "candidate",
-                        candidate: event.candidate.toJSON()
-                    });
+            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+            pc.ontrack = (e) => {
+                if (e.track.kind === 'video') {
+                    setTimeout(() => {
+                        const el = document.getElementById(`video_feed_${senderId}`);
+                        if(el) el.srcObject = e.streams[0];
+                    }, 500);
                 }
             };
-
-            pc.ontrack = (event) => {
-                handleRemoteTrackAddition(senderId, event.streams[0], event.track.kind);
-            };
-
             await pc.setRemoteDescription(new RTCSessionDescription(sdp));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-
-            set(ref(db, `rooms/${currentRoom}/signals/${senderId}/${userId}`), {
-                type: "answer",
-                sdp: answer.toJSON()
-            });
+            set(ref(db, `rooms/${currentRoom}/signals/${senderId}/${userId}`), { type: "answer", sdp: answer.toJSON() });
         }
 
-        function handleRemoteTrackAddition(remoteId, stream, trackKind) {
-            if (trackKind === 'audio') {
-                let el = document.getElementById(`audio_${remoteId}`);
-                if (!el) {
-                    el = document.createElement('audio');
-                    el.id = `audio_${remoteId}`;
-                    el.autoplay = true;
-                    document.body.appendChild(el);
-                }
-                el.srcObject = stream;
-                el.muted = mediaFlags.deafened; // Observe contextual local deaf state immediately
-            } else if (trackKind === 'video') {
-                let vEl = document.getElementById(`video_feed_${remoteId}`);
-                if (vEl) {
-                    vEl.srcObject = stream;
-                }
-            }
-        }
-
-        // Live Chat Routing
-        elements.chatSendBtn.addEventListener('click', sendChatMessage);
-        elements.chatInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') sendChatMessage(); });
-
-        function sendChatMessage() {
-            const text = elements.chatInput.value.trim();
-            if(!text) return;
-            const chatRef = ref(db, `rooms/${currentRoom}/chat/${Date.now()}`);
-            set(chatRef, {
-                sender: userName,
-                text: cleanContent(text)
-            });
-            elements.chatInput.value = "";
-        }
-
-        function listenToChat() {
-            onValue(ref(db, `rooms/${currentRoom}/chat`), (snapshot) => {
-                const logs = snapshot.val();
-                if(!logs) return;
-                elements.chatBox.innerHTML = Object.values(logs).map(m => `
-                    <div class="text-xs break-words">
-                        <span class="font-bold text-indigo-400">${m.sender}:</span> 
-                        <span class="text-slate-300">${m.text}</span>
-                    </div>
-                `).join('');
-                elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
-            });
-        }
-
-        /* HARDWARE VIDEO ELEMENT FEED MANAGMENT GRID */
-        function rebuildVideoMatrixGrid(usersList) {
-            const activePlayers = usersList.filter(u => u.role === 'player');
-            elements.videoGridContainer.innerHTML = "";
-
-            activePlayers.forEach(p => {
-                if (p.id === userId) return; // Local preview has designated anchor box wrapper
-
-                const state = p.mediaState || { audio: false, video: false, deaf: false };
-                const videoCard = document.createElement('div');
-                videoCard.className = "relative bg-slate-950 aspect-video rounded-lg border border-slate-800 overflow-hidden flex flex-col items-center justify-center";
-                
-                // Track assignments inside runtime grid construction
-                videoCard.innerHTML = `
-                    <video id="video_feed_${p.id}" autoplay playsinline class="w-full h-full object-cover ${state.video ? '' : 'hidden'}"></video>
-                    <div id="video_placeholder_${p.id}" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 ${state.video ? 'hidden' : ''}">
-                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400 uppercase">
-                            ${p.name.substring(0,2)}
-                        </div>
-                    </div>
-                    <div class="absolute bottom-1 left-1 bg-slate-900/80 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-medium flex items-center gap-1 max-w-[90%] truncate">
-                        <span class="truncate text-slate-200">${p.name}</span>
-                        <div class="flex items-center gap-0.5 ml-1">
-                            ${!state.audio ? '<span class="text-rose-500 font-bold" title="Muted">M</span>' : '<span class="text-emerald-400 font-bold" title="Mic On">A</span>'}
-                            ${state.deaf ? '<span class="text-red-400 font-bold" title="Deafened">[D]</span>' : ''}
-                        </div>
-                    </div>
-                `;
-
-                elements.videoGridContainer.appendChild(videoCard);
-
-                // If remote peer indicates video tracking is active, trigger fallback validation
-                if (state.video && peerConnections[p.id]) {
-                    // Triggers dynamic re-assignment attachment checks
-                    const receivers = peerConnections[p.id].getReceivers();
-                    const videoReceiver = receivers.find(r => r.track && r.track.kind === 'video');
-                    if (videoReceiver && videoReceiver.track) {
-                        const targetVideoElement = document.getElementById(`video_feed_${p.id}`);
-                        if (targetVideoElement) {
-                            const remoteStream = new MediaStream([videoReceiver.track]);
-                            targetVideoElement.srcObject = remoteStream;
-                        }
-                    }
-                }
-            });
-
-            // Handle responsive layout scaling density configurations dynamically
-            const elementsCount = elements.videoGridContainer.children.length;
-            if (elementsCount <= 1) {
-                elements.videoGridContainer.className = "grid grid-cols-1 gap-2";
-            } else if (elementsCount <= 4) {
-                elements.videoGridContainer.className = "grid grid-cols-2 gap-2";
-            } else {
-                elements.videoGridContainer.className = "grid grid-cols-3 gap-2";
-            }
-        }
-
-        /* NETWORK GAMEPLAY STATE PARSING ENGINE */
+        /* CORE GAME LOOP ENGINE */
         function listenToGameRoom() {
             onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
-                const data = snapshot.val();
-                if (!data) {
-                    if (!isHost) {
-                        alert("The host has ended or disconnected from this game session.");
-                        location.reload();
-                    }
-                    return;
-                }
-                
-                // Track changes to structural user registration matrix states to prevent redundant cascading re-renders
-                const previousUsersCount = roomState?.users ? Object.keys(roomState.users).length : 0;
-                const newUsersCount = data.users ? Object.keys(data.users).length : 0;
-                
-                // WebRTC cross-connection signaling mapping trigger rules
-                if (roomState && data.users) {
-                    Object.keys(data.users).forEach(remoteId => {
-                        if (remoteId !== userId && !roomState.users?.[remoteId]) {
-                            // Fresh connection target detected. If local node is broadcasting, execute dialing procedures.
-                            if (mediaFlags.audioEnabled || mediaFlags.videoEnabled) {
-                                initiateCall(remoteId);
-                            }
-                        }
-                    });
-                }
-
+                const data = snapshot.val(); if (!data) return;
                 roomState = data;
+                gameMode = data.gameMode || "quiplash";
+                applyThemeStyling();
                 renderRoomState();
-                rebuildVideoMatrixGrid(Object.values(data.users || {}));
             });
+        }
+
+        function applyThemeStyling() {
+            if (gameMode === "fibbage") {
+                elements.brandTitle.innerText = "FIBBAGE 4 BUT NOT";
+                elements.footerBuild.innerText = "Fibbage 4 but Not • Client Build v1.2 (Beta Edition)";
+                document.body.className = "bg-stone-950 text-stone-100 min-h-screen font-sans flex flex-col justify-between transition-all duration-500";
+            } else {
+                elements.brandTitle.innerText = "QUIPLASH BUT NOT";
+                elements.footerBuild.innerText = "Quiplash but Not • Client Build v1.1 (Stable Release)";
+                document.body.className = "bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between transition-all duration-500";
+            }
         }
 
         function renderRoomState() {
             const usersList = roomState.users ? Object.values(roomState.users) : [];
             const players = usersList.filter(u => u.role === 'player');
-            const audience = usersList.filter(u => u.role === 'audience');
-
             elements.totalCounter.innerText = `Capacity: ${usersList.length} / 1000`;
-            elements.audienceCount.innerText = `${audience.length} Live`;
+            elements.audienceCount.innerText = `${usersList.filter(u => u.role === 'audience').length} Live`;
 
             elements.playerList.innerHTML = players.map(p => `
-                <div class="p-2 bg-slate-800 border border-slate-700/40 rounded-lg flex justify-between items-center text-xs">
-                    <span class="font-medium text-slate-100 flex items-center gap-1 truncate max-w-[65%]">
-                        <span class="truncate">${p.name}</span> ${p.id === userId ? '<b class="text-emerald-400 text-[9px] shrink-0">[YOU]</b>':''}
-                        ${roomState.hostId === p.id ? '<b class="text-amber-400 text-[9px] shrink-0">[HOST]</b>':''}
-                    </span>
-                    <span class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-400 font-mono shrink-0">Pts: ${p.score || 0}</span>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center text-xs">
+                    <span class="font-medium truncate">${p.name}</span>
+                    <span class="text-[10px] text-amber-400 font-mono">Score: ${p.score || 0}</span>
                 </div>
             `).join('');
 
-            const strictlyHost = roomState.hostId === userId;
-            if(strictlyHost) {
+            if (roomState.hostId === userId) {
                 elements.startBtn.disabled = players.length < 1;
-                elements.startBtn.classList.toggle('opacity-40', players.length < 1);
             }
 
             switch(roomState.phase) {
                 case "LOBBY":
-                    elements.phaseContainer.innerHTML = `<div class="text-center py-10 bg-slate-900/60 rounded-xl border border-slate-800"><h2 class="text-lg font-bold text-indigo-400 animate-pulse">Waiting in Lobby...</h2><p class="text-xs text-slate-500 mt-1">Host will initiate match routing shortly.</p></div>`;
+                    elements.phaseContainer.innerHTML = `<div class="text-center py-8 bg-black/40 border border-slate-800 rounded-xl"><h2 class="text-xs font-bold uppercase tracking-wider text-indigo-400 animate-pulse">Waiting in Lobby Mode...</h2></div>`;
                     break;
                 case "PROMPT_PHASE": renderPromptPhase(); break;
                 case "ANSWER_PHASE": renderAnswerPhase(); break;
-                case "VOTING_PHASE": renderVotingPhase(players, audience); break;
-                case "RESULTS_PHASE": renderResultsPhase(players); break;
+                case "VOTING_PHASE": renderVotingPhase(players); break;
+                case "RESULTS_PHASE": renderResultsPhase(); break;
             }
         }
 
-        elements.startBtn.addEventListener('click', advanceToPromptPhase);
-
-        function advanceToPromptPhase() {
+        elements.startBtn.addEventListener('click', () => {
             if (roomState.hostId !== userId) return;
-            const players = Object.values(roomState.users || {}).filter(u => u.role === 'player');
+            const players = Object.values(roomState.users).filter(u => u.role === 'player');
             const targetWriter = players[Math.floor(Math.random() * players.length)].id;
             
-            update(ref(db, `game_directory/${roomState.roomCode}`), { phase: "PROMPT" });
             update(ref(db, `rooms/${currentRoom}`), {
-                phase: "PROMPT_PHASE",
-                promptWriter: targetWriter,
-                currentPrompt: "", answers: null, votes: null
+                phase: "PROMPT_PHASE", promptWriter: targetWriter,
+                currentPrompt: "", answers: null, votes: null, trueAnswer: "Real Truth"
             });
-        }
+        });
 
         function renderPromptPhase() {
-            const isWriter = roomState.promptWriter === userId;
-            if (isWriter) {
+            if (roomState.promptWriter === userId) {
                 elements.phaseContainer.innerHTML = `
-                    <div class="bg-slate-900 border border-amber-500/20 p-5 rounded-xl">
-                        <h3 class="text-sm font-bold text-amber-400 mb-3">Write the Game Question Prompt:</h3>
-                        <input type="text" id="prompt-input" placeholder="e.g., Worst way to spell Mississippi" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs mb-3 focus:outline-none focus:border-amber-500">
-                        <button id="submit-prompt-btn" class="w-full bg-amber-500 text-slate-950 text-xs font-bold py-2 rounded-lg">Broadcast Prompt</button>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-indigo-500/20">
+                        <h3 class="text-xs font-bold text-indigo-400 uppercase mb-2">${gameMode === 'fibbage' ? 'Enter Fact & Real Answer:' : 'Create Prompt Question:'}</h3>
+                        <input type="text" id="p-input" placeholder="${gameMode === 'fibbage' ? 'In 2026, scientists discovered a new species of ___' : 'Worst thing to say at dinner'}" class="w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs mb-2 text-white focus:outline-none">
+                        ${gameMode === 'fibbage' ? '<input type="text" id="t-input" placeholder="The real truth answer" class="w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs mb-2 text-white focus:outline-none">' : ''}
+                        <button id="sub-prompt" class="w-full bg-indigo-600 text-white text-xs py-1.5 rounded font-bold">Launch to Arena</button>
                     </div>
                 `;
-                document.getElementById('submit-prompt-btn').addEventListener('click', () => {
-                    const val = cleanContent(document.getElementById('prompt-input').value.trim());
-                    if (!val) return;
+                document.getElementById('sub-prompt').addEventListener('click', () => {
+                    const promptVal = cleanContent(document.getElementById('p-input').value.trim());
+                    const trueVal = gameMode === 'fibbage' ? cleanContent(document.getElementById('t-input').value.trim()) : "";
+                    if (!promptVal) return;
+                    
                     const players = Object.values(roomState.users).filter(u => u.role === 'player');
-                    let candidates = players.filter(p => p.id !== userId);
-                    if (candidates.length < 2) candidates = players;
-                    const answerers = candidates.sort(() => 0.5 - Math.random()).slice(0, 2).map(c => c.id);
+                    const answerers = players.map(p => p.id);
 
-                    update(ref(db, `rooms/${currentRoom}`), { currentPrompt: val, answerWriters: answerers, phase: "ANSWER_PHASE" });
+                    update(ref(db, `rooms/${currentRoom}`), {
+                        currentPrompt: promptVal, trueAnswer: trueVal || "Real Answer",
+                        answerWriters: answerers, phase: "ANSWER_PHASE"
+                    });
                 });
             } else {
-                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900/40 rounded-xl"><p class="text-xs text-slate-400">Someone is thinking up a wild prompt question...</p></div>`;
+                elements.phaseContainer.innerHTML = `<div class="text-center py-6 text-xs text-slate-500 italic">Constructing prompt infrastructure configuration...</div>`;
             }
         }
 
         function renderAnswerPhase() {
-            if (roomState.answerWriters?.includes(userId)) {
-                if (roomState.answers?.[userId]) {
-                    elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900 rounded-xl"><p class="text-xs text-emerald-400 font-bold">Answer tracking locked in!</p></div>`;
-                    return;
-                }
-                elements.phaseContainer.innerHTML = `
-                    <div class="bg-slate-900 border border-indigo-500/20 p-5 rounded-xl">
-                        <span class="text-[10px] text-indigo-400 font-bold block mb-1">PROMPT:</span>
-                        <h3 class="text-base font-black text-white mb-4">"${roomState.currentPrompt}"</h3>
-                        <input type="text" id="answer-input" placeholder="Your funny answer..." class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs mb-3 focus:outline-none">
-                        <button id="submit-answer-btn" class="w-full bg-indigo-600 text-white text-xs font-bold py-2 rounded-lg">Submit Answer</button>
-                    </div>
-                `;
-                document.getElementById('submit-answer-btn').addEventListener('click', () => {
-                    const txt = cleanContent(document.getElementById('answer-input').value.trim());
-                    if (!txt) return;
-                    set(ref(db, `rooms/${currentRoom}/answers/${userId}`), { userId: userId, text: txt }).then(() => {
-                        runTransaction(ref(db, `rooms/${currentRoom}`), (c) => {
-                            if (c && Object.keys(c.answers || {}).length >= (c.answerWriters?.length || 2)) c.phase = "VOTING_PHASE";
-                            return c;
-                        });
-                    });
-                });
-            } else {
-                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900/40 rounded-xl"><p class="text-xs text-slate-400">Contestants are fighting over answers to: <br><b class="text-slate-200">"${roomState.currentPrompt}"</b></p></div>`;
-            }
-        }
-
-        function renderVotingPhase(players, audience) {
-            if (roomState.answerWriters?.includes(userId)) {
-                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900 rounded-xl"><p class="text-xs text-amber-400 font-bold">Your prompt choice is on display. Abstaining from voting.</p></div>`;
+            if (roomState.answers?.[userId]) {
+                elements.phaseContainer.innerHTML = `<div class="text-center py-6 text-xs text-emerald-400 font-bold">Answer logged. Awaiting remaining participants...</div>`;
                 return;
             }
-            if (roomState.votes?.[userId]) {
-                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900 rounded-xl"><p class="text-xs text-slate-500">Vote registered!</p></div>`;
-                return;
-            }
-
             elements.phaseContainer.innerHTML = `
-                <div class="bg-slate-900 border border-pink-500/20 p-5 rounded-xl">
-                    <h3 class="text-center font-bold text-sm text-white mb-4">"${roomState.currentPrompt}"</h3>
-                    <div class="space-y-2" id="opts"></div>
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <span class="text-[9px] font-bold text-amber-400 block uppercase mb-1">PROMPT CONFIGURATION:</span>
+                    <h3 class="text-sm font-bold text-white mb-3">"${roomState.currentPrompt}"</h3>
+                    <input type="text" id="a-input" placeholder="${gameMode === 'fibbage' ? 'Enter a clever lie to fool others...' : 'Enter response...'}" class="w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs mb-2 focus:outline-none text-white">
+                    <button id="sub-ans" class="w-full bg-amber-500 text-slate-950 text-xs py-1.5 rounded font-bold">Submit Response</button>
                 </div>
             `;
-            const box = document.getElementById('opts');
-            Object.values(roomState.answers || {}).forEach(ans => {
-                const b = document.createElement('button');
-                b.className = "w-full text-left p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white hover:border-pink-500 transition-all";
-                b.innerText = ans.text;
-                b.addEventListener('click', () => {
-                    set(ref(db, `rooms/${currentRoom}/votes/${userId}`), ans.userId).then(() => {
-                        runTransaction(ref(db, `rooms/${currentRoom}`), (c) => {
-                            const totalVoters = (players.length + audience.length) - (c.answerWriters?.length || 2);
-                            if (c && Object.keys(c.votes || {}).length >= Math.max(1, totalVoters)) c.phase = "RESULTS_PHASE";
-                            return c;
-                        });
+            document.getElementById('sub-ans').addEventListener('click', () => {
+                const text = cleanContent(document.getElementById('a-input').value.trim());
+                if (!text) return;
+                set(ref(db, `rooms/${currentRoom}/answers/${userId}`), { userId: userId, text: text }).then(() => {
+                    runTransaction(ref(db, `rooms/${currentRoom}`), (c) => {
+                        if (c && Object.keys(c.answers || {}).length >= Object.keys(c.users).filter(id => c.users[id].role==='player').length) c.phase = "VOTING_PHASE";
+                        return c;
                     });
                 });
-                box.appendChild(b);
             });
         }
 
-        function renderResultsPhase(players) {
-            const answers = Object.values(roomState.answers || {});
-            const tallies = {};
-            answers.forEach(a => tallies[a.userId] = 0);
-            Object.values(roomState.votes || {}).forEach(tid => { if(tallies[tid] !== undefined) tallies[tid]++; });
-
-            const winnerId = answers[0] && (tallies[answers[0].userId] >= (tallies[answers[1]?.userId] || 0)) ? answers[0].userId : answers[1]?.userId;
-            const winName = roomState.users[winnerId]?.name || "Anonymous";
-            const strictlyHost = roomState.hostId === userId;
-
+        function renderVotingPhase(players) {
+            if (roomState.votes?.[userId]) {
+                elements.phaseContainer.innerHTML = `<div class="text-center py-6 text-xs text-slate-500">Choice locked in!</div>`;
+                return;
+            }
             elements.phaseContainer.innerHTML = `
-                <div class="bg-slate-900 border border-emerald-500/20 p-5 rounded-xl text-center text-xs">
-                    <h3 class="font-bold text-slate-400 mb-4">"${roomState.currentPrompt}"</h3>
-                    <div class="space-y-2 mb-4">${answers.map(a => `
-                        <div class="p-3 bg-slate-950 border border-slate-850 rounded-lg flex justify-between items-center">
-                            <div class="text-left"><b class="text-slate-500">${roomState.users[a.userId]?.name || 'Player'}:</b> "${a.text}"</div>
-                            <div class="font-bold text-indigo-400 shrink-0 ml-2">${tallies[a.userId] || 0} Votes</div>
-                        </div>
-                    `).join('')}</div>
-                    <div class="bg-emerald-950/20 border border-emerald-500/30 p-2.5 rounded-lg mb-4 text-emerald-400 font-bold">Winner: ${winName}</div>
-                    ${strictlyHost ? `<button id="end-or-next-btn" class="w-full bg-emerald-500 text-slate-950 font-bold py-2 rounded-lg mb-2">Next Round</button><button id="destroy-btn" class="w-full bg-rose-950 text-rose-400 border border-rose-900 py-2 rounded-lg font-bold">Close Game (Remove from Index)</button>` : `<p class="text-slate-500 italic">Awaiting room host administration choice...</p>`}
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <h3 class="text-xs font-bold text-center text-white mb-3">"${roomState.currentPrompt}"</h3>
+                    <p class="text-[10px] text-slate-400 text-center mb-2">${gameMode === 'fibbage' ? 'Find the TRUTH! Avoid the lies:' : 'Vote for your favorite answer:'}</p>
+                    <div id="vote-options-box" class="space-y-1.5"></div>
                 </div>
             `;
-
-            if(strictlyHost) {
-                document.getElementById('end-or-next-btn').addEventListener('click', () => {
-                    runTransaction(ref(db, `rooms/${currentRoom}/users/${winnerId}/score`), (s) => (s || 0) + 100).then(() => {
-                        update(ref(db, `rooms/${currentRoom}`), { phase: "PROMPT_PHASE", currentPrompt: "", answers: null, votes: null });
+            const box = document.getElementById('vote-options-box');
+            
+            // Build collective list including the real fact if mode is Fibbage
+            let optionsList = Object.values(roomState.answers || {});
+            if (gameMode === "fibbage") {
+                optionsList.push({ userId: "TRUTH_NODE", text: roomState.trueAnswer });
+            }
+            
+            optionsList.forEach(ans => {
+                if (ans.userId === userId) return; // Can't vote for your own lie
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-2.5 bg-slate-950 border border-slate-850 hover:border-indigo-500 text-xs rounded text-slate-200 transition-all";
+                btn.innerText = ans.text;
+                btn.addEventListener('click', () => {
+                    set(ref(db, `rooms/${currentRoom}/votes/${userId}`), ans.userId).then(() => {
+                        runTransaction(ref(db, `rooms/${currentRoom}`), (c) => {
+                            if (c && Object.keys(c.votes || {}).length >= (players.length - 1)) c.phase = "RESULTS_PHASE";
+                            return c;
+                        });
                     });
                 });
-                document.getElementById('destroy-btn').addEventListener('click', () => {
-                    remove(ref(db, `game_directory/${roomState.roomCode}`)).then(() => {
-                        remove(ref(db, `rooms/${currentRoom}`)).then(() => { location.reload(); });
-                    });
+                box.appendChild(btn);
+            });
+        }
+
+        function renderResultsPhase() {
+            const answers = Object.values(roomState.answers || {});
+            const strictlyHost = roomState.hostId === userId;
+            
+            elements.phaseContainer.innerHTML = `
+                <div class="bg-slate-900 p-4 rounded-xl text-center text-xs border border-slate-800">
+                    <h3 class="font-bold text-slate-400 mb-2">"${roomState.currentPrompt}"</h3>
+                    ${gameMode === 'fibbage' ? `<div class="p-2 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 rounded mb-3 font-bold">The Truth Was: ${roomState.trueAnswer}</div>` : ''}
+                    <div class="space-y-1 mb-3">
+                        ${answers.map(a => `<div class="p-2 bg-slate-950 rounded border border-slate-850 text-left flex justify-between"><span><b>${roomState.users[a.userId]?.name}:</b> ${a.text}</span></div>`).join('')}
+                    </div>
+                    ${strictlyHost ? `<button id="next-round" class="w-full bg-indigo-600 text-white font-bold py-1.5 rounded">Next Iteration</button>` : `<p class="text-slate-500 italic">Awaiting host management assignment mapping...</p>`}
+                </div>
+            `;
+            if (strictlyHost) {
+                document.getElementById('next-round').addEventListener('click', () => {
+                    update(ref(db, `rooms/${currentRoom}`), { phase: "PROMPT_PHASE", currentPrompt: "", answers: null, votes: null });
                 });
             }
         }
 
-        /* SYNCED ADVANCED EASTER EGGS MODULE ENGINE */
+        /* BROADCAST SYNCHRONIZED EASTER EGG MANAGER MODULE */
         window.addEventListener('keydown', (e) => {
-            if (!currentRoom || !userName) return;
+            if (!currentRoom) return;
 
-            // Easter Egg #1: Alt + Shift + X -> BOO! Scare Blast
-            if (e.altKey && e.shiftKey && e.code === 'KeyX') {
+            // Alt + Shift + T -> Transmute Game Model into Fibbage 4 Room Architecture
+            if (e.altKey && e.shiftKey && e.code === 'KeyT') {
                 e.preventDefault();
-                fireSyncTriggerEvent("scare", { label: "BOO!" });
+                const nextMode = gameMode === "quiplash" ? "fibbage" : "quiplash";
+                update(ref(db, `rooms/${currentRoom}`), { gameMode: nextMode, phase: "LOBBY" });
+                update(ref(db, `game_directory/${roomCodeGlobal}`), { mode: nextMode });
+                fireSyncTriggerEvent("pivot_mode", { mode: nextMode, sender: userName });
             }
 
-            // Easter Egg #2: Alt + Shift + L -> Laser Dance Party Mode
-            if (e.altKey && e.shiftKey && e.code === 'KeyL') {
-                e.preventDefault();
-                fireSyncTriggerEvent("laser", { senderName: userName });
-            }
+            if (e.altKey && e.shiftKey && e.code === 'KeyX') { e.preventDefault(); fireSyncTriggerEvent("scare", { text: "BOO!" }); }
+            if (e.altKey && e.shiftKey && e.code === 'KeyL') { e.preventDefault(); fireSyncTriggerEvent("laser", { sender: userName }); }
+            if (e.altKey && e.shiftKey && e.code === 'KeyS') { e.preventDefault(); fireSyncTriggerEvent("earthquake", {}); }
+            if (e.altKey && e.shiftKey && e.code === 'KeyW') { e.preventDefault(); fireSyncTriggerEvent("confetti", {}); }
+            if (e.altKey && e.shiftKey && e.code === 'KeyG') { e.preventDefault(); fireSyncTriggerEvent("glitch", {}); }
         });
 
         function fireSyncTriggerEvent(type, payload) {
-            const triggerRef = ref(db, `rooms/${currentRoom}/triggers`);
-            set(triggerRef, {
-                id: "trig_" + Date.now(),
-                type: type,
-                payload: payload
-            });
+            set(ref(db, `rooms/${currentRoom}/triggers`), { id: "ev_" + Date.now(), type: type, payload: payload });
         }
 
         function listenToEasterEggs() {
             onValue(ref(db, `rooms/${currentRoom}/triggers`), (snapshot) => {
-                const eventData = snapshot.val();
-                if (!eventData) return;
-
-                if (eventData.type === "scare") {
-                    executeVisualScareBlast(eventData.payload.label || "BOO!");
-                } else if (eventData.type === "laser") {
-                    executeVisualLaserParty(eventData.payload.senderName || "Someone");
+                const data = snapshot.val(); if (!data) return;
+                
+                const stage = document.getElementById('master-stage-wrapper');
+                
+                if (data.type === "pivot_mode") {
+                    executePivotNoticeBanner(data.payload.mode, data.payload.sender);
+                } else if (data.type === "scare") {
+                    elements.scareOverlay.innerHTML = `<div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-red-600 font-black text-8xl md:text-9xl drop-shadow-[0_8px_8px_rgba(0,0,0,1)] uppercase animate-scare">${data.payload.text}</div>`;
+                    elements.scareOverlay.classList.remove('hidden');
+                    setTimeout(() => { elements.scareOverlay.innerHTML = ""; elements.scareOverlay.classList.add('hidden'); }, 2000);
+                } else if (data.type === "laser") {
+                    executeLaserBanner(data.payload.sender);
+                } else if (data.type === "earthquake") {
+                    stage.classList.add('animate-earthquake');
+                    setTimeout(() => stage.classList.remove('animate-earthquake'), 1500);
+                } else if (data.type === "confetti") {
+                    executeConfettiRainfall();
+                } else if (data.type === "glitch") {
+                    stage.classList.add('animate-glitch');
+                    setTimeout(() => stage.classList.remove('animate-glitch'), 1200);
                 }
             });
         }
 
-        function executeVisualScareBlast(textToRender) {
-            elements.scareOverlay.innerHTML = `<div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-red-500 font-black text-7xl md:text-9xl tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,1)] select-none pointer-events-none uppercase z-50 animate-scare">${textToRender}</div>`;
-            elements.scareOverlay.classList.remove('hidden');
-            
-            setTimeout(() => {
-                elements.scareOverlay.innerHTML = "";
-                elements.scareOverlay.classList.add('hidden');
-            }, 2000);
+        function executePivotNoticeBanner(mode, master) {
+            const n = document.createElement('div');
+            n.className = "fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 text-center p-4 font-mono";
+            n.innerHTML = `<h2 class="text-2xl font-black tracking-widest text-amber-500 mb-2 uppercase">TRANSMUTING ARENA MATRIX</h2><p class="text-xs text-stone-400">${master} transformed the framework structure into <br><b class="text-white text-sm uppercase">${mode} 4 But Not</b> Mode!</p>`;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 2500);
         }
 
-        function executeVisualLaserParty(initiator) {
-            const banner = document.createElement('div');
-            banner.className = "fixed top-0 left-0 w-full p-2 text-center text-xs font-black uppercase tracking-widest text-white z-50 laser-bg shadow-2xl transition-all duration-500";
-            banner.innerText = `🚨 DISCO LASER PARTY TRIGGERED BY ${initiator} 🚨`;
-            document.body.appendChild(banner);
-
-            // Flash background layout rows momentarily
-            const mainNode = document.querySelector('body');
-            mainNode.classList.add('bg-purple-950');
-            mainNode.classList.remove('bg-slate-950');
-
-            setTimeout(() => {
-                banner.remove();
-                mainNode.classList.remove('bg-purple-950');
-                mainNode.classList.add('bg-slate-950');
-            }, 3000);
+        function executeLaserBanner(name) {
+            const b = document.createElement('div');
+            b.className = "fixed top-0 left-0 w-full p-2 text-center text-[11px] font-black tracking-widest text-white z-50 laser-bg shadow-xl";
+            b.innerText = `🚨 DISCO INTERACTION MAPPED BY: ${name} 🚨`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 2000);
         }
 
+        function executeConfettiRainfall() {
+            const emojis = ["🎉", "✨", "🎈", "🎲", "🔥"];
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement('div');
+                p.className = "confetti-piece";
+                p.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                p.style.left = Math.random() * 100 + "vw";
+                p.style.animationDelay = Math.random() * 0.5 + "s";
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 3000);
+            }
+        }
+
+        function sendChatMessage() {
+            const text = elements.chatInput.value.trim(); if(!text) return;
+            set(ref(db, `rooms/${currentRoom}/chat/${Date.now()}`), { sender: userName, text: cleanContent(text) });
+            elements.chatInput.value = "";
+        }
+        elements.chatSendBtn.addEventListener('click', sendChatMessage);
+        elements.chatInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') sendChatMessage(); });
+
+        function listenToChat() {
+            onValue(ref(db, `rooms/${currentRoom}/chat`), (snapshot) => {
+                const logs = snapshot.val(); if(!logs) return;
+                elements.chatBox.innerHTML = Object.values(logs).map(m => `<div class="text-xs break-words"><span class="font-bold text-indigo-400">${m.sender}:</span> <span class="text-slate-300">${m.text}</span></div>`).join('');
+                elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+            });
+        }
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between transition-colors duration-300">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between transition-colors duration-500">
 
-    <!-- Synchronized Easter Egg Frame Container -->
     <div id="scare-overlay" class="fixed inset-0 pointer-events-none select-none z-50 hidden"></div>
 
     <header class="border-b border-slate-900 bg-slate-900/40 backdrop-blur px-4 py-3">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <h1 class="text-xs font-black tracking-widest text-white">
-                QUIPLASH BUT NOT <span id="display-room-code" class="text-slate-500 bg-slate-900 px-2 py-0.5 rounded ml-1 font-mono text-[10px]">DIRECTORY</span>
-            </h1>
-            <div id="total-counter" class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-3 py-1 rounded-full font-mono">0 / 1000 Capacity</div>
+            <h1 id="brand-title" class="text-xs font-black tracking-widest text-white">QUIPLASH BUT NOT</h1>
+            <span id="display-room-code" class="text-slate-400 font-mono text-[10px] bg-slate-900 px-2 py-0.5 rounded">DIRECTORY</span>
+            <div id="total-counter" class="text-[10px] bg-slate-900 text-slate-400 px-3 py-1 rounded-full font-mono">0 / 1000 Capacity</div>
         </div>
     </header>
 
-    <main class="max-w-5xl w-full mx-auto p-4 flex-grow flex items-center justify-center">
+    <main id="master-stage-wrapper" class="max-w-5xl w-full mx-auto p-4 flex-grow flex items-center justify-center">
         
         <!-- STEP 1: IDENTITY REGISTRY -->
         <section id="screen-username" class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <h2 class="text-base font-bold text-white mb-1">Pick a Nickname</h2>
-            <p class="text-slate-400 text-xs mb-4">No registration or passwords required.</p>
             <input type="text" id="username-input" placeholder="Enter handle..." class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none mb-3">
             <button id="next-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider">Continue</button>
         </section>
 
-        <!-- STEP 2: GLOBAL ROOM EXPLORER -->
+        <!-- STEP 2: LOBBY GATEWAY -->
         <section id="screen-room" class="hidden w-full max-w-md grid grid-cols-1 gap-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
                 <h2 class="text-sm font-bold text-white mb-3">Create or Join Rooms</h2>
@@ -917,84 +623,61 @@
                     <button id="join-audience-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs">Join Watch</button>
                 </div>
             </div>
-            
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Currently Active Game Matches</h3>
-                <div id="active-games-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
+                <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase">Rooms Hub Index</h3>
+                <div id="active-games-list" class="space-y-1.5 max-h-36 overflow-y-auto"></div>
             </div>
         </section>
 
         <!-- STEP 3: MAIN ARENA INTERFACE -->
         <section id="screen-game" class="hidden w-full grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-            
-            <!-- CONTROLS SIDEBAR COLUMN -->
             <div class="md:col-span-1 space-y-3">
                 <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
-                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Players (Max 20)</h3>
-                    <div id="player-list" class="space-y-1.5 max-h-32 overflow-y-auto"></div>
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Players</h3>
+                    <div id="player-list" class="space-y-1 max-h-32 overflow-y-auto"></div>
                 </div>
                 
-                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
-                    <span class="text-slate-400 uppercase font-bold text-[10px]">Audience Seats</span>
-                    <span id="audience-count" class="font-bold font-mono text-indigo-400">0</span>
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs flex justify-between">
+                    <span class="text-slate-400 font-bold text-[10px] uppercase">Audience</span>
+                    <span id="audience-count" class="font-bold text-indigo-400">0</span>
                 </div>
                 
-                <!-- WEBRTC COMMUNICATIONS CONTROL RACK -->
                 <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl space-y-2">
-                    <div class="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800 pb-1 flex justify-between items-center">
-                        <span>AV Interface Panel</span>
-                        <span class="text-[9px] font-mono text-slate-600 font-normal">v1.1</span>
-                    </div>
-                    
-                    <!-- Integrated Local Camera Hardware Preview Panel Layer -->
-                    <div class="relative bg-black rounded-lg aspect-video overflow-hidden border border-slate-950 flex items-center justify-center">
+                    <div class="relative bg-black rounded-lg aspect-video overflow-hidden">
                         <video id="local-video-preview" autoplay muted playsinline class="w-full h-full object-cover hidden scale-x-[-1]"></video>
-                        <div class="absolute text-[9px] top-1 right-1 bg-slate-950/60 text-slate-400 px-1 py-0.5 rounded uppercase font-bold tracking-tight">You</div>
                     </div>
-
-                    <div class="flex gap-1.5 pt-1">
-                        <button id="toggle-audio-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all">Mic On</button>
-                        <button id="toggle-video-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold p-2 rounded-lg text-xs flex-1 text-center transition-all">Cam On</button>
+                    <div class="flex gap-1">
+                        <button id="toggle-audio-btn" class="bg-slate-800 text-slate-300 p-1.5 rounded text-xs flex-1 text-center">Mic On</button>
+                        <button id="toggle-video-btn" class="bg-slate-800 text-slate-300 p-1.5 rounded text-xs flex-1 text-center">Cam On</button>
                     </div>
-                    <button id="toggle-deaf-btn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold p-2 rounded-lg text-xs text-center transition-all">Deafen Audio</button>
-                    <div class="text-[8px] text-slate-500 italic text-center mt-1 leading-tight">Secret: Try Alt+Shift+X or Alt+Shift+L to trigger synchronized triggers.</div>
+                    <button id="toggle-deaf-btn" class="w-full bg-slate-800 text-slate-300 p-1.5 rounded text-xs text-center">Deafen Audio</button>
                 </div>
 
-                <div id="host-controls" class="hidden bg-slate-900 border border-amber-500/20 p-3 rounded-xl">
-                    <button id="start-btn" disabled class="w-full bg-amber-500 text-slate-950 font-bold py-2 rounded-lg text-xs tracking-wider uppercase mb-2">Advance Phase</button>
+                <div id="host-controls" class="hidden bg-slate-900 border border-amber-500/20 p-2 rounded-xl">
+                    <button id="start-btn" disabled class="w-full bg-amber-500 text-slate-950 font-bold py-1 rounded text-xs uppercase">Begin Round</button>
                 </div>
-                
-                <button id="leave-room-btn" class="w-full bg-rose-950/60 text-rose-400 border border-rose-900/40 font-bold py-2 rounded-xl text-xs tracking-wide uppercase hover:bg-rose-900/40 transition-colors">Leave Room</button>
+                <button id="leave-room-btn" class="w-full bg-rose-950 text-rose-400 p-2 rounded text-xs font-bold uppercase">Leave Room</button>
             </div>
 
-            <!-- PRIMARY GAME CENTER & COMPOSITE MESH VIDEO FEED GRID -->
             <div class="md:col-span-2 space-y-3">
-                <div class="bg-slate-900/40 p-1 rounded-xl">
-                    <div id="phase-container" class="w-full"></div>
-                </div>
-
-                <!-- WebRTC Fully Dynamic Scaled Structural Mesh Video Elements Composite Grid Wrapper -->
-                <div class="bg-slate-900 border border-slate-800/60 p-2 rounded-xl">
-                    <h4 class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2 font-mono">Live Video Mesh Rooms</h4>
-                    <div id="video-grid-container" class="grid grid-cols-1 gap-2">
-                        <!-- Dynamic Peer-to-Peer cards map directly here into layout slots contextually -->
-                    </div>
+                <div id="phase-container" class="w-full"></div>
+                <div class="bg-slate-900 border border-slate-800 p-2 rounded-xl">
+                    <h4 class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2 font-mono">Dynamic WebRTC Room Grid</h4>
+                    <div id="video-grid-container" class="grid grid-cols-1 gap-2"></div>
                 </div>
             </div>
 
-            <!-- CHAT INTERFACE NODE -->
-            <div class="md:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col h-[400px] justify-between">
-                <h4 class="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5 border-b border-slate-800 pb-1">Room Chat</h4>
-                <div id="chat-box" class="flex-grow overflow-y-auto space-y-1.5 pr-1 py-1 mb-2"></div>
-                <div class="flex gap-1.5">
-                    <input type="text" id="chat-input" placeholder="Type..." class="flex-grow bg-slate-950 border border-slate-850 rounded-lg text-xs p-1.5 text-white focus:outline-none">
-                    <button id="chat-send-btn" class="bg-indigo-600 px-2.5 rounded-lg text-[10px] font-bold">Send</button>
+            <div class="md:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col h-[350px] justify-between">
+                <h4 class="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1 border-b border-slate-800 pb-1">Room Chat</h4>
+                <div id="chat-box" class="flex-grow overflow-y-auto space-y-1 mb-2 pr-1"></div>
+                <div class="flex gap-1">
+                    <input type="text" id="chat-input" placeholder="Type..." class="flex-grow bg-slate-950 border border-slate-800 rounded text-xs p-1 text-white focus:outline-none">
+                    <button id="chat-send-btn" class="bg-indigo-600 px-2 rounded text-[10px] font-bold">Send</button>
                 </div>
             </div>
         </section>
-
     </main>
 
-    <footer class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v1.1 (Stable Release Branch)</footer>
+    <footer id="footer-build" class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v1.1</footer>
 </body>
 </html>
