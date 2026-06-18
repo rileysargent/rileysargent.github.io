@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperspace Prompt Showdown</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Quiplash but Not</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, runTransaction, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Firebase Configuration provided by user
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCr2mG-lVDHFwW4fTAx7_5AwZX2jJ8myrw",
             authDomain: "hyperspace-r.firebaseapp.com",
@@ -21,570 +21,426 @@
             measurementId: "G-RRQTTD9M4V"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Application State variables
+        // State Machine Variables
         let userId = "user_" + Math.random().toString(36).substr(2, 9);
         let userName = "";
-        let userRole = ""; // 'host', 'player', 'audience'
-        let currentRoom = "global_room"; // Simple single-room execution for demonstration
+        let currentRoom = "";
+        let isHost = false; 
+        let userRole = ""; 
         let roomState = null;
 
-        // Dom Elements Cached
+        const badWordsFilter = ["fuck", "shit", "asshole", "bitch", "cunt", "dick", "fucker", "ass", "67", "poop", "crap"];
+        function cleanContent(text) {
+            let sanitized = text;
+            badWordsFilter.forEach(word => {
+                const regex = new RegExp(word, "gi");
+                sanitized = sanitized.replace(regex, "[REDACTED]");
+            });
+            return sanitized;
+        }
+
+        // DOM Cached Elements
+        const screens = {
+            username: document.getElementById('screen-username'),
+            room: document.getElementById('screen-room'),
+            game: document.getElementById('screen-game')
+        };
+
         const elements = {
-            authScreen: document.getElementById('auth-screen'),
-            gameScreen: document.getElementById('game-screen'),
             usernameInput: document.getElementById('username-input'),
-            joinPlayerBtn: document.getElementById('join-player-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            roomInput: document.getElementById('room-input'),
+            createRoomBtn: document.getElementById('create-room-btn'),
             joinAudienceBtn: document.getElementById('join-audience-btn'),
-            roomStatus: document.getElementById('room-status'),
+            activeGamesList: document.getElementById('active-games-list'),
+            displayRoomCode: document.getElementById('display-room-code'),
+            totalCounter: document.getElementById('total-counter'),
             playerList: document.getElementById('player-list'),
             audienceCount: document.getElementById('audience-count'),
             hostControls: document.getElementById('host-controls'),
             startBtn: document.getElementById('start-btn'),
             phaseContainer: document.getElementById('phase-container'),
-            totalCounter: document.getElementById('total-counter')
+            chatBox: document.getElementById('chat-box'),
+            chatInput: document.getElementById('chat-input'),
+            chatSendBtn: document.getElementById('chat-send-btn')
         };
 
-        // Initialize App Event Listeners
-        window.addEventListener('DOMContentLoaded', () => {
-            elements.joinPlayerBtn.addEventListener('click', () => joinGame('player'));
-            elements.joinAudienceBtn.addEventListener('click', () => joinGame('audience'));
-            elements.startBtn.addEventListener('click', () => advanceToPromptPhase());
-            
-            // Connect and listen to the global game state changes
-            listenToGameRoom();
+        // Step 1 -> Step 2
+        elements.nextBtn.addEventListener('click', () => {
+            userName = cleanContent(elements.usernameInput.value.trim());
+            if (!userName) return alert("Please enter a username!");
+            screens.username.classList.add('hidden');
+            screens.room.classList.remove('hidden');
+            initGlobalRoomListener();
         });
 
-        // Join Room Action
-        function joinGame(role) {
-            userName = elements.usernameInput.value.trim();
-            if (!userName) {
-                alert("Please enter a username first!");
-                return;
-            }
+        // Room Operations
+        elements.createRoomBtn.addEventListener('click', () => {
+            const code = elements.roomInput.value.trim().toUpperCase();
+            if(!code) return alert("Enter a room code!");
+            connectToRoom(code, 'player');
+        });
+
+        elements.joinAudienceBtn.addEventListener('click', () => {
+            const code = elements.roomInput.value.trim().toUpperCase();
+            if(!code) return alert("Enter a room code!");
+            connectToRoom(code, 'audience');
+        });
+
+        // Global Lobby Discovery Engine
+        function initGlobalRoomListener() {
+            onValue(ref(db, 'game_directory'), (snapshot) => {
+                const directory = snapshot.val();
+                elements.activeGamesList.innerHTML = "";
+                if (!directory || Object.keys(directory).length === 0) {
+                    elements.activeGamesList.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No active rooms found. Create one above!</p>`;
+                    return;
+                }
+                Object.keys(directory).forEach(roomCode => {
+                    const info = directory[roomCode];
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-slate-950 border border-slate-850 rounded-xl flex justify-between items-center hover:border-indigo-500 transition-all";
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-mono text-sm font-bold text-white">${roomCode}</span>
+                            <span class="text-[10px] bg-indigo-950 text-indigo-400 font-bold px-1.5 py-0.5 rounded ml-2 uppercase">${info.phase}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-xs font-bold rounded-lg text-white" onclick="window.directJoin('${roomCode}', 'player')">Play</button>
+                            <button class="bg-slate-800 hover:bg-slate-700 px-3 py-1 text-xs font-bold rounded-lg text-slate-300" onclick="window.directJoin('${roomCode}', 'audience')">Watch</button>
+                        </div>
+                    `;
+                    elements.activeGamesList.appendChild(div);
+                });
+            });
+        }
+
+        window.directJoin = (roomCode, role) => connectToRoom(roomCode, role);
+
+        function connectToRoom(roomCode, role) {
+            currentRoom = "room_" + roomCode;
             userRole = role;
-            
-            // Register player metadata inside room
-            const userRef = ref(db, `${currentRoom}/users/${userId}`);
-            set(userRef, {
-                id: userId,
-                name: userName,
-                role: role,
-                score: 0
-            }).then(() => {
-                elements.authScreen.classList.add('hidden');
-                elements.gameScreen.classList.remove('hidden');
-                
-                // If first player to join, offer option to be host actions
-                checkIfHostNeeded();
-            });
-        }
+            elements.displayRoomCode.innerText = `ROOM: ${roomCode}`;
 
-        function checkIfHostNeeded() {
-            const hostRef = ref(db, `${currentRoom}/host`);
-            runTransaction(hostRef, (currentHost) => {
-                if (!currentHost) {
-                    userRole = 'host';
-                    return userId;
-                }
-                return currentHost;
-            }).then((result) => {
-                if (result.snapshot.val() === userId) {
-                    elements.hostControls.classList.remove('hidden');
-                    // Ensure host is also inside the database mapping
-                    update(ref(db, `${currentRoom}/users/${userId}`)), { role: 'host' };
-                }
-            });
-        }
-
-        // Synchronize and render UI based on state changes from Firebase
-        function listenToGameRoom() {
             const roomRef = ref(db, currentRoom);
-            onValue(roomRef, (snapshot) => {
-                const data = snapshot.val();
-                if (!data) {
-                    // Initialize empty state structurally if first run
-                    set(ref(db, currentRoom), {
+            runTransaction(roomRef, (currentData) => {
+                if (!currentData) {
+                    isHost = true; 
+                    return {
+                        roomCode: roomCode,
+                        hostId: userId,
                         phase: "LOBBY",
                         users: {},
-                        audienceBotCount: 0,
                         currentPrompt: "",
                         promptWriter: "",
                         answerWriters: [],
                         answers: {},
-                        votes: {}
-                    });
-                    return;
+                        votes: {},
+                        chat: {}
+                    };
                 }
-                
+                return currentData;
+            }).then(() => {
+                // Register in public directory index
+                set(ref(db, `game_directory/${roomCode}`), { phase: "LOBBY" });
+
+                if (isHost) elements.hostControls.classList.remove('hidden');
+
+                set(ref(db, `${currentRoom}/users/${userId}`), {
+                    id: userId,
+                    name: userName,
+                    role: role,
+                    score: 0
+                }).then(() => {
+                    screens.room.classList.add('hidden');
+                    screens.game.classList.remove('hidden');
+                    listenToGameRoom();
+                    listenToChat();
+                });
+            });
+        }
+
+        // Live Chat Routing
+        elements.chatSendBtn.addEventListener('click', sendChatMessage);
+        elements.chatInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') sendChatMessage(); });
+
+        function sendChatMessage() {
+            const text = elements.chatInput.value.trim();
+            if(!text) return;
+            const chatRef = ref(db, `${currentRoom}/chat/${Date.now()}`);
+            set(chatRef, {
+                sender: userName,
+                text: cleanContent(text)
+            });
+            elements.chatInput.value = "";
+        }
+
+        function listenToChat() {
+            onValue(ref(db, `${currentRoom}/chat`), (snapshot) => {
+                const logs = snapshot.val();
+                if(!logs) return;
+                elements.chatBox.innerHTML = Object.values(logs).map(m => `
+                    <div class="text-xs break-words">
+                        <span class="font-bold text-indigo-400">${m.sender}:</span> 
+                        <span class="text-slate-300">${m.text}</span>
+                    </div>
+                `).join('');
+                elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+            });
+        }
+
+        function listenToGameRoom() {
+            onValue(ref(db, currentRoom), (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
                 roomState = data;
                 renderRoomState();
             });
         }
 
         function renderRoomState() {
-            if (!roomState) return;
-
-            // Compute counts
             const usersList = roomState.users ? Object.values(roomState.users) : [];
-            const realPlayers = usersList.filter(u => u.role === 'player' || u.role === 'host');
-            const realAudience = usersList.filter(u => u.role === 'audience');
-            const totalAudience = realAudience.length + (roomState.audienceBotCount || 0);
-            const overallTotal = realPlayers.length + totalAudience;
+            const players = usersList.filter(u => u.role === 'player');
+            const audience = usersList.filter(u => u.role === 'audience');
 
-            // Render stats
-            elements.totalCounter.innerText = `Total Network Capacity: ${overallTotal} / 1000`;
-            elements.audienceCount.innerText = `${totalAudience} (Simulated & Live)`;
-            
-            elements.playerList.innerHTML = realPlayers.map(p => `
-                <div class="p-2 bg-slate-700 rounded flex justify-between items-center shadow-sm">
-                    <span class="font-medium text-slate-100">${p.name} ${p.id === userId ? '<span class="text-xs text-emerald-400">(You)</span>':''}</span>
-                    <span class="text-xs bg-slate-600 px-2 py-1 rounded text-slate-300">Score: ${p.score || 0}</span>
+            elements.totalCounter.innerText = `Capacity: ${usersList.length} / 1000`;
+            elements.audienceCount.innerText = `${audience.length} Live`;
+
+            elements.playerList.innerHTML = players.map(p => `
+                <div class="p-2 bg-slate-800 border border-slate-700/40 rounded-lg flex justify-between items-center text-xs">
+                    <span class="font-medium text-slate-100 flex items-center gap-1">
+                        ${p.name} ${p.id === userId ? '<b class="text-emerald-400 text-[9px]">[YOU]</b>':''}
+                    </span>
+                    <span class="bg-slate-900 px-2 py-0.5 rounded text-slate-400 font-mono">Pts: ${p.score || 0}</span>
                 </div>
             `).join('');
 
-            // Render UI based on Phase State Machine
+            if(isHost) {
+                elements.startBtn.disabled = players.length < 1;
+                elements.startBtn.classList.toggle('opacity-40', players.length < 1);
+            }
+
             switch(roomState.phase) {
                 case "LOBBY":
-                    renderLobbyPhase(realPlayers.length);
+                    elements.phaseContainer.innerHTML = `<div class="text-center py-10 bg-slate-900/60 rounded-xl border border-slate-800"><h2 class="text-lg font-bold text-indigo-400 animate-pulse">Waiting in Lobby...</h2><p class="text-xs text-slate-500 mt-1">Host will initiate match routing shortly.</p></div>`;
                     break;
-                case "PROMPT_PHASE":
-                    renderPromptPhase();
-                    break;
-                case "ANSWER_PHASE":
-                    renderAnswerPhase();
-                    break;
-                case "VOTING_PHASE":
-                    renderVotingPhase(realPlayers);
-                    break;
-                case "RESULTS_PHASE":
-                    renderResultsPhase(realPlayers);
-                    break;
+                case "PROMPT_PHASE": renderPromptPhase(); break;
+                case "ANSWER_PHASE": renderAnswerPhase(); break;
+                case "VOTING_PHASE": renderVotingPhase(players, audience); break;
+                case "RESULTS_PHASE": renderResultsPhase(players); break;
             }
         }
 
-        function renderLobbyPhase(playerCount) {
-            elements.phaseContainer.innerHTML = `
-                <div class="text-center py-8">
-                    <h2 class="text-2xl font-bold text-amber-400 mb-2 animate-pulse">Waiting for Players...</h2>
-                    <p class="text-slate-400">The game requires at least 3 players to spin up real interactive dynamics.</p>
-                </div>
-            `;
-            if (userRole === 'host' && playerCount >= 1) {
-                elements.startBtn.removeAttribute('disabled');
-                elements.startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            } else {
-                elements.startBtn.setAttribute('disabled', 'true');
-                elements.startBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
-        // --- PHASE TRANSLATIONS AND TRIGGERS ---
+        elements.startBtn.addEventListener('click', advanceToPromptPhase);
 
         function advanceToPromptPhase() {
-            // Pick a random player to write a prompt
-            const usersList = Object.values(roomState.users || {});
-            const players = usersList.filter(u => u.role === 'player' || u.role === 'host');
-            if(players.length === 0) return;
-
-            const randomPromptWriter = players[Math.floor(Math.random() * players.length)].id;
+            const players = Object.values(roomState.users || {}).filter(u => u.role === 'player');
+            const targetWriter = players[Math.floor(Math.random() * players.length)].id;
             
-            // Scale up dynamic audience bots to fulfill 1,000 seat limit requirement gracefully
-            const currentTotal = usersList.length;
-            const dynamicBotsNeeded = Math.min(1000 - currentTotal, 980); 
-
+            update(ref(db, `game_directory/${roomState.roomCode}`), { phase: "PROMPT" });
             update(ref(db, currentRoom), {
                 phase: "PROMPT_PHASE",
-                promptWriter: randomPromptWriter,
-                audienceBotCount: dynamicBotsNeeded,
-                currentPrompt: "",
-                answers: null,
-                votes: null
+                promptWriter: targetWriter,
+                currentPrompt: "", answers: null, votes: null
             });
         }
 
         function renderPromptPhase() {
             const isWriter = roomState.promptWriter === userId;
-            const writerName = roomState.users[roomState.promptWriter]?.name || "Someone";
-
             if (isWriter) {
                 elements.phaseContainer.innerHTML = `
-                    <div class="bg-slate-800 p-6 rounded-xl border border-amber-500 shadow-xl">
-                        <h3 class="text-xl font-bold text-amber-400 mb-4 text-center text-balance">You have been selected to construct the Prompt!</h3>
-                        <p class="text-sm text-slate-400 mb-4">Write a funny scenario or premise for the players to react to.</p>
-                        <input type="text" id="prompt-input" placeholder="e.g., Worst way to spell Mississippi" class="w-full p-3 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 mb-4">
-                        <button id="submit-prompt-btn" class="w-full bg-amber-500 hover:bg-amber-600 transition-colors text-slate-950 font-bold py-3 rounded shadow-md">Broadcast Prompt to Room</button>
+                    <div class="bg-slate-900 border border-amber-500/20 p-5 rounded-xl">
+                        <h3 class="text-sm font-bold text-amber-400 mb-3">Write the Game Question Prompt:</h3>
+                        <input type="text" id="prompt-input" placeholder="e.g., Worst way to spell Mississippi" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs mb-3 focus:outline-none focus:border-amber-500">
+                        <button id="submit-prompt-btn" class="w-full bg-amber-500 text-slate-950 text-xs font-bold py-2 rounded-lg">Broadcast Prompt</button>
                     </div>
                 `;
                 document.getElementById('submit-prompt-btn').addEventListener('click', () => {
-                    const promptVal = document.getElementById('prompt-input').value.trim();
-                    if(!promptVal) return;
-                    
-                    // Proceed to select 2 random answer writers who are NOT the prompt writer
-                    const players = Object.values(roomState.users).filter(u => (u.role === 'player' || u.role === 'host'));
+                    const val = cleanContent(document.getElementById('prompt-input').value.trim());
+                    if (!val) return;
+                    const players = Object.values(roomState.users).filter(u => u.role === 'player');
                     let candidates = players.filter(p => p.id !== userId);
-                    
-                    // Fallback configuration if player thresholds are minimal
-                    if(candidates.length < 2) candidates = players; 
-                    
-                    // Shuffle or slice down to 2
-                    const selectedWriters = candidates.sort(() => 0.5 - Math.random()).slice(0, 2).map(c => c.id);
+                    if (candidates.length < 2) candidates = players;
+                    const answerers = candidates.sort(() => 0.5 - Math.random()).slice(0, 2).map(c => c.id);
 
-                    update(ref(db, currentRoom), {
-                        currentPrompt: promptVal,
-                        answerWriters: selectedWriters,
-                        phase: "ANSWER_PHASE"
-                    });
+                    update(ref(db, currentRoom), { currentPrompt: val, answerWriters: answerers, phase: "ANSWER_PHASE" });
                 });
             } else {
-                elements.phaseContainer.innerHTML = `
-                    <div class="text-center py-12 bg-slate-800/50 rounded-xl border border-slate-700">
-                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mx-auto mb-4"></div>
-                        <h3 class="text-lg text-slate-200 font-medium"><span class="text-amber-400 font-bold">${writerName}</span> is cooking up a question...</h3>
-                    </div>
-                `;
+                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900/40 rounded-xl"><p class="text-xs text-slate-400">Someone is thinking up a wild prompt question...</p></div>`;
             }
         }
 
         function renderAnswerPhase() {
-            const isAnswerer = roomState.answerWriters.includes(userId);
-            
-            if (isAnswerer) {
-                // Check if user has already submitted answer to avoid layout swapping
-                const hasSubmitted = roomState.answers && roomState.answers[userId];
-                if (hasSubmitted) {
-                    elements.phaseContainer.innerHTML = `
-                        <div class="text-center py-12 bg-slate-800 rounded-xl border border-emerald-500/30">
-                            <h3 class="text-lg text-emerald-400 font-bold mb-2">Answer Submitted Successfully!</h3>
-                            <p class="text-sm text-slate-400">Waiting on your opposing match player to lock in their response.</p>
-                        </div>
-                    `;
+            if (roomState.answerWriters?.includes(userId)) {
+                if (roomState.answers?.[userId]) {
+                    elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900 rounded-xl"><p class="text-xs text-emerald-400 font-bold">Answer tracking locked in!</p></div>`;
                     return;
                 }
-
                 elements.phaseContainer.innerHTML = `
-                    <div class="bg-slate-800 p-6 rounded-xl border border-indigo-500 shadow-xl">
-                        <div class="text-xs font-bold tracking-wider text-indigo-400 uppercase mb-1">The Question Context:</div>
-                        <h3 class="text-2xl font-black text-white mb-6 text-balance">"${roomState.currentPrompt}"</h3>
-                        
-                        <label class="block text-xs text-slate-400 font-bold uppercase mb-2">Your Funny Answer:</label>
-                        <input type="text" id="answer-input" placeholder="Type something hilariously clever..." class="w-full p-3 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-indigo-500 mb-4">
-                        <button id="submit-answer-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 transition-colors text-white font-bold py-3 rounded shadow-md">Lock Answer In</button>
+                    <div class="bg-slate-900 border border-indigo-500/20 p-5 rounded-xl">
+                        <span class="text-[10px] text-indigo-400 font-bold block mb-1">PROMPT:</span>
+                        <h3 class="text-base font-black text-white mb-4">"${roomState.currentPrompt}"</h3>
+                        <input type="text" id="answer-input" placeholder="Your funny answer..." class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs mb-3 focus:outline-none">
+                        <button id="submit-answer-btn" class="w-full bg-indigo-600 text-white text-xs font-bold py-2 rounded-lg">Submit Answer</button>
                     </div>
                 `;
-
                 document.getElementById('submit-answer-btn').addEventListener('click', () => {
-                    const ansVal = document.getElementById('answer-input').value.trim();
-                    if(!ansVal) return;
-
-                    set(ref(db, `${currentRoom}/answers/${userId}`), {
-                        userId: userId,
-                        userName: userName,
-                        text: ansVal
-                    }).then(() => {
-                        checkIfAllAnswersIn();
+                    const txt = cleanContent(document.getElementById('answer-input').value.trim());
+                    if (!txt) return;
+                    set(ref(db, `${currentRoom}/answers/${userId}`), { userId: userId, text: txt }).then(() => {
+                        runTransaction(ref(db, currentRoom), (c) => {
+                            if (c && Object.keys(c.answers || {}).length >= (c.answerWriters?.length || 2)) c.phase = "VOTING_PHASE";
+                            return c;
+                        });
                     });
                 });
             } else {
-                elements.phaseContainer.innerHTML = `
-                    <div class="text-center py-12 bg-slate-800/50 rounded-xl border border-slate-700">
-                        <div class="text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Current Question Prompt</div>
-                        <div class="text-xl font-bold text-slate-300 italic mb-6">"${roomState.currentPrompt}"</div>
-                        <div class="flex justify-center items-center gap-2 text-slate-400 text-sm">
-                            <span class="relative flex h-3 w-3">
-                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                              <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
-                            </span>
-                            Two players are currently generating competitive responses...
-                        </div>
-                    </div>
-                `;
+                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900/40 rounded-xl"><p class="text-xs text-slate-400">Contestants are fighting over answers to: <br><b class="text-slate-200">"${roomState.currentPrompt}"</b></p></div>`;
             }
         }
 
-        function checkIfAllAnswersIn() {
-            // Execution on transaction logic ensures race conditions don't duplicate phase advancements
-            const roomRef = ref(db, currentRoom);
-            runTransaction(roomRef, (currentData) => {
-                if (currentData && currentData.phase === "ANSWER_PHASE") {
-                    const totalAnswersSubmitted = currentData.answers ? Object.keys(currentData.answers).length : 0;
-                    const requiredCount = currentData.answerWriters ? currentData.answerWriters.length : 2;
-                    
-                    if (totalAnswersSubmitted >= requiredCount) {
-                        currentData.phase = "VOTING_PHASE";
-                    }
-                }
-                return currentData;
-            });
-        }
-
-        function renderVotingPhase(realPlayers) {
-            const answersArray = roomState.answers ? Object.values(roomState.answers) : [];
-            const hasVoted = roomState.votes && roomState.votes[userId];
-            const identityExcluded = roomState.answerWriters.includes(userId);
-
-            if (identityExcluded) {
-                elements.phaseContainer.innerHTML = `
-                    <div class="text-center py-12 bg-slate-800 rounded-xl border border-slate-700">
-                        <h3 class="text-xl font-bold text-amber-400 mb-2">Voting Commenced!</h3>
-                        <p class="text-sm text-slate-400 px-6">As one of the contestants writing for this matchup, you must abstain from voting on this round structure.</p>
-                        <div class="mt-6 p-4 bg-slate-900 mx-6 rounded text-left border border-slate-800">
-                            <span class="text-xs text-slate-500 block">Prompt:</span>
-                            <span class="text-white italic font-medium">"${roomState.currentPrompt}"</span>
-                        </div>
-                    </div>
-                `;
-                
-                // Host handles the simulation runtime trigger for thousands of system bot votes
-                if(userRole === 'host') {
-                    executeSimulatedAudienceVotes(answersArray);
-                }
+        function renderVotingPhase(players, audience) {
+            if (roomState.answerWriters?.includes(userId)) {
+                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900 rounded-xl"><p class="text-xs text-amber-400 font-bold">Your prompt choice is on display. Abstaining from voting.</p></div>`;
+                return;
+            }
+            if (roomState.votes?.[userId]) {
+                elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900 rounded-xl"><p class="text-xs text-slate-500">Vote registered!</p></div>`;
                 return;
             }
 
-            if (hasVoted) {
-                elements.phaseContainer.innerHTML = `
-                    <div class="text-center py-12 bg-slate-800 rounded-xl border border-emerald-500/20">
-                        <div class="text-emerald-400 text-5xl mb-2">✓</div>
-                        <h3 class="text-lg text-white font-bold">Your Vote Has Been Tracked!</h3>
-                        <p class="text-sm text-slate-400">Waiting for the final audience counts to aggregate.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Regular user interactive options block
             elements.phaseContainer.innerHTML = `
-                <div class="bg-slate-800 p-6 rounded-xl border border-pink-500 shadow-xl">
-                    <div class="text-center mb-6">
-                        <span class="text-xs font-bold uppercase text-pink-400 tracking-wider">Cast Your Vote</span>
-                        <h3 class="text-2xl font-black text-white mt-1">"${roomState.currentPrompt}"</h3>
-                    </div>
-                    <div class="space-y-4" id="vote-options-box"></div>
+                <div class="bg-slate-900 border border-pink-500/20 p-5 rounded-xl">
+                    <h3 class="text-center font-bold text-sm text-white mb-4">"${roomState.currentPrompt}"</h3>
+                    <div class="space-y-2" id="opts"></div>
                 </div>
             `;
-
-            const optionsBox = document.getElementById('vote-options-box');
-            answersArray.forEach((ans, index) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 bg-slate-900 hover:bg-slate-700 border border-slate-700 hover:border-pink-500 transition-all rounded-lg text-white font-medium flex justify-between items-center group";
-                btn.innerHTML = `
-                    <span>"${ans.text}"</span>
-                    <span class="bg-slate-800 group-hover:bg-pink-600 px-3 py-1 rounded text-xs text-slate-400 group-hover:text-white transition-colors">Vote Option ${index + 1}</span>
-                `;
-                btn.addEventListener('click', () => {
+            const box = document.getElementById('opts');
+            Object.values(roomState.answers || {}).forEach(ans => {
+                const b = document.createElement('button');
+                b.className = "w-full text-left p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white hover:border-pink-500 transition-all";
+                b.innerText = ans.text;
+                b.addEventListener('click', () => {
                     set(ref(db, `${currentRoom}/votes/${userId}`), ans.userId).then(() => {
-                        checkIfVotingComplete(realPlayers);
+                        runTransaction(ref(db, currentRoom), (c) => {
+                            const totalVoters = (players.length + audience.length) - (c.answerWriters?.length || 2);
+                            if (c && Object.keys(c.votes || {}).length >= Math.max(1, totalVoters)) c.phase = "RESULTS_PHASE";
+                            return c;
+                        });
                     });
                 });
-                optionsBox.appendChild(btn);
+                box.appendChild(b);
             });
         }
 
-        // Host engine mimicking mass audience interaction seamlessly
-        function executeSimulatedAudienceVotes(answersArray) {
-            if (roomState.simulatedVotesLogged || answersArray.length < 2) return;
-            
-            // Toggle marker flag so multiple runs aren't triggered simultaneously
-            update(ref(db, currentRoom), { simulatedVotesLogged: true });
-
-            setTimeout(() => {
-                const totalTargetVotes = roomState.audienceBotCount || 980;
-                let distributionA = 0;
-                
-                // Randomly weigh distribution split
-                for(let i=0; i<totalTargetVotes; i++) {
-                    if(Math.random() > 0.48) distributionA++;
-                }
-                let distributionB = totalTargetVotes - distributionA;
-
-                const botVoteTally = {};
-                botVoteTally[answersArray[0].userId] = distributionA;
-                botVoteTally[answersArray[1].userId] = distributionB;
-
-                update(ref(db, `${currentRoom}/botVotes`), botVoteTally);
-            }, 3000); // Small procedural visual delay
-        }
-
-        function checkIfVotingComplete(realPlayers) {
-            const roomRef = ref(db, currentRoom);
-            runTransaction(roomRef, (currentData) => {
-                if(currentData && currentData.phase === "VOTING_PHASE") {
-                    const humanVotes = currentData.votes ? Object.keys(currentData.votes).length : 0;
-                    const excludedCount = currentData.answerWriters ? currentData.answerWriters.length : 2;
-                    const requiredHumanVotes = Math.max(0, realPlayers.length - excludedCount);
-
-                    // Proceed if human votes and bot updates are completely inside the node tree
-                    if (humanVotes >= requiredHumanVotes && currentData.botVotes) {
-                        currentData.phase = "RESULTS_PHASE";
-                    }
-                }
-                return currentData;
-            });
-        }
-
-        function renderResultsPhase(realPlayers) {
-            const answers = roomState.answers ? Object.values(roomState.answers) : [];
-            if(answers.length < 2) return;
-
-            // Calculate Human Tally votes
+        function renderResultsPhase(players) {
+            const answers = Object.values(roomState.answers || {});
             const tallies = {};
             answers.forEach(a => tallies[a.userId] = 0);
-            
-            if (roomState.votes) {
-                Object.values(roomState.votes).forEach(targetId => {
-                    if (tallies[targetId] !== undefined) tallies[targetId]++;
-                });
-            }
+            Object.values(roomState.votes || {}).forEach(tid => { if(tallies[tid] !== undefined) tallies[tid]++; });
 
-            // Inject the Dynamic Simulated Bot counts
-            if(roomState.botVotes) {
-                Object.keys(roomState.botVotes).forEach(targetId => {
-                    if (tallies[targetId] !== undefined) {
-                        tallies[targetId] += roomState.botVotes[targetId];
-                    }
-                });
-            }
-
-            // Evaluate Winner index definitions
-            const winnerId = tallies[answers[0].userId] >= tallies[answers[1].userId] ? answers[0].userId : answers[1].userId;
-            const winName = roomState.users[winnerId]?.name || "Anonymous Matchup Player";
+            const winnerId = answers[0] && (tallies[answers[0].userId] >= (tallies[answers[1]?.userId] || 0)) ? answers[0].userId : answers[1]?.userId;
+            const winName = roomState.users[winnerId]?.name || "Anonymous";
 
             elements.phaseContainer.innerHTML = `
-                <div class="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 shadow-2xl text-center">
-                    <span class="text-xs font-bold uppercase tracking-widest text-emerald-400">Match Results</span>
-                    <h3 class="text-xl font-bold text-slate-300 mt-1 mb-6">"${roomState.currentPrompt}"</h3>
-                    
-                    <div class="space-y-4 mb-8">
-                        ${answers.map(ans => {
-                            const isWin = ans.userId === winnerId;
-                            return `
-                                <div class="p-4 rounded-lg bg-slate-900 border ${isWin ? 'border-emerald-500 bg-emerald-950/20':'border-slate-700'} text-left flex justify-between items-center">
-                                    <div>
-                                        <div class="text-xs text-slate-500 font-bold">${ans.userName}'s Answer:</div>
-                                        <div class="text-lg font-bold text-white">"${ans.text}"</div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-2xl font-black ${isWin ? 'text-emerald-400' : 'text-slate-400'}">${tallies[ans.userId] || 0}</div>
-                                        <div class="text-[10px] tracking-wider uppercase text-slate-500 font-bold">Total Votes</div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-
-                    <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 mb-6">
-                        <span class="text-xs text-slate-500 uppercase font-bold tracking-widest block">Winner Points Awarded To</span>
-                        <span class="text-2xl font-black text-amber-400">${winName}</span>
-                    </div>
-
-                    ${userRole === 'host' ? `
-                        <button id="next-round-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-lg shadow transition-colors">Start Another Round Matchup</button>
-                    ` : `
-                        <p class="text-xs text-slate-500 italic">Waiting on the room host to initiate the next sequential round dynamic.</p>
-                    `}
+                <div class="bg-slate-900 border border-emerald-500/20 p-5 rounded-xl text-center text-xs">
+                    <h3 class="font-bold text-slate-400 mb-4">"${roomState.currentPrompt}"</h3>
+                    <div class="space-y-2 mb-4">${answers.map(a => `
+                        <div class="p-3 bg-slate-950 border border-slate-850 rounded-lg flex justify-between items-center">
+                            <div><b class="text-slate-500">${roomState.users[a.userId]?.name || 'Player'}:</b> "${a.text}"</div>
+                            <div class="font-bold text-indigo-400">${tallies[a.userId] || 0} Volatile Votes</div>
+                        </div>
+                    `).join('')}</div>
+                    <div class="bg-emerald-950/20 border border-emerald-500/30 p-2.5 rounded-lg mb-4 text-emerald-400 font-bold">Winner: ${winName}</div>
+                    ${isHost ? `<button id="end-or-next-btn" class="w-full bg-emerald-500 text-slate-950 font-bold py-2 rounded-lg mb-2">Next Round</button><button id="destroy-btn" class="w-full bg-rose-950 text-rose-400 border border-rose-900 py-2 rounded-lg font-bold">Close Game (Remove from Index)</button>` : `<p class="text-slate-500 italic">Awaiting room host administration choice...</p>`}
                 </div>
             `;
 
-            if(userRole === 'host') {
-                document.getElementById('next-round-btn').addEventListener('click', () => {
-                    // Transactionally increment winner score configuration variable setup
-                    runTransaction(ref(db, `${currentRoom}/users/${winnerId}/score`), (currentScore) => {
-                        return (currentScore || 0) + 100;
-                    }).then(() => {
-                        // Reset configuration metrics down into standard execution loops
-                        update(ref(db, currentRoom), {
-                            phase: "PROMPT_PHASE",
-                            currentPrompt: "",
-                            promptWriter: realPlayers[Math.floor(Math.random() * realPlayers.length)].id,
-                            answers: null,
-                            votes: null,
-                            botVotes: null,
-                            simulatedVotesLogged: null
-                        });
+            if(isHost) {
+                document.getElementById('end-or-next-btn').addEventListener('click', () => {
+                    runTransaction(ref(db, `${currentRoom}/users/${winnerId}/score`), (s) => (s || 0) + 100).then(() => {
+                        update(ref(db, currentRoom), { phase: "PROMPT_PHASE", currentPrompt: "", answers: null, votes: null });
+                    });
+                });
+                document.getElementById('destroy-btn').addEventListener('click', () => {
+                    remove(ref(db, `game_directory/${roomState.roomCode}`)).then(() => {
+                        remove(ref(db, currentRoom)).then(() => { location.reload(); });
                     });
                 });
             }
         }
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between">
 
-    <header class="border-b border-slate-900 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-lg font-black tracking-tight text-white flex items-center gap-2">
-                <span class="bg-gradient-to-r from-amber-400 to-orange-500 h-3 w-3 rounded-full inline-block"></span>
-                HYPERSPACE <span class="text-slate-500 font-normal">PROMPT Arena</span>
+    <header class="border-b border-slate-900 bg-slate-900/40 backdrop-blur px-4 py-3">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <h1 class="text-xs font-black tracking-widest text-white">
+                GAME <span id="display-room-code" class="text-slate-500 bg-slate-900 px-2 py-0.5 rounded ml-1 font-mono text-[10px]">DIRECTORY</span>
             </h1>
-            <div id="total-counter" class="text-xs px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 font-mono rounded-full">
-                Total Capacity Loading...
-            </div>
+            <div id="total-counter" class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-3 py-1 rounded-full font-mono">0 / 1000 Capacity</div>
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto px-4 py-8">
+    <main class="max-w-5xl w-full mx-auto p-4 flex-grow flex items-center justify-center">
         
-        <section id="auth-screen" class="max-w-md mx-auto bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl">
-            <h2 class="text-2xl font-black text-white mb-2 tracking-tight text-center">Join Game Arena</h2>
-            <p class="text-slate-400 text-sm text-center mb-6">Enter your username handle and pick your initial entrance vector role.</p>
+        <section id="screen-username" class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+            <h2 class="text-base font-bold text-white mb-1">Pick a Nickname</h2>
+            <p class="text-slate-400 text-xs mb-4">No registration or passwords required.</p>
+            <input type="text" id="username-input" placeholder="Enter handle..." class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none mb-3">
+            <button id="next-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider">Continue</button>
+        </section>
+
+        <section id="screen-room" class="hidden w-full max-w-md grid grid-cols-1 gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                <h2 class="text-sm font-bold text-white mb-3">Create/Join Private Key</h2>
+                <input type="text" id="room-input" placeholder="e.g., LOBBY7" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-center font-mono uppercase tracking-widest font-bold mb-3 text-sm focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="create-room-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs">Join/Host Player</button>
+                    <button id="join-audience-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs">Join Audience</button>
+                </div>
+            </div>
             
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Display Profile Handle Name:</label>
-                    <input type="text" id="username-input" placeholder="e.g., PromptMaster4000" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-indigo-500 transition-colors">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 pt-2">
-                    <button id="join-player-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow transition-colors text-sm">
-                        Join as Player <span class="block font-normal text-[10px] text-indigo-200">(Cap: 20)</span>
-                    </button>
-                    <button id="join-audience-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-3 rounded-lg shadow transition-colors text-sm">
-                        Join as Audience <span class="block font-normal text-[10px] text-slate-400">(Cap: 980)</span>
-                    </button>
-                </div>
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Currently Active Game Matches</h3>
+                <div id="active-games-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
             </div>
         </section>
 
-        <section id="game-screen" class="hidden grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            <div class="space-y-6">
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                    <h3 class="text-xs font-black uppercase text-slate-400 tracking-wider mb-3 flex justify-between">
-                        <span>Active Contestants</span>
-                        <span class="text-indigo-400 font-mono">Max 20</span>
-                    </h3>
-                    <div id="player-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                        </div>
+        <section id="screen-game" class="hidden w-full grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+            <div class="md:col-span-1 space-y-3">
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Players (Max 20)</h3>
+                    <div id="player-list" class="space-y-1.5 max-h-36 overflow-y-auto"></div>
                 </div>
-
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Audience Seats</h4>
-                        <p class="text-[11px] text-slate-500">Voting power weight active</p>
-                    </div>
-                    <span id="audience-count" class="text-xl font-black text-indigo-400 font-mono">0</span>
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
+                    <span class="text-slate-400 uppercase font-bold text-[10px]">Audience Seats</span>
+                    <span id="audience-count" class="font-bold font-mono text-indigo-400">0</span>
                 </div>
-
-                <div id="host-controls" class="hidden bg-slate-900 border border-amber-500/20 p-4 rounded-xl">
-                    <span class="text-[10px] tracking-widest font-black uppercase bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded">Host Privileges Active</span>
-                    <h3 class="text-sm font-bold text-slate-200 mt-2 mb-3">Room Administration Controls</h3>
-                    <button id="start-btn" disabled class="w-full bg-amber-500 opacity-50 cursor-not-allowed text-slate-950 font-bold py-2.5 rounded text-sm shadow transition-all">
-                        Force Initialize Match Setup
-                    </button>
+                <div id="host-controls" class="hidden bg-slate-900 border border-amber-500/20 p-3 rounded-xl">
+                    <button id="start-btn" disabled class="w-full bg-amber-500 text-slate-950 font-bold py-2 rounded-lg text-xs tracking-wider uppercase">Advance Phase</button>
                 </div>
             </div>
 
-            <div class="md:col-span-2">
-                <div id="phase-container" class="w-full">
-                    </div>
+            <div class="md:col-span-2 bg-slate-900/40 p-1 rounded-xl">
+                <div id="phase-container" class="w-full"></div>
             </div>
 
+            <div class="md:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col h-72 justify-between">
+                <h4 class="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5 border-b border-slate-800 pb-1">Room Chat</h4>
+                <div id="chat-box" class="flex-grow overflow-y-auto space-y-1.5 pr-1 py-1 mb-2"></div>
+                <div class="flex gap-1.5">
+                    <input type="text" id="chat-input" placeholder="Type..." class="flex-grow bg-slate-950 border border-slate-850 rounded-lg text-xs p-1.5 text-white focus:outline-none">
+                    <button id="chat-send-btn" class="bg-indigo-600 px-2.5 rounded-lg text-[10px] font-bold">Send</button>
+                </div>
+            </div>
         </section>
 
     </main>
 
+    <footer class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not V0.6</footer>
 </body>
 </html>
