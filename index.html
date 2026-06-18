@@ -32,7 +32,7 @@
         let userRole = ""; 
         let roomState = null;
 
-        const badWordsFilter = ["fuck", "shit", "asshole", "bitch", "cunt", "dick", "fucker", "ass", "67", "poop", "crap"];
+        const badWordsFilter = ["fuck", "shit", "asshole", "bitch", "cunt", "dick", "pussy"];
         function cleanContent(text) {
             let sanitized = text;
             badWordsFilter.forEach(word => {
@@ -53,7 +53,8 @@
             usernameInput: document.getElementById('username-input'),
             nextBtn: document.getElementById('next-btn'),
             roomInput: document.getElementById('room-input'),
-            createRoomBtn: document.getElementById('create-room-btn'),
+            hostRoomBtn: document.getElementById('host-room-btn'),
+            joinPlayerBtn: document.getElementById('join-player-btn'),
             joinAudienceBtn: document.getElementById('join-audience-btn'),
             activeGamesList: document.getElementById('active-games-list'),
             displayRoomCode: document.getElementById('display-room-code'),
@@ -77,16 +78,25 @@
             initGlobalRoomListener();
         });
 
-        // Room Operations
-        elements.createRoomBtn.addEventListener('click', () => {
+        // Dedicated Button Click Routers
+        elements.hostRoomBtn.addEventListener('click', () => {
             const code = elements.roomInput.value.trim().toUpperCase();
-            if(!code) return alert("Enter a room code!");
+            if(!code) return alert("Enter a room code to host!");
+            isHost = true; 
+            connectToRoom(code, 'player');
+        });
+
+        elements.joinPlayerBtn.addEventListener('click', () => {
+            const code = elements.roomInput.value.trim().toUpperCase();
+            if(!code) return alert("Enter a room code to join!");
+            isHost = false;
             connectToRoom(code, 'player');
         });
 
         elements.joinAudienceBtn.addEventListener('click', () => {
             const code = elements.roomInput.value.trim().toUpperCase();
             if(!code) return alert("Enter a room code!");
+            isHost = false;
             connectToRoom(code, 'audience');
         });
 
@@ -96,7 +106,7 @@
                 const directory = snapshot.val();
                 elements.activeGamesList.innerHTML = "";
                 if (!directory || Object.keys(directory).length === 0) {
-                    elements.activeGamesList.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No active rooms found. Create one above!</p>`;
+                    elements.activeGamesList.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No active rooms found. Host one above!</p>`;
                     return;
                 }
                 Object.keys(directory).forEach(roomCode => {
@@ -106,7 +116,7 @@
                     div.innerHTML = `
                         <div>
                             <span class="font-mono text-sm font-bold text-white">${roomCode}</span>
-                            <span class="text-[10px] bg-indigo-950 text-indigo-400 font-bold px-1.5 py-0.5 rounded ml-2 uppercase">${info.phase}</span>
+                            <span class="text-[10px] bg-indigo-950 text-indigo-400 font-bold px-1.5 py-0.5 rounded ml-2 uppercase">${info.phase || "LOBBY"}</span>
                         </div>
                         <div class="flex gap-2">
                             <button class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-xs font-bold rounded-lg text-white" onclick="window.directJoin('${roomCode}', 'player')">Play</button>
@@ -115,20 +125,24 @@
                     `;
                     elements.activeGamesList.appendChild(div);
                 });
+            }, (error) => {
+                console.error("Directory read failure:", error);
             });
         }
 
-        window.directJoin = (roomCode, role) => connectToRoom(roomCode, role);
+        window.directJoin = (roomCode, role) => {
+            isHost = false;
+            connectToRoom(roomCode, role);
+        };
 
         function connectToRoom(roomCode, role) {
             currentRoom = "room_" + roomCode;
             userRole = role;
             elements.displayRoomCode.innerText = `ROOM: ${roomCode}`;
 
-            const roomRef = ref(db, currentRoom);
+            const roomRef = ref(db, `rooms/${currentRoom}`);
             runTransaction(roomRef, (currentData) => {
                 if (!currentData) {
-                    isHost = true; 
                     return {
                         roomCode: roomCode,
                         hostId: userId,
@@ -143,13 +157,18 @@
                     };
                 }
                 return currentData;
-            }).then(() => {
-                // Register in public directory index
-                set(ref(db, `game_directory/${roomCode}`), { phase: "LOBBY" });
+            }).then((result) => {
+                const roomVal = result.snapshot.val();
+                
+                if (isHost || roomVal.hostId === userId) {
+                    isHost = true;
+                    elements.hostControls.classList.remove('hidden');
+                }
 
-                if (isHost) elements.hostControls.classList.remove('hidden');
+                update(ref(db, `game_directory/${roomCode}`), { phase: roomVal.phase || "LOBBY" });
 
-                set(ref(db, `${currentRoom}/users/${userId}`), {
+                const userRef = ref(db, `rooms/${currentRoom}/users/${userId}`);
+                set(userRef, {
                     id: userId,
                     name: userName,
                     role: role,
@@ -160,6 +179,9 @@
                     listenToGameRoom();
                     listenToChat();
                 });
+            }).catch(err => {
+                alert("Database Sync Error. Check connection parameters.");
+                console.error(err);
             });
         }
 
@@ -170,7 +192,7 @@
         function sendChatMessage() {
             const text = elements.chatInput.value.trim();
             if(!text) return;
-            const chatRef = ref(db, `${currentRoom}/chat/${Date.now()}`);
+            const chatRef = ref(db, `rooms/${currentRoom}/chat/${Date.now()}`);
             set(chatRef, {
                 sender: userName,
                 text: cleanContent(text)
@@ -179,7 +201,7 @@
         }
 
         function listenToChat() {
-            onValue(ref(db, `${currentRoom}/chat`), (snapshot) => {
+            onValue(ref(db, `rooms/${currentRoom}/chat`), (snapshot) => {
                 const logs = snapshot.val();
                 if(!logs) return;
                 elements.chatBox.innerHTML = Object.values(logs).map(m => `
@@ -193,7 +215,7 @@
         }
 
         function listenToGameRoom() {
-            onValue(ref(db, currentRoom), (snapshot) => {
+            onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
                 roomState = data;
@@ -213,8 +235,9 @@
                 <div class="p-2 bg-slate-800 border border-slate-700/40 rounded-lg flex justify-between items-center text-xs">
                     <span class="font-medium text-slate-100 flex items-center gap-1">
                         ${p.name} ${p.id === userId ? '<b class="text-emerald-400 text-[9px]">[YOU]</b>':''}
+                        ${roomState.hostId === p.id ? '<b class="text-amber-400 text-[9px]">[HOST]</b>':''}
                     </span>
-                    <span class="bg-slate-900 px-2 py-0.5 rounded text-slate-400 font-mono">Pts: ${p.score || 0}</span>
+                    <span class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-400 font-mono">Pts: ${p.score || 0}</span>
                 </div>
             `).join('');
 
@@ -241,7 +264,7 @@
             const targetWriter = players[Math.floor(Math.random() * players.length)].id;
             
             update(ref(db, `game_directory/${roomState.roomCode}`), { phase: "PROMPT" });
-            update(ref(db, currentRoom), {
+            update(ref(db, `rooms/${currentRoom}`), {
                 phase: "PROMPT_PHASE",
                 promptWriter: targetWriter,
                 currentPrompt: "", answers: null, votes: null
@@ -266,7 +289,7 @@
                     if (candidates.length < 2) candidates = players;
                     const answerers = candidates.sort(() => 0.5 - Math.random()).slice(0, 2).map(c => c.id);
 
-                    update(ref(db, currentRoom), { currentPrompt: val, answerWriters: answerers, phase: "ANSWER_PHASE" });
+                    update(ref(db, `rooms/${currentRoom}`), { currentPrompt: val, answerWriters: answerers, phase: "ANSWER_PHASE" });
                 });
             } else {
                 elements.phaseContainer.innerHTML = `<div class="text-center py-12 bg-slate-900/40 rounded-xl"><p class="text-xs text-slate-400">Someone is thinking up a wild prompt question...</p></div>`;
@@ -290,8 +313,8 @@
                 document.getElementById('submit-answer-btn').addEventListener('click', () => {
                     const txt = cleanContent(document.getElementById('answer-input').value.trim());
                     if (!txt) return;
-                    set(ref(db, `${currentRoom}/answers/${userId}`), { userId: userId, text: txt }).then(() => {
-                        runTransaction(ref(db, currentRoom), (c) => {
+                    set(ref(db, `rooms/${currentRoom}/answers/${userId}`), { userId: userId, text: txt }).then(() => {
+                        runTransaction(ref(db, `rooms/${currentRoom}`), (c) => {
                             if (c && Object.keys(c.answers || {}).length >= (c.answerWriters?.length || 2)) c.phase = "VOTING_PHASE";
                             return c;
                         });
@@ -324,8 +347,8 @@
                 b.className = "w-full text-left p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white hover:border-pink-500 transition-all";
                 b.innerText = ans.text;
                 b.addEventListener('click', () => {
-                    set(ref(db, `${currentRoom}/votes/${userId}`), ans.userId).then(() => {
-                        runTransaction(ref(db, currentRoom), (c) => {
+                    set(ref(db, `rooms/${currentRoom}/votes/${userId}`), ans.userId).then(() => {
+                        runTransaction(ref(db, `rooms/${currentRoom}`), (c) => {
                             const totalVoters = (players.length + audience.length) - (c.answerWriters?.length || 2);
                             if (c && Object.keys(c.votes || {}).length >= Math.max(1, totalVoters)) c.phase = "RESULTS_PHASE";
                             return c;
@@ -351,7 +374,7 @@
                     <div class="space-y-2 mb-4">${answers.map(a => `
                         <div class="p-3 bg-slate-950 border border-slate-850 rounded-lg flex justify-between items-center">
                             <div><b class="text-slate-500">${roomState.users[a.userId]?.name || 'Player'}:</b> "${a.text}"</div>
-                            <div class="font-bold text-indigo-400">${tallies[a.userId] || 0} Volatile Votes</div>
+                            <div class="font-bold text-indigo-400">${tallies[a.userId] || 0} Votes</div>
                         </div>
                     `).join('')}</div>
                     <div class="bg-emerald-950/20 border border-emerald-500/30 p-2.5 rounded-lg mb-4 text-emerald-400 font-bold">Winner: ${winName}</div>
@@ -361,13 +384,13 @@
 
             if(isHost) {
                 document.getElementById('end-or-next-btn').addEventListener('click', () => {
-                    runTransaction(ref(db, `${currentRoom}/users/${winnerId}/score`), (s) => (s || 0) + 100).then(() => {
-                        update(ref(db, currentRoom), { phase: "PROMPT_PHASE", currentPrompt: "", answers: null, votes: null });
+                    runTransaction(ref(db, `rooms/${currentRoom}/users/${winnerId}/score`), (s) => (s || 0) + 100).then(() => {
+                        update(ref(db, `rooms/${currentRoom}`), { phase: "PROMPT_PHASE", currentPrompt: "", answers: null, votes: null });
                     });
                 });
                 document.getElementById('destroy-btn').addEventListener('click', () => {
                     remove(ref(db, `game_directory/${roomState.roomCode}`)).then(() => {
-                        remove(ref(db, currentRoom)).then(() => { location.reload(); });
+                        remove(ref(db, `rooms/${currentRoom}`)).then(() => { location.reload(); });
                     });
                 });
             }
@@ -379,7 +402,7 @@
     <header class="border-b border-slate-900 bg-slate-900/40 backdrop-blur px-4 py-3">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <h1 class="text-xs font-black tracking-widest text-white">
-                GAME <span id="display-room-code" class="text-slate-500 bg-slate-900 px-2 py-0.5 rounded ml-1 font-mono text-[10px]">DIRECTORY</span>
+                QUIPLASH BUT NOT <span id="display-room-code" class="text-slate-500 bg-slate-900 px-2 py-0.5 rounded ml-1 font-mono text-[10px]">DIRECTORY</span>
             </h1>
             <div id="total-counter" class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-3 py-1 rounded-full font-mono">0 / 1000 Capacity</div>
         </div>
@@ -396,10 +419,11 @@
 
         <section id="screen-room" class="hidden w-full max-w-md grid grid-cols-1 gap-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
-                <h2 class="text-sm font-bold text-white mb-3">Create/Join Private Key</h2>
-                <input type="text" id="room-input" placeholder="e.g., LOBBY7" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-center font-mono uppercase tracking-widest font-bold mb-3 text-sm focus:outline-none">
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="create-room-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs">Join/Host Player</button>
+                <h2 class="text-sm font-bold text-white mb-3">Create or Join Rooms</h2>
+                <input type="text" id="room-input" placeholder="e.g., PARTY7" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-center font-mono uppercase tracking-widest font-bold mb-3 text-sm focus:outline-none">
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="host-room-btn" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-xl text-xs">Host Game</button>
+                    <button id="join-player-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs">Join Player</button>
                     <button id="join-audience-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs">Join Audience</button>
                 </div>
             </div>
@@ -441,6 +465,6 @@
 
     </main>
 
-    <footer class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not V0.6</footer>
+    <footer class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v0.7</footer>
 </body>
 </html>
