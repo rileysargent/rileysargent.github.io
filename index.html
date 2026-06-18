@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiplash but Not • v1.4</title>
+    <title>Quiplash but Not</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -128,9 +128,7 @@
             toggleDeafBtn: document.getElementById('toggle-deaf-btn'),
             localVideoPreview: document.getElementById('local-video-preview'),
             videoGridContainer: document.getElementById('video-grid-container'),
-            scareOverlay: document.getElementById('scare-overlay'),
-            brandTitle: document.getElementById('brand-title'),
-            footerBuild: document.getElementById('footer-build')
+            scareOverlay: document.getElementById('scare-overlay')
         };
 
         elements.nextBtn.addEventListener('click', () => {
@@ -179,7 +177,7 @@
                             <span class="text-[9px] bg-slate-900 text-slate-400 px-1 py-0.5 rounded ml-2 uppercase">${info.mode || "Quiplash"}</span>
                         </div>
                         <div class="flex gap-1.5">
-                            <button class="bg-indigo-600 px-2 py-0.5 text-[10px] font-bold rounded text-white" onclick="window.directJoin('${roomCode}', 'player')">Play</button>
+                            <button class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-[10px] font-bold rounded-lg text-white tracking-wide uppercase transition-colors" onclick="window.directJoin('${roomCode}', 'player')">Play</button>
                         </div>
                     `;
                     elements.activeGamesList.appendChild(div);
@@ -188,6 +186,11 @@
         }
 
         window.directJoin = (roomCode, role) => {
+            if (!userName) {
+                let promptName = prompt("Please enter a nickname first:");
+                if (!promptName || !promptName.trim()) return;
+                userName = cleanContent(promptName.trim());
+            }
             isHost = false;
             connectToRoom(roomCode, role);
         };
@@ -212,17 +215,17 @@
             }).then((result) => {
                 const roomVal = result.snapshot.val();
                 
-                if (!roomVal) return;
+                if (!roomVal) {
+                    alert("This match room does not exist or has already been closed.");
+                    return;
+                }
 
                 if (roomVal.hostId === userId) {
                     isHost = true;
                     elements.hostControls.classList.remove('hidden');
-                    
-                    // Host-Specific Disconnection Rule: Wipes everything
                     onDisconnect(ref(db, `rooms/${currentRoom}`)).remove();
                     onDisconnect(ref(db, `game_directory/${roomCode}`)).remove();
                 } else {
-                    // Regular Player Disconnection Rule
                     onDisconnect(ref(db, `rooms/${currentRoom}/users/${userId}`)).remove();
                 }
 
@@ -232,8 +235,10 @@
                     id: userId, name: userName, role: role, score: 0, isHost: isHost,
                     mediaState: { audio: false, video: false, deaf: false }
                 }).then(() => {
+                    screens.username.classList.add('hidden');
                     screens.room.classList.add('hidden');
                     screens.game.classList.remove('hidden');
+                    
                     listenToGameRoom();
                     listenToChat();
                     initWebRTCSignaling();
@@ -346,14 +351,12 @@
             onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
                 const data = snapshot.val(); 
                 
-                // Vacant Sweep Engine: Delete paths completely if room contains absolutely nobody
                 if (data && (!data.users || Object.keys(data.users).length === 0)) {
                     remove(ref(db, `rooms/${currentRoom}`));
                     remove(ref(db, `game_directory/${roomCodeGlobal}`));
                     return;
                 }
 
-                // If host killed the room data, kick players out
                 if (!data) {
                     if (!isHost) {
                         alert("The host closed the room session.");
@@ -364,21 +367,8 @@
                 
                 roomState = data;
                 gameMode = data.gameMode || "quiplash";
-                applyThemeStyling();
                 renderRoomState();
             });
-        }
-
-        function applyThemeStyling() {
-            if (gameMode === "fibbage") {
-                elements.brandTitle.innerText = "FIBBAGE 4 BUT NOT";
-                elements.footerBuild.innerText = "Fibbage 4 but Not • Client Build v1.4 (Beta Edition)";
-                document.body.className = "bg-stone-950 text-stone-100 min-h-screen font-sans flex flex-col justify-between transition-all duration-500";
-            } else {
-                elements.brandTitle.innerText = "QUIPLASH BUT NOT";
-                elements.footerBuild.innerText = "Quiplash but Not • Client Build v1.4 (Stable Release)";
-                document.body.className = "bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between transition-all duration-500";
-            }
         }
 
         function renderRoomState() {
@@ -394,7 +384,6 @@
                 </div>
             `).join('');
 
-            // Safe Gate Logic: Game requires minimum of 4 players to initiate arena sequence
             if (roomState.hostId === userId) {
                 if (players.length >= 4) {
                     elements.startBtn.disabled = false;
@@ -419,7 +408,7 @@
         elements.startBtn.addEventListener('click', () => {
             if (roomState.hostId !== userId) return;
             const players = Object.values(roomState.users).filter(u => u.role === 'player');
-            if (players.length < 4) return; // double-check verification gate
+            if (players.length < 4) return;
             
             const targetWriter = players[Math.floor(Math.random() * players.length)].id;
             update(ref(db, `rooms/${currentRoom}`), {
@@ -591,7 +580,7 @@
         function executePivotNoticeBanner(mode, master) {
             const n = document.createElement('div');
             n.className = "fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 text-center p-4 font-mono";
-            n.innerHTML = `<h2 class="text-2xl font-black tracking-widest text-amber-500 mb-2 uppercase">TRANSMUTING ARENA MATRIX</h2><p class="text-xs text-stone-400">${master} transformed the framework structure into <br><b class="text-white text-sm uppercase">${mode} 4 But Not</b> Mode!</p>`;
+            n.innerHTML = `<h2 class="text-2xl font-black tracking-widest text-amber-500 mb-2 uppercase">TRANSMUTING ARENA MATRIX</h2><p class="text-xs text-stone-400">${master} transformed the framework structure into <br><b class="text-white text-sm uppercase">${mode} Mode</b></p>`;
             document.body.appendChild(n);
             setTimeout(() => n.remove(), 2500);
         }
@@ -640,7 +629,7 @@
 
     <header class="border-b border-slate-900 bg-slate-900/40 backdrop-blur px-4 py-3">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <h1 id="brand-title" class="text-xs font-black tracking-widest text-white">QUIPLASH BUT NOT</h1>
+            <h1 class="text-xs font-black tracking-widest text-white">QUIPLASH BUT NOT</h1>
             <span id="display-room-code" class="text-slate-400 font-mono text-[10px] bg-slate-900 px-2 py-0.5 rounded">DIRECTORY</span>
             <div id="total-counter" class="text-[10px] bg-slate-900 text-slate-400 px-3 py-1 rounded-full font-mono">0 / 1000 Capacity</div>
         </div>
@@ -718,6 +707,6 @@
         </section>
     </main>
 
-    <footer id="footer-build" class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v1.4</footer>
+    <footer class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not</footer>
 </body>
 </html>
