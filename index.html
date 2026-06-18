@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiplash • v1.2</title>
-    <!-- Stable Tailwind CSS Play CDN -->
+    <title>Quiplash but Not • v1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -81,7 +80,7 @@
         let isHost = false; 
         let userRole = ""; 
         let roomState = null;
-        let gameMode = "quiplash"; // "quiplash" or "fibbage"
+        let gameMode = "quiplash"; 
 
         // WebRTC Infrastructure
         let localStream = null;
@@ -212,14 +211,25 @@
                 return currentData;
             }).then((result) => {
                 const roomVal = result.snapshot.val();
+                
+                if (!roomVal) return;
+
                 if (roomVal.hostId === userId) {
                     isHost = true;
                     elements.hostControls.classList.remove('hidden');
+                    
+                    // Host-Specific Disconnection Rule: Wipes everything
+                    onDisconnect(ref(db, `rooms/${currentRoom}`)).remove();
+                    onDisconnect(ref(db, `game_directory/${roomCode}`)).remove();
+                } else {
+                    // Regular Player Disconnection Rule
+                    onDisconnect(ref(db, `rooms/${currentRoom}/users/${userId}`)).remove();
                 }
+
                 update(ref(db, `game_directory/${roomCode}`), { phase: "LOBBY", mode: roomVal.gameMode || "quiplash" });
 
                 set(ref(db, `rooms/${currentRoom}/users/${userId}`), {
-                    id: userId, name: userName, role: role, score: 0,
+                    id: userId, name: userName, role: role, score: 0, isHost: isHost,
                     mediaState: { audio: false, video: false, deaf: false }
                 }).then(() => {
                     screens.room.classList.add('hidden');
@@ -229,10 +239,18 @@
                     initWebRTCSignaling();
                     listenToEasterEggs();
                 });
+            }).catch((err) => {
+                console.warn("Retrying transaction mapping safely...", err);
             });
         }
 
-        function leaveSessionRoute() {
+        async function leaveSessionRoute() {
+            if (isHost) {
+                await remove(ref(db, `rooms/${currentRoom}`));
+                await remove(ref(db, `game_directory/${roomCodeGlobal}`));
+            } else if (currentRoom && userId) {
+                await remove(ref(db, `rooms/${currentRoom}/users/${userId}`));
+            }
             location.reload();
         }
 
@@ -271,6 +289,7 @@
         }
 
         function syncMediaStateToDatabase() {
+            if (!currentRoom || !userId) return;
             update(ref(db, `rooms/${currentRoom}/users/${userId}/mediaState`), {
                 audio: mediaFlags.audioEnabled, video: mediaFlags.videoEnabled, deaf: mediaFlags.deafened
             });
@@ -325,7 +344,24 @@
         /* CORE GAME LOOP ENGINE */
         function listenToGameRoom() {
             onValue(ref(db, `rooms/${currentRoom}`), (snapshot) => {
-                const data = snapshot.val(); if (!data) return;
+                const data = snapshot.val(); 
+                
+                // Vacant Sweep Engine: Delete paths completely if room contains absolutely nobody
+                if (data && (!data.users || Object.keys(data.users).length === 0)) {
+                    remove(ref(db, `rooms/${currentRoom}`));
+                    remove(ref(db, `game_directory/${roomCodeGlobal}`));
+                    return;
+                }
+
+                // If host killed the room data, kick players out
+                if (!data) {
+                    if (!isHost) {
+                        alert("The host closed the room session.");
+                        location.reload();
+                    }
+                    return;
+                }
+                
                 roomState = data;
                 gameMode = data.gameMode || "quiplash";
                 applyThemeStyling();
@@ -336,11 +372,11 @@
         function applyThemeStyling() {
             if (gameMode === "fibbage") {
                 elements.brandTitle.innerText = "FIBBAGE 4 BUT NOT";
-                elements.footerBuild.innerText = "Fibbage 4 but Not • Client Build v1.2 (Beta Edition)";
+                elements.footerBuild.innerText = "Fibbage 4 but Not • Client Build v1.4 (Beta Edition)";
                 document.body.className = "bg-stone-950 text-stone-100 min-h-screen font-sans flex flex-col justify-between transition-all duration-500";
             } else {
                 elements.brandTitle.innerText = "QUIPLASH BUT NOT";
-                elements.footerBuild.innerText = "Quiplash but Not • Client Build v1.1 (Stable Release)";
+                elements.footerBuild.innerText = "Quiplash but Not • Client Build v1.4 (Stable Release)";
                 document.body.className = "bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between transition-all duration-500";
             }
         }
@@ -353,13 +389,20 @@
 
             elements.playerList.innerHTML = players.map(p => `
                 <div class="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center text-xs">
-                    <span class="font-medium truncate">${p.name}</span>
+                    <span class="font-medium truncate">${p.name} ${p.isHost ? '<b class="text-amber-500 text-[9px] ml-1">[HOST]</b>' : ''}</span>
                     <span class="text-[10px] text-amber-400 font-mono">Score: ${p.score || 0}</span>
                 </div>
             `).join('');
 
+            // Safe Gate Logic: Game requires minimum of 4 players to initiate arena sequence
             if (roomState.hostId === userId) {
-                elements.startBtn.disabled = players.length < 1;
+                if (players.length >= 4) {
+                    elements.startBtn.disabled = false;
+                    elements.startBtn.innerText = "Begin Round";
+                } else {
+                    elements.startBtn.disabled = true;
+                    elements.startBtn.innerText = `Need ${4 - players.length} More Players`;
+                }
             }
 
             switch(roomState.phase) {
@@ -376,8 +419,9 @@
         elements.startBtn.addEventListener('click', () => {
             if (roomState.hostId !== userId) return;
             const players = Object.values(roomState.users).filter(u => u.role === 'player');
-            const targetWriter = players[Math.floor(Math.random() * players.length)].id;
+            if (players.length < 4) return; // double-check verification gate
             
+            const targetWriter = players[Math.floor(Math.random() * players.length)].id;
             update(ref(db, `rooms/${currentRoom}`), {
                 phase: "PROMPT_PHASE", promptWriter: targetWriter,
                 currentPrompt: "", answers: null, votes: null, trueAnswer: "Real Truth"
@@ -422,7 +466,7 @@
                     <span class="text-[9px] font-bold text-amber-400 block uppercase mb-1">PROMPT CONFIGURATION:</span>
                     <h3 class="text-sm font-bold text-white mb-3">"${roomState.currentPrompt}"</h3>
                     <input type="text" id="a-input" placeholder="${gameMode === 'fibbage' ? 'Enter a clever lie to fool others...' : 'Enter response...'}" class="w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs mb-2 focus:outline-none text-white">
-                    <button id="sub-ans" class="w-full bg-amber-500 text-slate-950 text-xs py-1.5 rounded font-bold">Submit Response</button>
+                    <button id="sub-ans" class="w-full bg-amber-500 text-slate-955 text-xs py-1.5 rounded font-bold">Submit Response</button>
                 </div>
             `;
             document.getElementById('sub-ans').addEventListener('click', () => {
@@ -451,14 +495,13 @@
             `;
             const box = document.getElementById('vote-options-box');
             
-            // Build collective list including the real fact if mode is Fibbage
             let optionsList = Object.values(roomState.answers || {});
             if (gameMode === "fibbage") {
                 optionsList.push({ userId: "TRUTH_NODE", text: roomState.trueAnswer });
             }
             
             optionsList.forEach(ans => {
-                if (ans.userId === userId) return; // Can't vote for your own lie
+                if (ans.userId === userId) return; 
                 const btn = document.createElement('button');
                 btn.className = "w-full text-left p-2.5 bg-slate-950 border border-slate-850 hover:border-indigo-500 text-xs rounded text-slate-200 transition-all";
                 btn.innerText = ans.text;
@@ -483,7 +526,7 @@
                     <h3 class="font-bold text-slate-400 mb-2">"${roomState.currentPrompt}"</h3>
                     ${gameMode === 'fibbage' ? `<div class="p-2 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 rounded mb-3 font-bold">The Truth Was: ${roomState.trueAnswer}</div>` : ''}
                     <div class="space-y-1 mb-3">
-                        ${answers.map(a => `<div class="p-2 bg-slate-950 rounded border border-slate-850 text-left flex justify-between"><span><b>${roomState.users[a.userId]?.name}:</b> ${a.text}</span></div>`).join('')}
+                        ${answers.map(a => `<div class="p-2 bg-slate-950 rounded border border-slate-850 text-left flex justify-between"><span><b>${roomState.users[a.userId]?.name || "Guest"}:</b> ${a.text}</span></div>`).join('')}
                     </div>
                     ${strictlyHost ? `<button id="next-round" class="w-full bg-indigo-600 text-white font-bold py-1.5 rounded">Next Iteration</button>` : `<p class="text-slate-500 italic">Awaiting host management assignment mapping...</p>`}
                 </div>
@@ -499,7 +542,7 @@
         window.addEventListener('keydown', (e) => {
             if (!currentRoom) return;
 
-            // Alt + Shift + T -> Transmute Game Model into Fibbage 4 Room Architecture
+            // Alt + Shift + T -> Toggle Game Mode Architecture
             if (e.altKey && e.shiftKey && e.code === 'KeyT') {
                 e.preventDefault();
                 const nextMode = gameMode === "quiplash" ? "fibbage" : "quiplash";
@@ -605,14 +648,12 @@
 
     <main id="master-stage-wrapper" class="max-w-5xl w-full mx-auto p-4 flex-grow flex items-center justify-center">
         
-        <!-- STEP 1: IDENTITY REGISTRY -->
         <section id="screen-username" class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <h2 class="text-base font-bold text-white mb-1">Pick a Nickname</h2>
             <input type="text" id="username-input" placeholder="Enter handle..." class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none mb-3">
             <button id="next-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider">Continue</button>
         </section>
 
-        <!-- STEP 2: LOBBY GATEWAY -->
         <section id="screen-room" class="hidden w-full max-w-md grid grid-cols-1 gap-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
                 <h2 class="text-sm font-bold text-white mb-3">Create or Join Rooms</h2>
@@ -629,7 +670,6 @@
             </div>
         </section>
 
-        <!-- STEP 3: MAIN ARENA INTERFACE -->
         <section id="screen-game" class="hidden w-full grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
             <div class="md:col-span-1 space-y-3">
                 <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
@@ -654,7 +694,7 @@
                 </div>
 
                 <div id="host-controls" class="hidden bg-slate-900 border border-amber-500/20 p-2 rounded-xl">
-                    <button id="start-btn" disabled class="w-full bg-amber-500 text-slate-950 font-bold py-1 rounded text-xs uppercase">Begin Round</button>
+                    <button id="start-btn" disabled class="w-full bg-amber-500 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold py-1 rounded text-xs uppercase">Need 4 Players</button>
                 </div>
                 <button id="leave-room-btn" class="w-full bg-rose-950 text-rose-400 p-2 rounded text-xs font-bold uppercase">Leave Room</button>
             </div>
@@ -678,6 +718,6 @@
         </section>
     </main>
 
-    <footer id="footer-build" class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v1.1</footer>
+    <footer id="footer-build" class="text-center py-2 text-[9px] text-slate-700 font-mono border-t border-slate-900">Quiplash but Not • Client Build v1.4</footer>
 </body>
 </html>
