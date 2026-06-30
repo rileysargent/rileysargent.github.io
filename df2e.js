@@ -19,7 +19,7 @@ app.listen(PORT, () => {
 const bot = mineflayer.createBot({
   host: 'sargentserver1.progamer.me', 
   port: 36837,                  
-  username: 'thesargentserver@outlook.com', 
+  username: 'h0xBot', 
   auth: 'microsoft'             
 });
 
