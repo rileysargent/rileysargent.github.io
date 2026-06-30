@@ -17,9 +17,9 @@ app.listen(PORT, () => {
 // 2. Minecraft bot configuration
 // REPLACE 'YOUR_SERVER_IP' AND 'YOUR_BOT_EMAIL' WITH YOUR ACTUAL DETAILS
 const bot = mineflayer.createBot({
-  host: 'YOUR_SERVER_IP_HERE', 
-  port: 25565,                  
-  username: 'your-bot-email@outlook.com', 
+  host: 'sargentserver1.joinmc.worls', 
+  port: 36837,                  
+  username: 'thesargentserver@outlook.com', 
   auth: 'microsoft'             
 });
 
