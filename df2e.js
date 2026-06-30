@@ -21,7 +21,7 @@ const bot = mineflayer.createBot({
   port: 36837,                  
   username: 'h0xBot', 
   auth: 'offline',          
-  version: 'false'
+  checkTimeoutInterval: '60000'
 });
 
 // Log event when the bot successfully spawns into your server
@@ -50,3 +50,10 @@ setInterval(async () => {
     console.log('Ping failed, but script is still running:', error.message);
   }
 }, 14 * 60 * 1000); // 14 minutes in milliseconds
+
+// Forces the bot code to stop asking for version packet configurations 
+bot._client.on('packet', (data, metadata) => {
+  if (metadata.name === 'custom_payload' || metadata.name === 'login') {
+    // This empty listener tricks the script into letting the connection pass
+  }
+});
