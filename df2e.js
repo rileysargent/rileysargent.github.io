@@ -15,13 +15,12 @@ app.listen(PORT, () => {
 });
 
 // 2. Minecraft bot configuration (Forced Version Override & Offline Mode)
-// MAKE SURE TO CHANGE THE HOST TO YOUR ACTUAL FREE SERVER IP!
 const bot = mineflayer.createBot({
-  host: 'YOUR_SERVER_IP_HERE', 
-  port: 25565,                  
-  username: 'ServerBot',       // The exact name your bot will use inside Minecraft
-  auth: 'offline',             // Skips Microsoft paywalls/logins entirely
-  version: '1.21.1',           // Bypasses the autoVersion error by using a stable fallback lookup
+  host: 'sargentserver1.progamer.me', // Your exact server address 
+  port: 36837,                        // Your exact server port
+  username: 'h0xBot',                 // Your exact custom name!
+  auth: 'offline',                    // Skips Microsoft paywalls/logins entirely
+  version: '1.21.1',                  // Bypasses the autoVersion error by using a stable fallback lookup
   checkTimeoutInterval: 60000 
 });
 
@@ -43,7 +42,7 @@ bot.on('end', () => {
 });
 
 // 3. The 14-minute loop to bypass Render's 15-minute sleep timer
-const PROJECT_URL = `https://onrender.com`; 
+const PROJECT_URL = `https://riley-s-projects.onrender.com`; 
 
 setInterval(async () => {
   try {
