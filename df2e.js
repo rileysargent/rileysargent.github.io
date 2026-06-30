@@ -17,7 +17,7 @@ app.listen(PORT, () => {
 // 2. Minecraft bot configuration
 // REPLACE 'YOUR_SERVER_IP' AND 'YOUR_BOT_EMAIL' WITH YOUR ACTUAL DETAILS
 const bot = mineflayer.createBot({
-  host: 'sargentserver1.joinmc.worls', 
+  host: 'sargentserver1.progamer.me', 
   port: 36837,                  
   username: 'thesargentserver@outlook.com', 
   auth: 'microsoft'             
@@ -37,7 +37,7 @@ bot.on('end', () => {
 });
 
 // 3. The 14-minute loop to bypass Render's 15-minute sleep timer
-const PROJECT_URL = `https://onrender.com`; 
+const PROJECT_URL = `https://riley-s-projects.onrender.com`; 
 
 setInterval(async () => {
   try {
