@@ -25,8 +25,10 @@ const bot = mineflayer.createBot({
 
 // Log event when the bot successfully spawns into your server
 bot.on('spawn', () => {
-  console.log('Bot is inside the server and broadcasting to friends list!');
+  console.log(`Bot is inside the server! Current Username: ${bot.username}`);
+  console.log('Broadcasting to friends list...');
 });
+
 
 // Handle auto-reconnect if the bot gets kicked or server restarts
 bot.on('end', () => {
