@@ -20,7 +20,7 @@ const bot = mineflayer.createBot({
   host: 'sargentserver1.progamer.me', 
   port: 36837,                  
   username: 'h0xBot', 
-  auth: 'microsoft'          
+  auth: 'microsoft',          
   version: 'false'
 });
 
