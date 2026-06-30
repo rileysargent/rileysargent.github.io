@@ -20,7 +20,7 @@ const bot = mineflayer.createBot({
   username: 'h0xBot',                 
   auth: 'offline',                    
   // Feed the code the direct 26.1.2 protocol hex mapping
-  version: '26.1.2' 
+  version: '1.21.4' 
 });
 
 // Force override the protocol ID to 775 (Minecraft 26.1.2 Standard)
