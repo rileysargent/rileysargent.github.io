@@ -1,0 +1,387 @@
+/* ==========================================================================
+   DIGITAL CIRCUS - GLOBAL CANVAS & HUD STYLES
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    background-color: #080711;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 960px;
+    height: 600px;
+    background: #110926;
+    border: 3px solid #ff0055;
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(255, 0, 85, 0.3), inset 0 0 50px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+#arena {
+    position: absolute;
+    width: 1400px;
+    height: 900px;
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    border: 6px solid #ff0055;
+}
+
+/* Spotlight & Exit Door Environment Elements */
+.spotlight {
+    position: absolute;
+    top: 100px;
+    left: 600px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255, 230, 0, 0.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+#exit-door {
+    position: absolute;
+    top: 50px;
+    left: 680px;
+    width: 60px;
+    height: 90px;
+    background: #ff3300;
+    border: 3px solid #ffffff;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px #ff3300;
+}
+
+/* HUD & UI */
+.hud {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.hud-card {
+    background: rgba(18, 12, 38, 0.85);
+    border: 2px solid #ff0055;
+    padding: 8px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hud-label {
+    color: #ffe600;
+    font-weight: bold;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.bar-bg {
+    width: 120px;
+    height: 14px;
+    background: #000;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #00ffcc, #ff0055);
+    transition: width 0.2s;
+}
+
+.score-badge {
+    background: #ffe600;
+    color: #000;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.controls {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(18, 12, 38, 0.9);
+    border: 2px solid #00d9ff;
+    border-radius: 20px;
+    padding: 8px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    z-index: 100;
+}
+
+.key {
+    background: #2a1b4e;
+    border: 1px solid #00d9ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.btn {
+    background: linear-gradient(135deg, #ff0055, #ff5500);
+    border: none;
+    color: white;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-blue {
+    background: linear-gradient(135deg, #00d9ff, #0055ff);
+}
+
+.speech-bubble {
+    position: absolute;
+    background: #ffffff;
+    color: #110926;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: bold;
+    max-width: 200px;
+    opacity: 0;
+    transition: all 0.2s;
+    z-index: 90;
+    border: 2px solid #000;
+    pointer-events: none;
+}
+
+.speech-bubble.active {
+    opacity: 1;
+}
+
+#glitch-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(0deg, rgba(255,0,85,0.2), rgba(255,0,85,0.2) 2px, transparent 2px, transparent 4px);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 80;
+}
+
+
+/* ==========================================================================
+   CHARACTER VECTOR SPRITES
+   ========================================================================== */
+
+.sprite {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s linear;
+}
+
+/* 1. POMNI SPRITE */
+.pomni-sprite {
+    width: 44px;
+    height: 50px;
+}
+
+.pomni-sprite .head {
+    position: absolute;
+    top: 0; left: 6px;
+    width: 32px; height: 30px;
+    background: #ffe0bd;
+    border-radius: 50%;
+    border: 2px solid #000;
+}
+
+.pomni-sprite .eye {
+    position: absolute;
+    top: 8px; width: 10px; height: 10px;
+    background: #fff; border-radius: 50%; border: 1px solid #000;
+}
+.pomni-sprite .eye.left { left: 3px; }
+.pomni-sprite .eye.right { right: 3px; }
+
+.pomni-sprite .eye::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 4px; height: 4px; border-radius: 50%;
+}
+.pomni-sprite .eye.left::after { background: #ff0044; }
+.pomni-sprite .eye.right::after { background: #0066ff; }
+
+.pomni-sprite .jester-hat-left {
+    position: absolute; top: -12px; left: -2px;
+    width: 18px; height: 18px; background: #0066ff;
+    border-radius: 50% 0 0 50%; transform: rotate(-20deg);
+}
+.pomni-sprite .jester-hat-right {
+    position: absolute; top: -12px; right: -2px;
+    width: 18px; height: 18px; background: #ff0044;
+    border-radius: 0 50% 50% 0; transform: rotate(20deg);
+}
+
+.pomni-sprite .body {
+    position: absolute; bottom: 0; left: 10px;
+    width: 24px; height: 20px;
+    background: linear-gradient(90deg, #ff0044 50%, #0066ff 50%);
+    border-radius: 8px 8px 0 0;
+    border: 2px solid #000;
+}
+
+
+/* 2. CAINE SPRITE (ANIMATED FLOATING TEETH & EYE) */
+.caine-sprite {
+    width: 60px; height: 70px;
+    animation: caineFloat 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes caineFloat {
+    0% { transform: translate(-50%, -50%) translateY(-6px); }
+    100% { transform: translate(-50%, -50%) translateY(6px); }
+}
+
+.caine-sprite .top-hat {
+    position: absolute; top: -15px; left: 18px;
+    width: 24px; height: 20px; background: #111;
+    border-bottom: 4px solid #ff0055;
+}
+
+.caine-sprite .jaw {
+    position: absolute; width: 50px; height: 18px;
+    background: #d60036; border-radius: 20px; border: 2px solid #000;
+}
+.caine-sprite .upper-jaw { top: 10px; left: 5px; }
+.caine-sprite .lower-jaw { bottom: 10px; left: 5px; }
+
+.caine-sprite .eyeball {
+    position: absolute; top: 18px; left: 18px;
+    width: 24px; height: 24px; background: #fff;
+    border-radius: 50%; border: 2px solid #000; z-index: 5;
+}
+
+.caine-sprite .iris {
+    position: absolute; top: 6px; left: 6px;
+    width: 10px; height: 10px; background: #00cc66;
+    border-radius: 50%; border: 2px solid #000;
+}
+
+
+/* 3. JAX SPRITE */
+.jax-sprite {
+    width: 40px; height: 65px;
+}
+
+.jax-sprite .ear {
+    position: absolute; top: -18px; width: 8px; height: 22px;
+    background: #a855f7; border: 2px solid #000; border-radius: 4px;
+}
+.jax-sprite .left-ear { left: 8px; }
+.jax-sprite .right-ear { right: 8px; }
+
+.jax-sprite .head {
+    position: absolute; top: 4px; left: 5px;
+    width: 30px; height: 28px; background: #a855f7;
+    border-radius: 50%; border: 2px solid #000;
+}
+
+.jax-sprite .eye {
+    position: absolute; top: 8px; width: 6px; height: 6px;
+    background: #facc15; border-radius: 50%;
+}
+.jax-sprite .eye.left { left: 5px; }
+.jax-sprite .eye.right { right: 5px; }
+
+.jax-sprite .overalls {
+    position: absolute; bottom: 0; left: 8px;
+    width: 24px; height: 30px; background: #eab308;
+    border-radius: 4px; border: 2px solid #000;
+}
+
+
+/* 4. RAGATHA SPRITE */
+.ragatha-sprite {
+    width: 44px; height: 55px;
+}
+
+.ragatha-sprite .yarn-hair {
+    position: absolute; top: -4px; left: 2px;
+    width: 40px; height: 35px; background: #dc2626;
+    border-radius: 50%; border: 2px solid #000;
+}
+
+.ragatha-sprite .head {
+    position: absolute; top: 6px; left: 8px;
+    width: 28px; height: 26px; background: #fef3c7;
+    border-radius: 50%; border: 2px solid #000; z-index: 2;
+}
+
+.ragatha-sprite .dress {
+    position: absolute; bottom: 0; left: 6px;
+    width: 32px; height: 26px; background: #2563eb;
+    clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+}
+
+
+/* 5. KINGER SPRITE */
+.kinger-sprite {
+    width: 46px; height: 60px;
+}
+
+.kinger-sprite .crown {
+    position: absolute; top: -8px; left: 16px;
+    width: 14px; height: 10px; background: #facc15;
+    clip-path: polygon(0% 100%, 0% 0%, 50% 40%, 100% 0%, 100% 100%);
+}
+
+.kinger-sprite .robe {
+    position: absolute; bottom: 0; left: 3px;
+    width: 40px; height: 48px; background: #7e22ce;
+    border-radius: 20px 20px 4px 4px; border: 2px solid #000;
+}
+
+.kinger-sprite .head {
+    position: absolute; top: 12px; left: 8px;
+    width: 30px; height: 22px; background: #fff;
+    border-radius: 50%; z-index: 3; display: flex;
+    justify-content: space-around; align-items: center;
+}
+
+.kinger-sprite .eye {
+    width: 8px; height: 8px; background: #000; border-radius: 50%;
+}
+
+
+/* GLOINK BUGS */
+.gloink {
+    position: absolute;
+    width: 20px; height: 20px;
+    background: #00ffcc;
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    border: 1px solid #000;
+    animation: gloinkHop 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes gloinkHop {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-8px); }
+}
